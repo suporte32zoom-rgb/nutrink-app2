@@ -47,7 +47,7 @@ export function isValidGeminiModelName(name: string | undefined | null): boolean
 
 /**
  * 1. CONFIGURAÇÃO DO MODELO NA API:
- * Configura o modelo prioritário para 'gemini-3.8-flash' (oficial do SDK @google/genai).
+ * Configura o modelo prioritário para 'gemini-3.7-flash' (oficial do SDK @google/genai).
  * Lê dinamicamente de process.env.VITE_GEMINI_MODEL / import.meta.env.VITE_GEMINI_MODEL validando o formato.
  */
 export function getClientGeminiModel(): string {
@@ -89,8 +89,8 @@ export function getClientGeminiModel(): string {
     } catch {}
   }
 
-  // Modelo oficial padrão prioritário: gemini-3.1-flash-lite
-  return 'gemini-3.1-flash-lite';
+  // Modelo oficial padrão prioritário: gemini-3.7-flash
+  return 'gemini-3.7-flash';
 }
 
 /**
@@ -1182,9 +1182,10 @@ export async function callNutriaDirect(params: NutriaCallParams): Promise<Nutria
   const targetModel = getClientGeminiModel();
   const contents = formatGeminiContents(params.conversationHistory, params.message);
 
-  // Candidate models sequence prioritizing gemini-3.1-flash-lite and fast options
+  // Candidate models sequence prioritizing gemini-3.7-flash with fast options
   const candidateModels = [
     targetModel,
+    'gemini-3.7-flash',
     'gemini-3.1-flash-lite',
     'gemini-3.8-flash',
     'gemini-flash-latest'

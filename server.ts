@@ -698,13 +698,14 @@ app.get("/api/health", (req: Request, res: Response) => {
   });
 });
 
-// Multi-model candidate list prioritizing fast, quota-resilient models with automatic failover
+// Multi-model candidate list prioritizing modern gemini-3.7-flash with automatic failover
 const rawCustomModel = (process.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL || "").trim();
 const validCustomModel = isValidGeminiModelName(rawCustomModel) ? rawCustomModel : null;
 
-// Official models supported by @google/genai SDK
+// Official models supported by @google/genai SDK (gemini-3.7-flash as primary)
 const BASE_GEMINI_MODELS = [
   ...(validCustomModel ? [validCustomModel] : []),
+  "gemini-3.7-flash",
   "gemini-3.1-flash-lite",
   "gemini-3.8-flash",
   "gemini-flash-latest"
@@ -960,7 +961,7 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
 
     let replyText = "";
     let actionExecuted: any = null;
-    let usedModel = "gemini-3.8-flash";
+    let usedModel = "gemini-3.7-flash";
     let geminiResult: any = null;
 
     try {
