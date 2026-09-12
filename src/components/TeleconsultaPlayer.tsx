@@ -10,15 +10,19 @@ interface TeleconsultaProps {
   isModerator?: boolean;
 }
 
+const DEFAULT_JAAS_APP_ID = "vpaas-magic-cookie-4f86a9af8ef14d28b178e66905790bac";
+const DEFAULT_JAAS_ROOM = "SampleAppGentleIncomesAppointPresumably";
+const DEFAULT_JAAS_JWT = "eyJraWQiOiJ2cGFhcy1tYWdpYy1jb29raWUtNGY4NmE5YWY4ZWYxNGQyOGIxNzhlNjY5MDU3OTBiYWMvZjg1NGIzLVNBTVBMRV9BUFAiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJqaXRzaSIsImlzcyI6ImNoYXQiLCJpYXQiOjE3ODkyNTI4NjUsImV4cCI6MTc4OTI2MDA2NSwibmJmIjoxNzg5MjUyODYwLCJzdWIiOiJ2cGFhcy1tYWdpYy1jb29raWUtNGY4NmE5YWY4ZWYxNGQyOGIxNzhlNjY5MDU3OTBiYWMiLCJjb250ZXh0Ijp7ImZlYXR1cmVzIjp7ImxpdmVzdHJlYW1pbmciOmZhbHNlLCJmaWxlLXVwbG9hZCI6ZmFsc2UsIm91dGJvdW5kLWNhbGwiOmZhbHNlLCJzaXAtb3V0Ym91bmQtY2FsbCI6ZmFsc2UsInRyYW5zY3JpcHRpb24iOmZhbHNlLCJsaXN0LXZpc2l0b3JzIjpmYWxzZSwicmVjb3JkaW5nIjpmYWxzZSwiZmxpcCI6ZmFsc2V9LCJ1c2VyIjp7ImhpZGRlbi1mcm9tLXJlY29yZGVyIjpmYWxzZSwibW9kZXJhdG9yIjp0cnVlLCJuYW1lIjoiVGVzdCBVc2VyIiwiaWQiOiJnb29nbGUtb2F1dGgyfDEwNzc0NTE5NjUyNzg2MjY3OTc1MyIsImF2YXRhciI6IiIsImVtYWlsIjoidGVzdC51c2VyQGNvbXBhbnkuY29tIn19LCJyb29tIjoiKiJ9.An1y0MnIW0FIVNCORht3dLE1dTXJzQf-Ga4sOqIyCEyy9hBSwj-79KjOwQs0N5Rp8trmiZiZcLuziJXGqSkhMe_yjeSOquCjfltw0PpfEz_R93GXt2HS56WGG1slx_HTFWtwwaMt-yfhSa3KhwP1riW3Y3pnx62irDfoFvthniKk0wM2k_ONIVwwyBUe8rysPDdYeYmeen81AjULlJdeWyhHHWX3mJ7-Ca6Ji7y0aswWTFLczVKT0VQQSs1RB55wOcFwOhgTLlqgVjaI-r77jiemEa7_RDlOPOTl1kAYsPe_b5U70GawAE3JLzPYfsGSCKmEu4zX94RtziZAme-a1w";
+
 const normalizeAppId = (id?: string) => {
-  if (!id) return "vpaas-magic-cookie-4f86a9af8ef14d28b178e66905790bac";
+  if (!id) return DEFAULT_JAAS_APP_ID;
   return id.trim().replace(/^["']|["']$/g, '').replace(/^vpaas-cookie-m[áa]gico-/i, 'vpaas-magic-cookie-');
 };
 
 export const TeleconsultaPlayer: React.FC<TeleconsultaProps> = ({
-  appId = import.meta.env.VITE_JAAS_APP_ID || "vpaas-magic-cookie-4f86a9af8ef14d28b178e66905790bac",
-  roomName = "ConsultorioNutriNK",
-  jwtToken = import.meta.env.VITE_JAAS_JWT_TOKEN || "",
+  appId = import.meta.env.VITE_JAAS_APP_ID || DEFAULT_JAAS_APP_ID,
+  roomName = DEFAULT_JAAS_ROOM,
+  jwtToken = import.meta.env.VITE_JAAS_JWT_TOKEN || DEFAULT_JAAS_JWT,
   userName = "Dr(a). Nutricionista NutrinK",
   userEmail = "clinica@nutrink.com.br",
   isModerator = true
@@ -26,7 +30,7 @@ export const TeleconsultaPlayer: React.FC<TeleconsultaProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [resolvedToken, setResolvedToken] = useState<string>(jwtToken);
+  const [resolvedToken, setResolvedToken] = useState<string>(jwtToken || DEFAULT_JAAS_JWT);
 
   const cleanAppId = normalizeAppId(appId);
 
@@ -45,7 +49,7 @@ export const TeleconsultaPlayer: React.FC<TeleconsultaProps> = ({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            roomName,
+            roomName: roomName || DEFAULT_JAAS_ROOM,
             userName,
             userEmail,
             isModerator
@@ -56,10 +60,15 @@ export const TeleconsultaPlayer: React.FC<TeleconsultaProps> = ({
           const data = await response.json();
           if (data?.token && isMounted) {
             setResolvedToken(data.token);
+            return;
           }
         }
       } catch (err) {
-        console.warn('[JaaS Player] Token dinâmico não obtido, usando fallback:', err);
+        console.warn('[JaaS Player] Token dinâmico não obtido, usando token padrão:', err);
+      }
+
+      if (isMounted) {
+        setResolvedToken(DEFAULT_JAAS_JWT);
       }
     };
 
@@ -71,9 +80,10 @@ export const TeleconsultaPlayer: React.FC<TeleconsultaProps> = ({
   }, [jwtToken, roomName, userName, userEmail, isModerator]);
 
   useEffect(() => {
-    // Função para inicializar o player JaaS
+    // Função para inicializar o player 8x8 JaaS
     const initJitsi = () => {
-      if (!containerRef.current || !(window as any).JitsiMeetExternalAPI) return;
+      const parentNode = containerRef.current || document.querySelector('#jaas-container');
+      if (!parentNode || !(window as any).JitsiMeetExternalAPI) return;
 
       // Destrói instância prévia se existir
       if (apiRef.current) {
@@ -85,14 +95,15 @@ export const TeleconsultaPlayer: React.FC<TeleconsultaProps> = ({
       }
 
       const domain = '8x8.vc';
-      const fullRoomName = `${cleanAppId}/${roomName}`;
+      const cleanRoom = roomName ? (roomName.includes('/') ? roomName : `${cleanAppId}/${roomName}`) : `${cleanAppId}/${DEFAULT_JAAS_ROOM}`;
+      const tokenToUse = resolvedToken || DEFAULT_JAAS_JWT;
 
       const options = {
-        roomName: fullRoomName,
+        roomName: cleanRoom,
         width: '100%',
         height: '100%',
-        parentNode: containerRef.current,
-        jwt: resolvedToken || undefined,
+        parentNode: parentNode,
+        jwt: tokenToUse,
         configOverwrite: {
           startWithAudioMuted: false,
           startWithVideoMuted: false,
@@ -123,9 +134,9 @@ export const TeleconsultaPlayer: React.FC<TeleconsultaProps> = ({
         // Fallback de loading para o caso do evento demorar
         setTimeout(() => {
           setIsLoading(false);
-        }, 3000);
+        }, 2500);
       } catch (err) {
-        console.error('[JaaS Player Init Error]:', err);
+        console.error('[8x8 JaaS Player Init Error]:', err);
         setIsLoading(false);
       }
     };
@@ -196,7 +207,7 @@ export const TeleconsultaPlayer: React.FC<TeleconsultaProps> = ({
       )}
 
       <div 
-        id="jitsi-meet-container" 
+        id="jaas-container" 
         ref={containerRef} 
         className="w-full h-full min-h-[600px]"
       />
