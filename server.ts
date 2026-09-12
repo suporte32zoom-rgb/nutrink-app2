@@ -7,6 +7,7 @@ import { createServer as createViteServer } from "vite";
 import { MercadoPagoConfig, Payment as MercadoPagoPayment, Preference as MercadoPagoPreference } from "mercadopago";
 import QRCode from "qrcode";
 import { INSTITUTIONAL_PAGES } from "./src/data/institutionalPages";
+import { generateFallbackClinicalResponse, isValidGeminiModelName } from "./src/services/nutriaGeminiDirect";
 
 dotenv.config();
 
@@ -294,12 +295,21 @@ function getGenAI(): GoogleGenAI | null {
     ""
   ).trim();
 
-  if (!apiKey) return null;
+  let finalKey = apiKey;
+  // If no primary key, check if user inadvertently provided API key in VITE_GEMINI_MODEL
+  if (!finalKey || finalKey.length < 5) {
+    const modelEnv = (process.env.VITE_GEMINI_MODEL || "").trim();
+    if (modelEnv.length > 15 && (/^(AQ\.|AIza)/i.test(modelEnv) || !isValidGeminiModelName(modelEnv))) {
+      finalKey = modelEnv;
+    }
+  }
 
-  if (!genAIClient || currentGenAIApiKey !== apiKey) {
-    currentGenAIApiKey = apiKey;
+  if (!finalKey || finalKey.length < 5) return null;
+
+  if (!genAIClient || currentGenAIApiKey !== finalKey) {
+    currentGenAIApiKey = finalKey;
     genAIClient = new GoogleGenAI({
-      apiKey: apiKey,
+      apiKey: finalKey,
       httpOptions: {
         headers: {
           'User-Agent': 'aistudio-build',
@@ -688,14 +698,18 @@ app.get("/api/health", (req: Request, res: Response) => {
   });
 });
 
-// Multi-model candidate list prioritizing gemini-3.7-flash with automatic failover
+// Multi-model candidate list prioritizing modern gemini-3.8-flash with automatic failover
+const rawCustomModel = (process.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL || "").trim();
+const validCustomModel = isValidGeminiModelName(rawCustomModel) ? rawCustomModel : null;
+
 const GEMINI_MODELS = [
-  ...(process.env.VITE_GEMINI_MODEL ? [process.env.VITE_GEMINI_MODEL.trim()] : []),
-  "gemini-3.7-flash",
-  "gemini-flash-latest",
+  ...(validCustomModel ? [validCustomModel] : []),
   "gemini-3.8-flash",
-  "gemini-3.1-flash-lite"
-];
+  "gemini-3.1-flash-lite",
+  "gemini-flash-latest",
+  "gemini-3.7-flash",
+  "gemini-3.1-pro-preview"
+].filter((m, idx, arr) => isValidGeminiModelName(m) && arr.indexOf(m) === idx);
 
 async function generateContentWithFallback(ai: GoogleGenAI, params: any) {
   let lastError: any = null;
@@ -708,7 +722,8 @@ async function generateContentWithFallback(ai: GoogleGenAI, params: any) {
       });
       if (result) {
         console.log(`[NutrinK AI Engine] Sucesso com Google Gemini (${model})!`);
-        return { result, model };
+        const text = result.text || (result as any)?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        return { result, model, text };
       }
     } catch (err: any) {
       lastError = err;
@@ -914,12 +929,14 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
 
     let replyText = "";
     let actionExecuted: any = null;
-    let usedModel = "gemini-3.7-flash";
+    let usedModel = "gemini-3.8-flash";
+    let geminiResult: any = null;
 
-    const { result, model: detectedModel } = await generateContentWithFallback(ai, {
-      contents: alternatingContents,
-      config: {
-        systemInstruction: NUTRIA_SYSTEM_INSTRUCTION + `
+    try {
+      const { result, model: detectedModel, text } = await generateContentWithFallback(ai, {
+        contents: alternatingContents,
+        config: {
+          systemInstruction: NUTRIA_SYSTEM_INSTRUCTION + `
 [DIRETRIZES DE ATUAÇÃO DA NÚTRIA]:
 1. Você é a NÚTRIA, a inteligência clínica máxima e copiloto operacional do consultório NutrinK.
 2. Responda DIRETAMENTE, de forma dinâmica, científica e completa a TODA e QUALQUER pergunta do profissional de saúde.
@@ -927,35 +944,53 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
 4. NUNCA utilize templates estáticos ou mensagens evasivas pré-prontas como "estou à disposição no consultório".
 5. Formate as respostas em Markdown limpo, sofisticado e legível, com tabelas organizadas.
 `,
-        temperature: 0.5,
-        maxOutputTokens: 8192,
-        tools: [{
-          functionDeclarations: [
-            abrirPaginaInstitucionalTool,
-            navegarParaTelaTool,
-            cadastrarPacienteTool,
-            atualizarPacienteTool,
-            buscarProntuarioTool,
-            agendarConsultaTool,
-            remarcarConsultaTool,
-            cancelarConsultaTool,
-            listarHorariosDisponiveisTool,
-            lancarFinanceiroTool,
-            consultarMetricasFinanceirasTool,
-            gerarPlanoAlimentarTool
-          ]
-        }]
-      }
-    });
+          temperature: 0.5,
+          maxOutputTokens: 8192,
+          tools: [{
+            functionDeclarations: [
+              abrirPaginaInstitucionalTool,
+              navegarParaTelaTool,
+              cadastrarPacienteTool,
+              atualizarPacienteTool,
+              buscarProntuarioTool,
+              agendarConsultaTool,
+              remarcarConsultaTool,
+              cancelarConsultaTool,
+              listarHorariosDisponiveisTool,
+              lancarFinanceiroTool,
+              consultarMetricasFinanceirasTool,
+              gerarPlanoAlimentarTool
+            ]
+          }]
+        }
+      });
 
-    if (detectedModel) {
-      usedModel = detectedModel;
+      if (detectedModel) {
+        usedModel = detectedModel;
+      }
+      geminiResult = result;
+      replyText = text || result?.text || "";
+    } catch (modelLoopError: any) {
+      console.warn("[NutrinK AI Engine] Modelos Gemini com pico de demanda ou cota (503/429). Ativando motor clínico de contingência:", modelLoopError?.message);
+      const fallbackResult = generateFallbackClinicalResponse(normalizedMessage, {
+        message: normalizedMessage,
+        activePatient: targetPatient,
+        patientContext: targetPatient,
+        patients,
+        appointments,
+        transactions,
+        userAccount,
+        appContext: mergedAppContext
+      });
+      replyText = fallbackResult.reply;
+      actionExecuted = fallbackResult.actionExecuted;
+      usedModel = "clinical-contingency-engine";
     }
 
-    replyText = result?.text || "";
-    const candidates = (result as any)?.candidates;
-    const firstCandidate = candidates && candidates[0];
-    const functionCalls = firstCandidate?.content?.parts?.filter((p: any) => p.functionCall)?.map((p: any) => p.functionCall) || result.functionCalls;
+    if (geminiResult) {
+      const candidates = (geminiResult as any)?.candidates;
+      const firstCandidate = candidates && candidates[0];
+      const functionCalls = firstCandidate?.content?.parts?.filter((p: any) => p.functionCall)?.map((p: any) => p.functionCall) || geminiResult.functionCalls;
 
       if (functionCalls && functionCalls.length > 0) {
         const call = functionCalls[0];
@@ -1164,6 +1199,7 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
           };
         }
       }
+    }
 
     if (!replyText || replyText.trim().length === 0) {
       replyText = "Solicitação processada com sucesso pelo copiloto NutrinK.";
@@ -1192,8 +1228,223 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
 });
 
 // ==========================================
-// TELEMEDICINA & NUTRIA AO VIVO ENDPOINTS
+// TELEMEDICINA & JAAS (8x8.vc / JITSI AS A SERVICE) OFICIAL
 // ==========================================
+
+function getNormalizedJaasAppId(): string {
+  const raw = process.env.JAAS_APP_ID || process.env.VITE_JAAS_APP_ID || "vpaas-magic-cookie-4f86a9af8ef14d28b178e66905790bac";
+  return raw
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/^vpaas-cookie-m[áa]gico-/i, 'vpaas-magic-cookie-');
+}
+
+function getCleanPrivateKey(rawKey?: string): string | null {
+  const keyToUse = rawKey || process.env.JAAS_PRIVATE_KEY;
+  if (!keyToUse) return null;
+  let key = keyToUse.trim();
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+    key = key.slice(1, -1);
+  }
+  // Normalize escaped \n
+  key = key.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n');
+
+  // If newlines were flattened to spaces or key is unformatted, reconstruct standard 64-character PEM
+  const headerMatch = key.match(/-----BEGIN [A-Z0-9 ]+-----/);
+  const footerMatch = key.match(/-----END [A-Z0-9 ]+-----/);
+
+  if (headerMatch && footerMatch) {
+    const header = headerMatch[0];
+    const footer = footerMatch[0];
+    const headerEnd = key.indexOf(header) + header.length;
+    const footerStart = key.indexOf(footer);
+    const body = key.slice(headerEnd, footerStart).replace(/\s+/g, '');
+    
+    // Chunk base64 into standard 64-char lines
+    const lines: string[] = [];
+    for (let i = 0; i < body.length; i += 64) {
+      lines.push(body.slice(i, i + 64));
+    }
+    return `${header}\n${lines.join('\n')}\n${footer}\n`;
+  }
+  return key;
+}
+
+function base64UrlEncode(input: string | Buffer | object): string {
+  const buf = Buffer.isBuffer(input)
+    ? input
+    : Buffer.from(typeof input === 'string' ? input : JSON.stringify(input));
+  return buf.toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+function resolveKid(appId: string): string {
+  const rawKeyId = process.env.JAAS_KEY_ID?.trim();
+  if (!rawKeyId) {
+    return `${appId}/f854b3-SAMPLE_APP`;
+  }
+  // If the user pasted an existing JaaS JWT token into the key id field, extract the real kid
+  if (rawKeyId.includes('.')) {
+    try {
+      const parts = rawKeyId.split('.');
+      const header = JSON.parse(Buffer.from(parts[0], 'base64').toString());
+      if (header?.kid && typeof header.kid === 'string') {
+        return header.kid;
+      }
+    } catch {}
+  }
+  if (rawKeyId.startsWith(appId + '/')) {
+    return rawKeyId;
+  }
+  if (rawKeyId.includes('/')) {
+    const parts = rawKeyId.split('/');
+    return `${appId}/${parts[parts.length - 1]}`;
+  }
+  return `${appId}/${rawKeyId}`;
+}
+
+export function generateJaasToken(options: {
+  roomName?: string;
+  userId?: string;
+  userName?: string;
+  userEmail?: string;
+  avatarUrl?: string;
+  isModerator?: boolean;
+  expiresInSeconds?: number;
+}) {
+  const appId = getNormalizedJaasAppId();
+  const rawKey = getCleanPrivateKey();
+
+  if (!rawKey) {
+    return {
+      token: process.env.VITE_JAAS_JWT_TOKEN || "",
+      appId,
+      roomName: options.roomName || "*",
+      isUnlimited: false,
+      signedWithKey: false
+    };
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const expiresIn = options.expiresInSeconds || 24 * 3600; // 24 horas por padrão
+  const kid = resolveKid(appId);
+
+  const header = {
+    alg: 'RS256',
+    typ: 'JWT',
+    kid
+  };
+
+  const payload = {
+    aud: 'jitsi',
+    iss: 'chat',
+    sub: appId,
+    room: options.roomName || '*',
+    iat: now,
+    nbf: now - 10,
+    exp: now + expiresIn,
+    context: {
+      user: {
+        id: options.userId || `usr-${now}`,
+        name: options.userName || 'Dr(a). Nutricionista NutrinK',
+        email: options.userEmail || 'clinica@nutrink.com.br',
+        avatar: options.avatarUrl || 'https://images.unsplash.com/photo-1594824813689-d102e3b2e3aa?w=150',
+        moderator: options.isModerator !== false ? 'true' : 'false'
+      },
+      features: {
+        livestreaming: true,
+        recording: true,
+        transcription: true,
+        'outbound-call': true
+      }
+    }
+  };
+
+  const headB64 = base64UrlEncode(header);
+  const payB64 = base64UrlEncode(payload);
+  const message = `${headB64}.${payB64}`;
+
+  try {
+    const keyObj = crypto.createPrivateKey(rawKey);
+    const signer = crypto.createSign('RSA-SHA256');
+    signer.update(message);
+    const signature = signer.sign(keyObj);
+    const sigB64 = base64UrlEncode(signature);
+    const token = `${message}.${sigB64}`;
+
+    return {
+      token,
+      appId,
+      roomName: options.roomName || '*',
+      isUnlimited: true,
+      signedWithKey: true
+    };
+  } catch (signErr: any) {
+    console.warn('[JaaS Token Signing Warning]:', signErr?.message);
+    return {
+      token: process.env.VITE_JAAS_JWT_TOKEN || "",
+      appId,
+      roomName: options.roomName || '*',
+      isUnlimited: false,
+      signedWithKey: false
+    };
+  }
+}
+
+// Rota GET/POST para geração/fornecimento de token oficial JaaS 8x8.vc
+app.all("/api/telemedicine/jaas-token", (req: Request, res: Response) => {
+  try {
+    const params = req.method === "POST" ? req.body : req.query;
+    const roomName = (params.roomName as string) || (params.room as string) || "ConsultorioNutriNK";
+    const userName = (params.userName as string) || (params.name as string) || "Dr(a). Nutricionista NutrinK";
+    const userEmail = (params.userEmail as string) || (params.email as string) || "clinica@nutrink.com.br";
+    const isModerator = params.isModerator !== undefined ? (params.isModerator === true || params.isModerator === "true") : true;
+
+    const result = generateJaasToken({
+      roomName,
+      userName,
+      userEmail,
+      isModerator
+    });
+
+    const roomUrlWithJwt = `https://8x8.vc/${result.appId}/${encodeURIComponent(roomName)}?jwt=${result.token}`;
+    const cleanRoomUrl = `https://8x8.vc/${result.appId}/${encodeURIComponent(roomName)}`;
+
+    res.json({
+      success: true,
+      token: result.token,
+      appId: result.appId,
+      domain: "8x8.vc",
+      roomName,
+      roomUrlWithJwt,
+      cleanRoomUrl,
+      isUnlimited: result.isUnlimited,
+      signedWithKey: result.signedWithKey
+    });
+  } catch (err: any) {
+    console.error("[JaaS Token Generation Error]:", err);
+    res.status(500).json({
+      success: false,
+      error: "Falha ao gerar token JaaS",
+      details: err?.message,
+      token: process.env.VITE_JAAS_JWT_TOKEN || "",
+      appId: getNormalizedJaasAppId()
+    });
+  }
+});
+
+// Configurações de Telemedicina para o frontend
+app.get("/api/telemedicine/config", (req: Request, res: Response) => {
+  const appId = getNormalizedJaasAppId();
+  const hasKey = Boolean(process.env.JAAS_PRIVATE_KEY);
+  res.json({
+    appId,
+    domain: "8x8.vc",
+    isConfigured: true,
+    hasPrivateKey: hasKey,
+    unlimitedCalls: true,
+    sdkUrl: `https://8x8.vc/${appId}/external_api.js`
+  });
+});
 
 // Endpoint for real-time live clinical analysis during video consultation
 app.post("/api/telemedicine/analyze-live", async (req: Request, res: Response) => {

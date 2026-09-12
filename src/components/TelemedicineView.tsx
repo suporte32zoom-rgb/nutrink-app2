@@ -124,10 +124,56 @@ export const TelemedicineView: React.FC<TelemedicineViewProps> = ({
   const selectedPatient = patients.find(p => p.id === selectedPatientId) || null;
   const currentPatientName = selectedPatient?.name || customGuestName || 'Paciente Convidado';
 
-  // JaaS (8x8.vc / Jitsi as a Service) Configuration
-  const jaasAppId = import.meta.env.VITE_JAAS_APP_ID || "c1_app_id_here";
-  const jaasJwtToken = import.meta.env.VITE_JAAS_JWT_TOKEN || "YOUR_JWT_TOKEN_HERE";
-  const safeRoomUrl = `https://8x8.vc/${jaasAppId}/${roomName}`;
+  // JaaS (8x8.vc / Jitsi as a Service) Configuration Oficial
+  const normalizeJaasId = (id?: string) => {
+    if (!id) return "vpaas-magic-cookie-4f86a9af8ef14d28b178e66905790bac";
+    return id.trim().replace(/^["']|["']$/g, '').replace(/^vpaas-cookie-m[áa]gico-/i, 'vpaas-magic-cookie-');
+  };
+
+  const jaasAppId = normalizeJaasId(import.meta.env.VITE_JAAS_APP_ID || "vpaas-magic-cookie-4f86a9af8ef14d28b178e66905790bac");
+  const [activeJwtToken, setActiveJwtToken] = useState<string>(import.meta.env.VITE_JAAS_JWT_TOKEN || "");
+  const [isUnlimitedCallsActive, setIsUnlimitedCallsActive] = useState<boolean>(true);
+
+  // Busca token atualizado assinado no backend pela Chave Privada RSA
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSignedToken = async () => {
+      try {
+        const res = await fetch('/api/telemedicine/jaas-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roomName,
+            userName: userAccount.name || 'Dr(a). Nutricionista NutrinK',
+            userEmail: userAccount.email || 'clinica@nutrink.com.br',
+            isModerator: true
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.token && isMounted) {
+            setActiveJwtToken(data.token);
+            if (data.isUnlimited !== undefined) {
+              setIsUnlimitedCallsActive(data.isUnlimited);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[Telemedicina] Utilizando token JaaS local:', err);
+      }
+    };
+
+    fetchSignedToken();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [roomName, userAccount.name, userAccount.email]);
+
+  const cleanRoomUrl = `https://8x8.vc/${jaasAppId}/${encodeURIComponent(roomName)}`;
+  const safeRoomUrl = activeJwtToken
+    ? `https://8x8.vc/${jaasAppId}/${encodeURIComponent(roomName)}?jwt=${activeJwtToken}`
+    : cleanRoomUrl;
 
   // Start call timer
   useEffect(() => {
@@ -786,6 +832,11 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
                     <Clock className="w-3.5 h-3.5 text-fuchsia-400" />
                     <span>{formatTimer(callDuration)}</span>
                   </div>
+
+                  <div className="hidden lg:flex px-2.5 py-1 rounded-xl bg-purple-950/80 backdrop-blur-md border border-purple-500/40 text-[11px] font-bold text-purple-200 items-center gap-1.5 shadow-sm">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>8x8.vc JaaS Oficial • Chamadas Ilimitadas</span>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -814,7 +865,10 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
                 <TeleconsultaPlayer
                   appId={jaasAppId}
                   roomName={roomName}
-                  jwtToken={jaasJwtToken}
+                  jwtToken={activeJwtToken}
+                  userName={userAccount.name || 'Dr(a). Nutricionista NutrinK'}
+                  userEmail={userAccount.email || 'clinica@nutrink.com.br'}
+                  isModerator={true}
                 />
               </div>
 

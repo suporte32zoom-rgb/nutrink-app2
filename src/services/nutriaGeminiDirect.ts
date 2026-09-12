@@ -36,34 +36,40 @@ export interface NutriaResponse {
   model: string;
 }
 
+export function isValidGeminiModelName(name: string | undefined | null): boolean {
+  if (!name || typeof name !== 'string') return false;
+  const trimmed = name.trim();
+  if (trimmed.length < 5 || trimmed.length > 50) return false;
+  // Exclude API keys or tokens (starts with AQ., AIza, or containing invalid characters)
+  if (/^(AQ\.|AIza)/i.test(trimmed)) return false;
+  return /^gemini-[a-z0-9.-]+$/i.test(trimmed) || /^(veo|imagen)-[a-z0-9.-]+$/i.test(trimmed);
+}
+
 /**
  * 1. CONFIGURAÇÃO DO MODELO NA API:
- * Configura o modelo prioritário para 'gemini-3.7-flash'.
- * Lê dinamicamente de process.env.VITE_GEMINI_MODEL / import.meta.env.VITE_GEMINI_MODEL caso customizado.
+ * Configura o modelo prioritário para 'gemini-3.8-flash' (oficial do SDK @google/genai).
+ * Lê dinamicamente de process.env.VITE_GEMINI_MODEL / import.meta.env.VITE_GEMINI_MODEL validando o formato.
  */
 export function getClientGeminiModel(): string {
   // 1. Vite Environment
   try {
     if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_MODEL) {
       const modelEnv = String(import.meta.env.VITE_GEMINI_MODEL).trim();
-      if (modelEnv.length > 0) return modelEnv;
+      if (isValidGeminiModelName(modelEnv)) return modelEnv;
     }
   } catch {}
 
   // 2. Node / Process Environment
   try {
     if (typeof process !== 'undefined') {
-      if (process.env?.VITE_GEMINI_MODEL) {
-        const modelEnv = String(process.env.VITE_GEMINI_MODEL).trim();
-        if (modelEnv.length > 0) return modelEnv;
+      if (isValidGeminiModelName(process.env?.VITE_GEMINI_MODEL)) {
+        return String(process.env.VITE_GEMINI_MODEL).trim();
       }
-      if (process.env?.NEXT_PUBLIC_GEMINI_MODEL) {
-        const modelEnv = String(process.env.NEXT_PUBLIC_GEMINI_MODEL).trim();
-        if (modelEnv.length > 0) return modelEnv;
+      if (isValidGeminiModelName(process.env?.NEXT_PUBLIC_GEMINI_MODEL)) {
+        return String(process.env.NEXT_PUBLIC_GEMINI_MODEL).trim();
       }
-      if (process.env?.GEMINI_MODEL) {
-        const modelEnv = String(process.env.GEMINI_MODEL).trim();
-        if (modelEnv.length > 0) return modelEnv;
+      if (isValidGeminiModelName(process.env?.GEMINI_MODEL)) {
+        return String(process.env.GEMINI_MODEL).trim();
       }
     }
   } catch {}
@@ -71,20 +77,20 @@ export function getClientGeminiModel(): string {
   // 3. Browser Window ou LocalStorage
   if (typeof window !== 'undefined') {
     const win = window as any;
-    if (win.VITE_GEMINI_MODEL && typeof win.VITE_GEMINI_MODEL === 'string') {
+    if (isValidGeminiModelName(win.VITE_GEMINI_MODEL)) {
       return win.VITE_GEMINI_MODEL.trim();
     }
-    if (win.process?.env?.VITE_GEMINI_MODEL) {
+    if (isValidGeminiModelName(win.process?.env?.VITE_GEMINI_MODEL)) {
       return String(win.process.env.VITE_GEMINI_MODEL).trim();
     }
     try {
       const stored = localStorage.getItem('nutrink_gemini_model') || localStorage.getItem('gemini_model');
-      if (stored && stored.trim()) return stored.trim();
+      if (isValidGeminiModelName(stored)) return stored!.trim();
     } catch {}
   }
 
-  // Modelo oficial padrão: gemini-3.7-flash
-  return 'gemini-3.7-flash';
+  // Modelo oficial padrão prioritário: gemini-3.8-flash
+  return 'gemini-3.8-flash';
 }
 
 /**
@@ -1173,102 +1179,81 @@ export async function callNutriaDirect(params: NutriaCallParams): Promise<Nutria
   }
 
   const systemInstruction = buildNutriaSystemInstruction(params);
-  const targetModel = getClientGeminiModel(); // gemini-3.7-flash
+  const targetModel = getClientGeminiModel();
   const contents = formatGeminiContents(params.conversationHistory, params.message);
 
-  // 1. Tenta inicializar e chamar via biblioteca oficial @google/genai com gemini-3.7-flash
-  try {
-    const ai = getGenAIClient(apiKey);
+  // Candidate models sequence prioritizing gemini-3.8-flash and lightweight options
+  const candidateModels = [
+    targetModel,
+    'gemini-3.8-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest',
+    'gemini-3.7-flash'
+  ].filter((m, idx, arr) => isValidGeminiModelName(m) && arr.indexOf(m) === idx);
 
-    const response = await ai.models.generateContent({
-      model: targetModel,
-      contents: contents,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.5,
-        maxOutputTokens: 8192,
-      }
-    });
-
-    const textReply = response.text || (response as any)?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (textReply && typeof textReply === 'string' && textReply.trim().length > 0) {
-      const actionExecuted = detectOperationalAction(params.message, textReply, params);
-      return {
-        reply: cleanMathAndLatex(textReply.trim()),
-        actionExecuted,
-        model: targetModel
-      };
-    }
-  } catch (sdkError: any) {
-    console.warn(`[NUTRIA AI] Aviso na chamada do SDK (@google/genai) com modelo ${targetModel}:`, sdkError?.message || sdkError);
-  }
-
-  // 2. Se o modelo configurado falhou, tenta modelo flash alternativo com a mesma estrutura
-  const fallbackModel = 'gemini-flash-latest';
-  try {
-    const ai = getGenAIClient(apiKey);
-    const response = await ai.models.generateContent({
-      model: fallbackModel,
-      contents: contents,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.5,
-        maxOutputTokens: 8192,
-      }
-    });
-
-    const textReply = response.text || (response as any)?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (textReply && typeof textReply === 'string' && textReply.trim().length > 0) {
-      const actionExecuted = detectOperationalAction(params.message, textReply, params);
-      return {
-        reply: cleanMathAndLatex(textReply.trim()),
-        actionExecuted,
-        model: fallbackModel
-      };
-    }
-  } catch (fallbackError: any) {
-    console.warn(`[NUTRIA AI] Aviso na chamada do modelo de fallback ${fallbackModel}:`, fallbackError?.message || fallbackError);
-  }
-
-  // 3. Fallback REST direto com compatibilidade máxima
-  try {
-    const restModel = targetModel.startsWith('gemini') ? targetModel : 'gemini-3.7-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${restModel}:generateContent?key=${encodeURIComponent(apiKey)}`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemInstruction }] },
+  // 1. Tenta inicializar e chamar via biblioteca oficial @google/genai com fallback entre modelos
+  for (const modelToTry of candidateModels) {
+    try {
+      const ai = getGenAIClient(apiKey);
+      const response = await ai.models.generateContent({
+        model: modelToTry,
         contents: contents,
-        generationConfig: {
+        config: {
+          systemInstruction: systemInstruction,
           temperature: 0.5,
-          maxOutputTokens: 8192
+          maxOutputTokens: 8192,
         }
-      })
-    });
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      const textReply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const textReply = response.text || (response as any)?.candidates?.[0]?.content?.parts?.[0]?.text;
+
       if (textReply && typeof textReply === 'string' && textReply.trim().length > 0) {
         const actionExecuted = detectOperationalAction(params.message, textReply, params);
         return {
           reply: cleanMathAndLatex(textReply.trim()),
           actionExecuted,
-          model: restModel
+          model: modelToTry
+        };
+      }
+    } catch (sdkError: any) {
+      const msg = String(sdkError?.message || "");
+      console.warn(`[NUTRIA AI] Modelo ${modelToTry} indisponível ou pico temporário (503/429): ${msg.substring(0, 100)}...`);
+      continue;
+    }
+  }
+
+  // 2. Se as chamadas diretas no cliente falharem por cota/rede, consulta a rota do servidor /api/nutria
+  try {
+    const resp = await fetch('/api/nutria', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: params.message,
+        conversationHistory: params.conversationHistory,
+        activePatientContext: params.activePatient,
+        patientContext: params.patientContext || params.activePatient,
+        patients: params.patients,
+        appointments: params.appointments,
+        transactions: params.transactions,
+        userAccount: params.userAccount,
+        appContext: params.appContext
+      })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data && data.reply && typeof data.reply === 'string' && data.reply.trim().length > 0) {
+        return {
+          reply: cleanMathAndLatex(data.reply.trim()),
+          actionExecuted: data.actionExecuted,
+          model: data.model || 'gemini-3.8-flash'
         };
       }
     }
-  } catch (restError) {
-    console.warn('[NUTRIA AI] Erro no fallback REST do Gemini:', restError);
+  } catch (backendErr) {
+    console.warn('[NUTRIA AI] Tentativa via rota backend /api/nutria falhou:', backendErr);
   }
 
-  // 4. Fallback final garantido: Motor clínico local sem risco de tela branca
+  // 3. Fallback final garantido: Motor clínico local sem risco de tela branca
   const fallbackLocal = generateFallbackClinicalResponse(params.message, params);
   return {
     ...fallbackLocal,
