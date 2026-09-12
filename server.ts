@@ -7,7 +7,6 @@ import { createServer as createViteServer } from "vite";
 import { MercadoPagoConfig, Payment as MercadoPagoPayment, Preference as MercadoPagoPreference } from "mercadopago";
 import QRCode from "qrcode";
 import { INSTITUTIONAL_PAGES } from "./src/data/institutionalPages";
-import { processPaymentWebhookEvent, NUTRINK_PREMIUM_WELCOME_EMAIL } from "./src/services/paymentWebhook";
 
 dotenv.config();
 
@@ -412,6 +411,11 @@ Antes de sugerir qualquer plano dietético ou fórmula magistral, valide se há 
 - DIABETES TIPO 2 E RESISTÊNCIA À INSULINA:
   * Proíba carboidratos simples de absorção ultra-rápida (arroz branco ou batata-inglesa pura em grandes porções, doces refinados).
   * Priorize fontes complexas e fibrosas de baixo a médio índice glicêmico (aveia, quinoa, batata-doce, abóbora, leguminosas quando toleradas, sementes de chia/linhaça).
+
+- DIABETES MELLITUS GESTACIONAL (DMG):
+  * Fracionamento rigoroso em 5 a 6 refeições/dia para evitar picos hiperglicêmicos pós-prandiais e hipoglicemias de jejum.
+  * Proibição de jejum intermitente ou dietas cetogênicas/VLCKD (risco de cetonemia e prejuízo neurocognitivo fetal).
+  * Distribuição de carboidratos complexos de baixo índice glicêmico com mínimo de 175g/dia para suprir a demanda fetal e placentária, associados a fibras e proteínas magras em todas as refeições.
 
 - SÍNDROME DO INTESTINO IRRITÁVEL COM DIARREIA (SII-D):
   * Aplique o protocolo Baixo FODMAPs na fase aguda (exclua alho, cebola, feijões, trigo e polióis).
@@ -2317,38 +2321,94 @@ function verifyWebhookSignature(
 // 6. Mercado Pago Secure Webhook & IPN Handler
 const handleMercadoPagoWebhook = async (req: Request, res: Response) => {
   try {
-    const token = getMercadoPagoToken();
+    const { action, type, data } = req.body || {};
+    const queryId = req.query.id || req.query['data.id'] || data?.id || req.body?.id;
+    const resourceId = queryId ? String(queryId) : '';
+
+    const xSignature = req.headers['x-signature'] as string | undefined;
+    const xRequestId = req.headers['x-request-id'] as string | undefined;
     const webhookSecret = getMercadoPagoWebhookSecret();
-    const appUrl = process.env.APP_URL || "https://nutrink.com.br";
 
-    // Executa a automação completa de faturamento (Validação, Ativação e Disparo Make/Zapier)
-    const result = await processPaymentWebhookEvent(
-      req.body,
-      req.headers,
-      req.query,
-      {
-        accessToken: token,
-        webhookSecret: webhookSecret,
-        appUrl: appUrl
+    console.log(`[Mercado Pago Webhook Seguro] Recebido evento: ${action || type || 'payment.updated'}, ID: ${resourceId}`);
+
+    // 1. Validate cryptographic x-signature header if secret configured
+    if (webhookSecret) {
+      const isValid = verifyWebhookSignature(xSignature, xRequestId, resourceId, webhookSecret);
+      if (!isValid) {
+        console.warn(`[Mercado Pago Webhook Security Alert] Assinatura x-signature inválida ou não autorizada para ID: ${resourceId}`);
+        return res.status(401).json({ error: 'Assinatura x-signature inválida.' });
       }
-    );
-
-    if (result.success && result.status === 'active' && result.userEmail) {
-      // Registra no banco em memória do servidor
-      activatedSubscriptions.set(result.userEmail, {
-        email: result.userEmail,
-        planId: result.planId,
-        status: 'active',
-        activatedAt: new Date().toISOString(),
-        paymentId: result.paymentId,
-        paymentMethod: 'mercadopago_checkout_pro',
-        amount: result.planId === 'premium_anual' ? 399.00 : 39.00
-      });
-
-      console.log(`💎 [NutrinK Faturamento Automático] Plano ${result.planId} liberado com sucesso para ${result.userEmail}. Webhook Make/Zapier disparado: ${result.webhookDispatched}`);
+      console.log(`[Mercado Pago Webhook Security] Assinatura x-signature validada com sucesso via HMAC-SHA256.`);
     }
 
-    // Responde 200 OK para o Mercado Pago
+    // 2. Fetch Payment Information securely with Backend Access Token
+    const token = getMercadoPagoToken();
+    const mpClient = getMercadoPago();
+
+    if (token && resourceId && /^\d+$/.test(resourceId)) {
+      try {
+        let paymentData: any = null;
+
+        if (mpClient) {
+          try {
+            const paymentInstance = new MercadoPagoPayment(mpClient);
+            paymentData = await paymentInstance.get({ id: resourceId });
+          } catch (sdkErr: any) {
+            console.warn('[Mercado Pago SDK Fetch Fallback]:', sdkErr?.message);
+          }
+        }
+
+        if (!paymentData) {
+          const directFetch = await fetch(`https://api.mercadopago.com/v1/payments/${resourceId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (directFetch.ok) {
+            paymentData = await directFetch.json();
+          }
+        }
+
+        if (paymentData) {
+          const status = paymentData.status;
+          const payerEmail = (paymentData.payer?.email || '').toLowerCase().trim();
+          const extRef = String(paymentData.external_reference || '');
+          const amount = paymentData.transaction_amount || 0;
+          const paymentMethod = paymentData.payment_method_id || 'unknown';
+
+          const planId: 'premium_mensal' | 'premium_anual' =
+            extRef.includes('anual') || amount >= 200 ? 'premium_anual' : 'premium_mensal';
+
+          console.log(`[Mercado Pago Webhook Status] Pagamento ${resourceId} status: ${status}, pagador: ${payerEmail}, método: ${paymentMethod}`);
+
+          // Update in-memory payment record
+          const existing = inMemoryPayments.get(resourceId);
+          if (existing) {
+            existing.status = status;
+            inMemoryPayments.set(resourceId, existing);
+          }
+
+          // Automatic User Activation & Database Release upon Approval
+          if (status === 'approved' && payerEmail) {
+            activatedSubscriptions.set(payerEmail, {
+              email: payerEmail,
+              planId: planId,
+              status: 'active',
+              activatedAt: new Date().toISOString(),
+              paymentId: resourceId,
+              paymentMethod: paymentMethod,
+              amount: amount
+            });
+
+            console.log(`[Mercado Pago Webhook Automático] Assinatura APROVADA e liberada com sucesso para o usuário: ${payerEmail} (${planId})`);
+          }
+        }
+      } catch (err: any) {
+        console.warn('[Webhook Fetch Payment Error]:', err?.message);
+      }
+    }
+
+    // Always respond 200 to Mercado Pago
     res.status(200).send("OK");
   } catch (error: any) {
     console.error("Erro no processamento do webhook do Mercado Pago:", error);

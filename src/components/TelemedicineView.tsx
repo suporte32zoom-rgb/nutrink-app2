@@ -49,6 +49,7 @@ import {
   TelemedicineSession,
   AnthropometricRecord
 } from '../types';
+import { TeleconsultaPlayer } from './TeleconsultaPlayer';
 
 interface TelemedicineViewProps {
   patients: Patient[];
@@ -123,8 +124,10 @@ export const TelemedicineView: React.FC<TelemedicineViewProps> = ({
   const selectedPatient = patients.find(p => p.id === selectedPatientId) || null;
   const currentPatientName = selectedPatient?.name || customGuestName || 'Paciente Convidado';
 
-  // Secure room link (Jitsi Meet official public cluster or custom bridge)
-  const safeRoomUrl = `https://meet.jit.si/${roomName}`;
+  // JaaS (8x8.vc / Jitsi as a Service) Configuration
+  const jaasAppId = import.meta.env.VITE_JAAS_APP_ID || "c1_app_id_here";
+  const jaasJwtToken = import.meta.env.VITE_JAAS_JWT_TOKEN || "YOUR_JWT_TOKEN_HERE";
+  const safeRoomUrl = `https://8x8.vc/${jaasAppId}/${roomName}`;
 
   // Start call timer
   useEffect(() => {
@@ -806,13 +809,12 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
                 </div>
               </div>
 
-              {/* Jitsi Meet Iframe Embed */}
-              <div className="flex-1 w-full h-full relative">
-                <iframe
-                  src={`https://meet.jit.si/${roomName}#userInfo.displayName="${encodeURIComponent(userAccount.name || 'Nutricionista NutrinK')}"&config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.startWithVideoMuted=false&config.disableDeepLinking=true`}
-                  allow="camera; microphone; display-capture; autoplay; clipboard-write"
-                  className="w-full h-full border-0 absolute inset-0 bg-slate-950"
-                  title="Sala de Vídeo NutrinK"
+              {/* Jitsi as a Service (JaaS / 8x8.vc) Official SDK Player */}
+              <div className="flex-1 w-full h-full relative overflow-hidden bg-black">
+                <TeleconsultaPlayer
+                  appId={jaasAppId}
+                  roomName={roomName}
+                  jwtToken={jaasJwtToken}
                 />
               </div>
 
