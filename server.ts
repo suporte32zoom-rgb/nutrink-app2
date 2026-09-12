@@ -698,24 +698,55 @@ app.get("/api/health", (req: Request, res: Response) => {
   });
 });
 
-// Multi-model candidate list prioritizing modern gemini-3.8-flash with automatic failover
+// Multi-model candidate list prioritizing fast, quota-resilient models with automatic failover
 const rawCustomModel = (process.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL || "").trim();
 const validCustomModel = isValidGeminiModelName(rawCustomModel) ? rawCustomModel : null;
 
-const GEMINI_MODELS = [
+// Official models supported by @google/genai SDK
+const BASE_GEMINI_MODELS = [
   ...(validCustomModel ? [validCustomModel] : []),
-  "gemini-3.8-flash",
   "gemini-3.1-flash-lite",
-  "gemini-flash-latest",
-  "gemini-3.7-flash",
-  "gemini-3.1-pro-preview"
+  "gemini-3.8-flash",
+  "gemini-flash-latest"
 ].filter((m, idx, arr) => isValidGeminiModelName(m) && arr.indexOf(m) === idx);
+
+// In-memory cooldown tracker for models that return 429 (quota/rate limit) or 503
+const modelCooldowns = new Map<string, number>();
+
+function getPrioritizedGeminiModels(): string[] {
+  const now = Date.now();
+  const sorted = [...BASE_GEMINI_MODELS].sort((a, b) => {
+    const coolA = (modelCooldowns.get(a) || 0) > now ? 1 : 0;
+    const coolB = (modelCooldowns.get(b) || 0) > now ? 1 : 0;
+    return coolA - coolB;
+  });
+  // If all models are currently in cooldown, reset the earliest one to allow retry
+  const allCooling = sorted.every(m => (modelCooldowns.get(m) || 0) > now);
+  if (allCooling && sorted.length > 0) {
+    modelCooldowns.delete(sorted[0]);
+  }
+  return sorted;
+}
+
+function markModelCooldown(model: string, errMessage: string) {
+  const is429 = errMessage.includes("429") || errMessage.toLowerCase().includes("quota") || errMessage.toLowerCase().includes("resource_exhausted");
+  const cooldownMs = is429 ? 180 * 1000 : 30 * 1000;
+  modelCooldowns.set(model, Date.now() + cooldownMs);
+}
 
 async function generateContentWithFallback(ai: GoogleGenAI, params: any) {
   let lastError: any = null;
-  for (const model of GEMINI_MODELS) {
+  const modelsToTry = getPrioritizedGeminiModels();
+
+  for (const model of modelsToTry) {
+    const cooldownExpires = modelCooldowns.get(model);
+    if (cooldownExpires && cooldownExpires > Date.now()) {
+      // Model is temporarily in cooldown due to quota, proceed directly to next available model
+      continue;
+    }
+
     try {
-      console.log(`[NutrinK AI Engine] Tentando Google Gemini com modelo: ${model}...`);
+      console.log(`[NutrinK AI Engine] Executando com modelo: ${model}...`);
       const result = await ai.models.generateContent({
         ...params,
         model
@@ -728,9 +759,9 @@ async function generateContentWithFallback(ai: GoogleGenAI, params: any) {
     } catch (err: any) {
       lastError = err;
       const errMsg = String(err?.message || "");
-      console.warn(`[NutrinK AI] Modelo ${model} indisponível ou com pico de demanda (503/429): ${errMsg.substring(0, 120)}... Tentando próximo modelo...`);
-      // Brief pause to allow transient server spikes to clear
-      await new Promise(resolve => setTimeout(resolve, 200));
+      markModelCooldown(model, errMsg);
+      console.log(`[NutrinK AI Engine] Modelo ${model} temporariamente ocupado ou com limite de cota. Alternando automaticamente para o próximo modelo.`);
+      await new Promise(resolve => setTimeout(resolve, 150));
       continue;
     }
   }

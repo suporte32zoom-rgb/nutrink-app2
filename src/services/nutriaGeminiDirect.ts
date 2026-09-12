@@ -89,8 +89,8 @@ export function getClientGeminiModel(): string {
     } catch {}
   }
 
-  // Modelo oficial padrão prioritário: gemini-3.8-flash
-  return 'gemini-3.8-flash';
+  // Modelo oficial padrão prioritário: gemini-3.1-flash-lite
+  return 'gemini-3.1-flash-lite';
 }
 
 /**
@@ -1182,13 +1182,12 @@ export async function callNutriaDirect(params: NutriaCallParams): Promise<Nutria
   const targetModel = getClientGeminiModel();
   const contents = formatGeminiContents(params.conversationHistory, params.message);
 
-  // Candidate models sequence prioritizing gemini-3.8-flash and lightweight options
+  // Candidate models sequence prioritizing gemini-3.1-flash-lite and fast options
   const candidateModels = [
     targetModel,
-    'gemini-3.8-flash',
     'gemini-3.1-flash-lite',
-    'gemini-flash-latest',
-    'gemini-3.7-flash'
+    'gemini-3.8-flash',
+    'gemini-flash-latest'
   ].filter((m, idx, arr) => isValidGeminiModelName(m) && arr.indexOf(m) === idx);
 
   // 1. Tenta inicializar e chamar via biblioteca oficial @google/genai com fallback entre modelos
@@ -1217,7 +1216,7 @@ export async function callNutriaDirect(params: NutriaCallParams): Promise<Nutria
       }
     } catch (sdkError: any) {
       const msg = String(sdkError?.message || "");
-      console.warn(`[NUTRIA AI] Modelo ${modelToTry} indisponível ou pico temporário (503/429): ${msg.substring(0, 100)}...`);
+      console.log(`[NUTRIA AI] Modelo ${modelToTry} ocupado/cota. Alternando para próximo modelo.`);
       continue;
     }
   }
