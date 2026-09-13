@@ -5,6 +5,7 @@ import {
   DollarSign, 
   TrendingUp, 
   CheckCircle2, 
+  Clock, 
   AlertCircle, 
   Sparkles, 
   ArrowRight, 
@@ -27,7 +28,9 @@ import {
 import { Patient, Appointment, FinancialTransaction, UserAccount } from '../types';
 import { 
   getBrasiliaTodayISODate, 
-  getGreetingByTime 
+  formatBrasiliaFullDate, 
+  getGreetingByTime, 
+  getBrasiliaTimeString 
 } from '../utils/dateUtils';
 
 interface DashboardViewProps {
@@ -59,7 +62,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   const [isBannerDismissed, setIsBannerDismissed] = React.useState(false);
   const currentDateStr = getBrasiliaTodayISODate();
+  const formattedToday = formatBrasiliaFullDate();
   const greeting = getGreetingByTime();
+  const currentTime = getBrasiliaTimeString();
   
   // Professional identity determination
   const isDoctor = userAccount?.crn?.includes('CRM') || userAccount?.specialty?.toLowerCase().includes('nutrolog') || userAccount?.name?.toLowerCase().includes('dr.');
@@ -94,6 +99,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>
+            {/* Welcome greeting with registered professional name */}
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight flex flex-wrap items-center gap-2 mb-2">
+              <span>{greeting}, {userAccount?.name || 'Profissional de Saúde'}!</span>
+            </h1>
+
             <div className="flex items-center gap-2 mb-2.5 flex-wrap">
               {/* Active Service Mode Badge */}
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-950/90 text-emerald-300 border border-emerald-500/60 shadow-sm animate-pulse">
@@ -105,22 +115,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <Sparkles className="w-3.5 h-3.5 text-fuchsia-300" />
                 Copiloto NUTRIA • NutrinK AI
               </span>
-            </div>
 
-            {/* Welcome greeting with registered professional name */}
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight flex flex-wrap items-center gap-2">
-              <span>{greeting}, {userAccount?.name || 'Profissional de Saúde'}!</span>
-            </h1>
-
-            {/* Professional Role & Registry Tag in Office Banner */}
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-fuchsia-200 bg-[#250849] px-2.5 py-1 rounded-lg border border-purple-700/60">
+              {/* Professional Role & Registry Tag in Office Banner */}
+              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-fuchsia-200 bg-[#250849] px-2.5 py-1 rounded-full border border-purple-700/60">
                 {isDoctor ? <Stethoscope className="w-3.5 h-3.5 text-cyan-300" /> : <Apple className="w-3.5 h-3.5 text-fuchsia-300" />}
                 <span>{professionalRoleLabel}</span>
               </span>
 
               {userAccount?.crn && (
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-300 bg-[#190432] px-2.5 py-1 rounded-lg border border-purple-800/50">
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-300 bg-[#190432] px-2.5 py-1 rounded-full border border-purple-800/50">
                   <Award className="w-3.5 h-3.5 text-amber-300" />
                   <span>Registro: {userAccount.crn}</span>
                 </span>
@@ -147,7 +150,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               onClick={() => onOpenNutriaWithPrompt(
                 patients.length === 0 
                   ? `Nutria, como você pode me auxiliar na anamnese e prescrição dietoterápica do meu primeiro paciente como ${professionalRoleLabel}?`
-                  : `Nutria, faça um briefing rápido das consultas de hoje com o resumo de cada paciente.`
+                  : `Nutria, faça um briefing rápido das consultas de hoje (${currentTime} em Brasília) com o resumo de cada paciente.`
               )}
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 transition-all hover:scale-[1.02]"
               id="btn-nutria-briefing-dashboard"

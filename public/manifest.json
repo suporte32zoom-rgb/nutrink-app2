@@ -7,8 +7,8 @@
   "id": "nutrink-app",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0a0712",
-  "theme_color": "#0a0712",
+  "background_color": "#120326",
+  "theme_color": "#120326",
   "lang": "pt-BR",
   "dir": "ltr",
   "categories": [

@@ -988,7 +988,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
 
   if (!isAuthenticated && !isGuestTelemedSession) {
     return (
-      <div className="min-h-screen bg-[#0a0712] text-slate-100 flex flex-col font-sans selection:bg-fuchsia-500 selection:text-white">
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-fuchsia-500 selection:text-white">
         <OnboardingView
           onCompleteAuth={(user, destinationTab) => {
             handleLoginAs(user);
@@ -1010,7 +1010,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0712] text-slate-100 flex flex-col font-sans selection:bg-fuchsia-500 selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-fuchsia-500 selection:text-white">
       
       {/* Top Application Header */}
       <Header
