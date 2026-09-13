@@ -99,11 +99,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>
-            {/* Welcome greeting with registered professional name */}
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight flex flex-wrap items-center gap-2 mb-2">
-              <span>{greeting}, {userAccount?.name || 'Profissional de Saúde'}!</span>
-            </h1>
-
             <div className="flex items-center gap-2 mb-2.5 flex-wrap">
               {/* Active Service Mode Badge */}
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-950/90 text-emerald-300 border border-emerald-500/60 shadow-sm animate-pulse">
@@ -116,14 +111,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 Copiloto NUTRIA • NutrinK AI
               </span>
 
-              {/* Professional Role & Registry Tag in Office Banner */}
-              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-fuchsia-200 bg-[#250849] px-2.5 py-1 rounded-full border border-purple-700/60">
+              {/* Time & Brasilia Date Indicator */}
+              <span className="inline-flex items-center gap-1 text-xs text-purple-200 bg-[#16032a] px-3 py-1 rounded-full border border-purple-800/60">
+                <Clock className="w-3.5 h-3.5 text-purple-300" />
+                <span className="capitalize">{formattedToday}</span>
+                <span className="text-fuchsia-300 font-bold ml-1">({currentTime} • Horário de Brasília)</span>
+              </span>
+            </div>
+
+            {/* Welcome greeting with registered professional name */}
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight flex flex-wrap items-center gap-2">
+              <span>{greeting}, {userAccount?.name || 'Profissional de Saúde'}!</span>
+            </h1>
+
+            {/* Professional Role & Registry Tag in Office Banner */}
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-fuchsia-200 bg-[#250849] px-2.5 py-1 rounded-lg border border-purple-700/60">
                 {isDoctor ? <Stethoscope className="w-3.5 h-3.5 text-cyan-300" /> : <Apple className="w-3.5 h-3.5 text-fuchsia-300" />}
                 <span>{professionalRoleLabel}</span>
               </span>
 
               {userAccount?.crn && (
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-300 bg-[#190432] px-2.5 py-1 rounded-full border border-purple-800/50">
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-300 bg-[#190432] px-2.5 py-1 rounded-lg border border-purple-800/50">
                   <Award className="w-3.5 h-3.5 text-amber-300" />
                   <span>Registro: {userAccount.crn}</span>
                 </span>

@@ -95,7 +95,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   ];
 
   return (
-    <nav className="bg-slate-950 border-b border-slate-800/60 px-3 sm:px-6 lg:px-8 shadow-inner">
+    <nav className="bg-[#140327] border-b border-purple-900/40 px-3 sm:px-6 lg:px-8 shadow-inner">
       <div className="max-w-7xl mx-auto flex items-center space-x-1.5 sm:space-x-2 overflow-x-auto py-2 sm:py-2.5 scrollbar-none">
         {navItems.map((item) => {
           const Icon = item.icon;

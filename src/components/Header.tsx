@@ -82,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header 
-      className="bg-slate-950 text-white border-b border-slate-800/80 sticky top-0 shadow-lg shadow-black/40 pt-2 sm:pt-3 pb-2 sm:pb-3 px-2 sm:px-6 lg:px-8 transition-all overflow-x-hidden"
+      className="bg-[#120326] text-white border-b border-purple-900/50 sticky top-0 shadow-lg shadow-purple-950/40 pt-2 sm:pt-3 pb-2 sm:pb-3 px-2 sm:px-6 lg:px-8 transition-all overflow-x-hidden"
       style={{ zIndex: 1000 }}
     >
       <div className="max-w-7xl mx-auto w-full overflow-x-hidden">
@@ -283,7 +283,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Mobile Drawer Menu (z-index: 1000) */}
       {isMobileMenuOpen && (
         <div 
-          className="md:hidden mt-3 pt-3 border-t border-slate-800 space-y-2 bg-slate-950/95 p-3 rounded-2xl shadow-2xl backdrop-blur-md animate-fadeIn"
+          className="md:hidden mt-3 pt-3 border-t border-purple-800/60 space-y-2 bg-[#17042f]/95 p-3 rounded-2xl shadow-2xl backdrop-blur-md animate-fadeIn"
           style={{ zIndex: 1000 }}
         >
           {/* Quick Search on Mobile */}
