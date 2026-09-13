@@ -31,6 +31,8 @@ import {
   Trash2,
   TrendingUp,
   AlertCircle,
+  AlertTriangle,
+  User,
   CalendarPlus
 } from 'lucide-react';
 import { 
@@ -70,6 +72,7 @@ interface PatientsViewProps {
   onOpenNewAppointmentWithPatient: (patient: Patient) => void;
   onOpenNutriaWithPrompt: (prompt: string) => void;
   onUpdatePatient: (updatedPatient: Patient) => void;
+  onDeletePatient?: (patientId: string) => void;
   foodDatabase: FoodItem[];
   userAccount?: UserAccount;
   onStartTelemedicine?: (patientId: string) => void;
@@ -85,6 +88,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
   onOpenNewAppointmentWithPatient,
   onOpenNutriaWithPrompt,
   onUpdatePatient,
+  onDeletePatient,
   foodDatabase,
   userAccount,
   onStartTelemedicine,
@@ -94,6 +98,19 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [objectiveFilter, setObjectiveFilter] = useState<string>('todos');
   
+  // Feedback / Toast Notification
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // Auto-dismiss toast
+  React.useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => {
+        setToastMessage(null);
+      }, 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
+
   // 5 Abas Oficiais do Prontuário Clínico Integrado:
   // 1: Resumo Clínico & Parâmetros
   // 2: Plano Alimentar
@@ -134,8 +151,17 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
     { id: 'mk-6', marker: 'Ferritina Sérica', value: '', unit: 'ng/mL', referenceRange: '30 - 200', status: 'normal' }
   ]);
 
-  // Modal de Edição de Dados Clínicos & Parâmetros (Aba 1)
+  // Modal de Edição de Dados Clínicos, Parâmetros & Anamnese (Aba 1)
   const [isEditingClinical, setIsEditingClinical] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Campos Cadastrais
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editStatus, setEditStatus] = useState<'ativo' | 'em_espera' | 'inativo'>('ativo');
+
+  // Campos Clínicos e Antropométricos
   const [editWeight, setEditWeight] = useState('');
   const [editHeight, setEditHeight] = useState('');
   const [editAge, setEditAge] = useState('');
@@ -174,6 +200,10 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
 
   const handleOpenEditClinical = () => {
     if (!selectedPatient) return;
+    setEditName(selectedPatient.name || '');
+    setEditEmail(selectedPatient.email || '');
+    setEditPhone(selectedPatient.phone || '');
+    setEditStatus(selectedPatient.status || 'ativo');
     setEditWeight(selectedPatient.currentWeightKg > 0 ? String(selectedPatient.currentWeightKg) : '');
     setEditHeight(selectedPatient.heightCm > 0 ? String(selectedPatient.heightCm) : '');
     setEditAge(selectedPatient.age > 0 ? String(selectedPatient.age) : '');
@@ -191,6 +221,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
     setEditPreferences(selectedPatient.anamnese?.dietaryPreferences || '');
     setEditAversions(selectedPatient.anamnese?.dietaryAversions || '');
     setEditEmotional(selectedPatient.anamnese?.emotionalRelationshipWithFood || '');
+    setShowDeleteConfirm(false);
     setIsEditingClinical(true);
   };
 
@@ -210,8 +241,13 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
 
   const handleSaveClinicalParams = () => {
     if (!selectedPatient) return;
+    const finalName = editName.trim() || selectedPatient.name;
     const updated: Patient = {
       ...selectedPatient,
+      name: finalName,
+      email: editEmail.trim() || selectedPatient.email,
+      phone: editPhone.trim() || selectedPatient.phone,
+      status: editStatus,
       age: editAgeNum,
       gender: editGender,
       objective: editObjective,
@@ -239,6 +275,27 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
     };
     onUpdatePatient(updated);
     setIsEditingClinical(false);
+    setToastMessage({
+      text: `Dados cadastrais e parâmetros clínicos de ${finalName} foram salvos com sucesso no prontuário!`,
+      type: 'success'
+    });
+  };
+
+  const handleDeletePatientConfirm = () => {
+    if (!selectedPatient) return;
+    const patientName = selectedPatient.name;
+    const patientId = selectedPatient.id;
+
+    if (onDeletePatient) {
+      onDeletePatient(patientId);
+    }
+    setShowDeleteConfirm(false);
+    setIsEditingClinical(false);
+    onSelectPatient(null);
+    setToastMessage({
+      text: `O paciente ${patientName} e todo o seu prontuário foram excluídos permanentemente com sucesso.`,
+      type: 'success'
+    });
   };
 
   // Salvar registro de antropometria (Aba 4)
@@ -438,8 +495,21 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#28094c] text-purple-200 border border-purple-700/50">
                     ID: <strong className="text-white">{selectedPatient.id}</strong>
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/50">
-                    Status: {selectedPatient.status}
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 ${
+                    selectedPatient.status === 'ativo'
+                      ? 'bg-emerald-950/90 text-emerald-300 border-emerald-600/60'
+                      : selectedPatient.status === 'em_espera'
+                      ? 'bg-amber-950/90 text-amber-300 border-amber-600/60'
+                      : 'bg-rose-950/90 text-rose-300 border-rose-600/60'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      selectedPatient.status === 'ativo'
+                        ? 'bg-emerald-400'
+                        : selectedPatient.status === 'em_espera'
+                        ? 'bg-amber-400'
+                        : 'bg-rose-400'
+                    }`}></span>
+                    Status: {selectedPatient.status === 'ativo' ? 'Ativo' : selectedPatient.status === 'em_espera' ? 'Em Acompanhamento' : 'Inativo'}
                   </span>
                 </div>
 
@@ -1215,11 +1285,11 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
               <div className="flex items-center justify-between pb-3 border-b border-purple-800/60">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 rounded-xl bg-purple-950/80 text-fuchsia-400 border border-purple-700/60">
-                    <Scale className="w-5 h-5" />
+                    <Edit3 className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white">Editar Dados Clínicos, Parâmetros & Anamnese</h3>
-                    <p className="text-xs text-purple-300">Recálculo automático e dinâmico de TMB, GET e Metas</p>
+                    <h3 className="text-base font-bold text-white">Editar Cadastro, Parâmetros Clínicos & Anamnese</h3>
+                    <p className="text-xs text-purple-300">Atualização cadastral completa e recálculo dinâmico de TMB/GET</p>
                   </div>
                 </div>
                 <button
@@ -1230,137 +1300,232 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 </button>
               </div>
 
-              {/* Form Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div>
-                  <label className="text-purple-200 font-bold block mb-1">Gênero Biológico:</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditGender('masculino')}
-                      className={`py-2 font-bold rounded-xl border transition-all ${
-                        editGender === 'masculino'
-                          ? 'bg-fuchsia-950 text-fuchsia-200 border-fuchsia-500 shadow-sm'
-                          : 'bg-[#1e073c] text-purple-200 border-purple-800'
-                      }`}
-                    >
-                      Masc
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditGender('feminino')}
-                      className={`py-2 font-bold rounded-xl border transition-all ${
-                        editGender === 'feminino'
-                          ? 'bg-fuchsia-950 text-fuchsia-200 border-fuchsia-500 shadow-sm'
-                          : 'bg-[#1e073c] text-purple-200 border-purple-800'
-                      }`}
-                    >
-                      Fem
-                    </button>
+              {/* 1. SEÇÃO: DADOS CADASTRAIS DO PACIENTE */}
+              <div className="space-y-3 p-4 bg-[#120326]/80 rounded-2xl border border-purple-700/60">
+                <div className="flex items-center gap-2 text-fuchsia-300 font-bold text-xs uppercase tracking-wider">
+                  <User className="w-4 h-4 text-fuchsia-400" />
+                  <span>1. Dados Pessoais & Cadastrais</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="sm:col-span-2">
+                    <label className="text-purple-200 font-bold block mb-1">Nome Completo do Paciente *</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Nome do paciente"
+                      className="w-full bg-[#1b0633] border border-purple-700/80 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-fuchsia-400"
+                    />
                   </div>
-                </div>
 
-                <div>
-                  <label className="text-purple-200 font-bold block mb-1">Idade (anos):</label>
-                  <input
-                    type="number"
-                    value={editAge}
-                    onChange={(e) => setEditAge(e.target.value)}
-                    placeholder="ex: 28"
-                    className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-fuchsia-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-purple-200 font-bold block mb-1">Objetivo Nutricional:</label>
-                  <select
-                    value={editObjective}
-                    onChange={(e) => setEditObjective(e.target.value as PatientObjective)}
-                    className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-medium focus:outline-none focus:border-fuchsia-400"
-                  >
-                    <option value="emagrecimento">Emagrecimento</option>
-                    <option value="hipertrofia">Hipertrofia</option>
-                    <option value="recomposicao_corporal">Recomposição Corporal</option>
-                    <option value="performance_esportiva">Performance Esportiva</option>
-                    <option value="manejo_diabetes">Manejo Diabetes / Glicemia</option>
-                    <option value="saude_cardiovascular">Saúde Cardiovascular</option>
-                    <option value="saude_intestinal">Saúde Intestinal / FODMAPs</option>
-                    <option value="vegetariano_vegano">Vegetariano / Vegano</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-purple-200 font-bold block mb-1">Peso Atual (kg):</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={editWeight}
-                    onChange={(e) => setEditWeight(e.target.value)}
-                    placeholder="ex: 75.0"
-                    className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-fuchsia-400"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="text-purple-200 font-bold">Altura:</label>
-                    <span className="text-[10px] text-fuchsia-300 font-semibold">
-                      {editHeightCm > 0 ? `${editHeightCm} cm` : 'cm ou m'}
-                    </span>
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">E-mail *</label>
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      placeholder="paciente@email.com"
+                      className="w-full bg-[#1b0633] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
+                    />
                   </div>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editHeight}
-                    onChange={(e) => setEditHeight(e.target.value)}
-                    placeholder="ex: 175 ou 1.75"
-                    className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-fuchsia-400"
-                  />
-                </div>
 
-                <div>
-                  <label className="text-purple-200 font-bold block mb-1">Meta de Peso (kg):</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={editTargetWeight}
-                    onChange={(e) => setEditTargetWeight(e.target.value)}
-                    placeholder="ex: 70.0"
-                    className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-fuchsia-400"
-                  />
-                </div>
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">Telefone / WhatsApp *</label>
+                    <input
+                      type="tel"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      placeholder="(11) 99999-9999"
+                      className="w-full bg-[#1b0633] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
 
-                <div>
-                  <label className="text-purple-200 font-bold block mb-1">% Gordura Corporal:</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={editBf}
-                    onChange={(e) => setEditBf(e.target.value)}
-                    placeholder="ex: 15.0"
-                    className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-fuchsia-400"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="text-purple-200 font-bold block mb-1">Nível de Atividade Física (NAF):</label>
-                  <select
-                    value={editNaf}
-                    onChange={(e) => setEditNaf(Number(e.target.value))}
-                    className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-medium focus:outline-none focus:border-fuchsia-400"
-                  >
-                    <option value={1.2}>Sedentário (Pouco ou nenhum exercício) • 1.20</option>
-                    <option value={1.375}>Levemente Ativo (Treino 1-3 dias/semana) • 1.375</option>
-                    <option value={1.55}>Moderadamente Ativo (Treino 3-5 dias/semana) • 1.55</option>
-                    <option value={1.725}>Muito Ativo (Treino intenso 6-7 dias/semana) • 1.725</option>
-                    <option value={1.9}>Extremamente Ativo (Atleta de alto rendimento) • 1.90</option>
-                  </select>
+                  <div className="sm:col-span-2">
+                    <label className="text-purple-200 font-bold block mb-1">Status do Paciente no Consultório:</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditStatus('ativo')}
+                        className={`py-2 px-3 font-bold rounded-xl border text-xs transition-all flex items-center justify-center gap-1.5 ${
+                          editStatus === 'ativo'
+                            ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500 shadow-sm'
+                            : 'bg-[#1b0633] text-purple-300 border-purple-800/80 hover:bg-[#250947]'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        Ativo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditStatus('em_espera')}
+                        className={`py-2 px-3 font-bold rounded-xl border text-xs transition-all flex items-center justify-center gap-1.5 ${
+                          editStatus === 'em_espera'
+                            ? 'bg-amber-950/90 text-amber-300 border-amber-500 shadow-sm'
+                            : 'bg-[#1b0633] text-purple-300 border-purple-800/80 hover:bg-[#250947]'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                        Em Acompanhamento
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditStatus('inativo')}
+                        className={`py-2 px-3 font-bold rounded-xl border text-xs transition-all flex items-center justify-center gap-1.5 ${
+                          editStatus === 'inativo'
+                            ? 'bg-rose-950/90 text-rose-300 border-rose-500 shadow-sm'
+                            : 'bg-[#1b0633] text-purple-300 border-purple-800/80 hover:bg-[#250947]'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+                        Inativo
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Seção Anamnese */}
+              {/* 2. SEÇÃO: PARÂMETROS CLÍNICOS E METABÓLICOS */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-fuchsia-300 font-bold text-xs uppercase tracking-wider">
+                  <Scale className="w-4 h-4 text-fuchsia-400" />
+                  <span>2. Parâmetros Antropométricos & Clínicos</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">Gênero Biológico:</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditGender('masculino')}
+                        className={`py-2 font-bold rounded-xl border transition-all ${
+                          editGender === 'masculino'
+                            ? 'bg-fuchsia-950 text-fuchsia-200 border-fuchsia-500 shadow-sm'
+                            : 'bg-[#1e073c] text-purple-200 border-purple-800'
+                        }`}
+                      >
+                        Masc
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditGender('feminino')}
+                        className={`py-2 font-bold rounded-xl border transition-all ${
+                          editGender === 'feminino'
+                            ? 'bg-fuchsia-950 text-fuchsia-200 border-fuchsia-500 shadow-sm'
+                            : 'bg-[#1e073c] text-purple-200 border-purple-800'
+                        }`}
+                      >
+                        Fem
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">Idade (anos):</label>
+                    <input
+                      type="number"
+                      value={editAge}
+                      onChange={(e) => setEditAge(e.target.value)}
+                      placeholder="ex: 28"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">Objetivo Nutricional:</label>
+                    <select
+                      value={editObjective}
+                      onChange={(e) => setEditObjective(e.target.value as PatientObjective)}
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-medium focus:outline-none focus:border-fuchsia-400"
+                    >
+                      <option value="emagrecimento">Emagrecimento</option>
+                      <option value="hipertrofia">Hipertrofia</option>
+                      <option value="recomposicao_corporal">Recomposição Corporal</option>
+                      <option value="performance_esportiva">Performance Esportiva</option>
+                      <option value="manejo_diabetes">Manejo Diabetes / Glicemia</option>
+                      <option value="saude_cardiovascular">Saúde Cardiovascular</option>
+                      <option value="saude_intestinal">Saúde Intestinal / FODMAPs</option>
+                      <option value="vegetariano_vegano">Vegetariano / Vegano</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">Peso Atual (kg):</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editWeight}
+                      onChange={(e) => setEditWeight(e.target.value)}
+                      placeholder="ex: 75.0"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-purple-200 font-bold">Altura:</label>
+                      <span className="text-[10px] text-fuchsia-300 font-semibold">
+                        {editHeightCm > 0 ? `${editHeightCm} cm` : 'cm ou m'}
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editHeight}
+                      onChange={(e) => setEditHeight(e.target.value)}
+                      placeholder="ex: 175 ou 1.75"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">Meta de Peso (kg):</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editTargetWeight}
+                      onChange={(e) => setEditTargetWeight(e.target.value)}
+                      placeholder="ex: 70.0"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">% Gordura Corporal:</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editBf}
+                      onChange={(e) => setEditBf(e.target.value)}
+                      placeholder="ex: 15.0"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-purple-200 font-bold block mb-1">Nível de Atividade Física (NAF):</label>
+                    <select
+                      value={editNaf}
+                      onChange={(e) => setEditNaf(Number(e.target.value))}
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-medium focus:outline-none focus:border-fuchsia-400"
+                    >
+                      <option value={1.2}>Sedentário (Pouco ou nenhum exercício) • 1.20</option>
+                      <option value={1.375}>Levemente Ativo (Treino 1-3 dias/semana) • 1.375</option>
+                      <option value={1.55}>Moderadamente Ativo (Treino 3-5 dias/semana) • 1.55</option>
+                      <option value={1.725}>Muito Ativo (Treino intenso 6-7 dias/semana) • 1.725</option>
+                      <option value={1.9}>Extremamente Ativo (Atleta de alto rendimento) • 1.90</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. SEÇÃO: ANAMNESE DETALHADA */}
               <div className="space-y-3 pt-3 border-t border-purple-800/60 text-xs">
-                <h4 className="font-bold text-fuchsia-300 uppercase">Anamnese Detalhada</h4>
+                <div className="flex items-center gap-2 text-fuchsia-300 font-bold text-xs uppercase tracking-wider">
+                  <FileText className="w-4 h-4 text-fuchsia-400" />
+                  <span>3. Anamnese & Histórico Clínico</span>
+                </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -1456,21 +1621,81 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-2">
+              {/* Modal Footer Actions */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-purple-800/60">
+                {/* Botão de Exclusão Definitiva */}
                 <button
                   type="button"
-                  onClick={() => setIsEditingClinical(false)}
-                  className="px-4 py-2 bg-[#220743] hover:bg-[#2d0959] text-purple-200 rounded-xl text-xs font-bold transition-all"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 hover:text-rose-100 border border-rose-800/80 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 group"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform" />
+                  <span>Excluir Paciente</span>
+                </button>
+
+                {/* Botões de Ação */}
+                <div className="w-full sm:w-auto flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingClinical(false)}
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-[#220743] hover:bg-[#2d0959] text-purple-200 rounded-xl text-xs font-bold transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveClinicalParams}
+                    className="flex-1 sm:flex-none px-5 py-2.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-fuchsia-950/60 transition-all border border-fuchsia-400/40 flex items-center justify-center gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Salvar Alterações</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* MODAL: CONFIRMAÇÃO DE EXCLUSÃO DE PACIENTE                     */}
+        {/* ============================================================== */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <div className="bg-[#1b0633] border border-rose-600/80 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 text-center animate-in fade-in zoom-in-95 duration-150">
+              <div className="w-14 h-14 rounded-2xl bg-rose-950/80 border border-rose-700/80 text-rose-400 flex items-center justify-center mx-auto shadow-inner">
+                <AlertTriangle className="w-7 h-7 text-rose-400 animate-pulse" />
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-white">Excluir Paciente Definitivamente?</h3>
+                <p className="text-xs text-purple-200/90 mt-2 leading-relaxed">
+                  Você está prestes a excluir o paciente <strong className="text-white font-bold">{selectedPatient?.name}</strong>.
+                </p>
+                <div className="mt-3 p-3 bg-rose-950/40 rounded-xl border border-rose-900/60 text-[11px] text-rose-300 text-left space-y-1">
+                  <p className="font-semibold text-rose-200">Atenção (Ação Irreversível):</p>
+                  <ul className="list-disc list-inside space-y-0.5 text-rose-300/90">
+                    <li>Todo o prontuário eletrônico será apagado</li>
+                    <li>Planos alimentares e prescrições serão removidos</li>
+                    <li>Consultas e histórico antropométrico serão excluídos</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-2.5 bg-[#250947] hover:bg-[#320d5c] text-purple-200 rounded-xl text-xs font-bold transition-all border border-purple-800/80"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
-                  onClick={handleSaveClinicalParams}
-                  className="px-5 py-2.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-fuchsia-950/60 transition-all border border-fuchsia-400/40"
+                  onClick={handleDeletePatientConfirm}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-950/60 transition-all border border-rose-400/50 flex items-center justify-center gap-1.5"
                 >
-                  Salvar Alterações no Prontuário
+                  <Trash2 className="w-4 h-4" />
+                  <span>Sim, Excluir</span>
                 </button>
               </div>
             </div>
@@ -1895,6 +2120,19 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
           </div>
         )}
 
+        {/* Floating Toast Notification no Prontuário */}
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-[70] flex items-center gap-3 p-4 rounded-2xl bg-[#1b0633] border border-fuchsia-500/80 shadow-2xl text-white text-xs font-semibold shadow-purple-950/80 animate-in fade-in slide-in-from-bottom-5">
+            <div className={`p-1.5 rounded-xl ${toastMessage.type === 'success' ? 'bg-emerald-950 text-emerald-400 border border-emerald-600/50' : 'bg-rose-950 text-rose-400 border border-rose-600/50'}`}>
+              {toastMessage.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            </div>
+            <span>{toastMessage.text}</span>
+            <button onClick={() => setToastMessage(null)} className="ml-2 text-purple-300 hover:text-white">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
       </div>
     );
   }
@@ -2011,9 +2249,20 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                   </div>
                 </div>
 
-                <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-[#29094e] text-fuchsia-200 border border-purple-700/60">
-                  {patient.objective.replace('_', ' ')}
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                    patient.status === 'ativo'
+                      ? 'bg-emerald-950 text-emerald-300 border-emerald-700/50'
+                      : patient.status === 'em_espera'
+                      ? 'bg-amber-950 text-amber-300 border-amber-700/50'
+                      : 'bg-rose-950 text-rose-300 border-rose-700/50'
+                  }`}>
+                    {patient.status === 'ativo' ? 'Ativo' : patient.status === 'em_espera' ? 'Em Acomp.' : 'Inativo'}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-[#29094e] text-fuchsia-200 border border-purple-700/60">
+                    {patient.objective.replace('_', ' ')}
+                  </span>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-purple-900/40 text-center">
@@ -2047,6 +2296,19 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
           ))
         )}
       </div>
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-[70] flex items-center gap-3 p-4 rounded-2xl bg-[#1b0633] border border-fuchsia-500/80 shadow-2xl text-white text-xs font-semibold shadow-purple-950/80 animate-in fade-in slide-in-from-bottom-5">
+          <div className={`p-1.5 rounded-xl ${toastMessage.type === 'success' ? 'bg-emerald-950 text-emerald-400 border border-emerald-600/50' : 'bg-rose-950 text-rose-400 border border-rose-600/50'}`}>
+            {toastMessage.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          </div>
+          <span>{toastMessage.text}</span>
+          <button onClick={() => setToastMessage(null)} className="ml-2 text-purple-300 hover:text-white">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
     </div>
   );

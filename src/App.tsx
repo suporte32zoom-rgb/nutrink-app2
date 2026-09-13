@@ -426,7 +426,28 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
 
   // Patient Updates
   const handleUpdatePatient = (updated: Patient) => {
-    setPatients(prev => prev.map(p => p.id === updated.id ? updated : p));
+    setPatients(prev => {
+      const updatedList = prev.map(p => p.id === updated.id ? updated : p);
+      try { localStorage.setItem('nutrink_patients', JSON.stringify(updatedList)); } catch {}
+      return updatedList;
+    });
+  };
+
+  // Delete Patient (Cascade delete from patients, appointments, and clear active selection)
+  const handleDeletePatient = (patientId: string) => {
+    setPatients(prev => {
+      const updated = prev.filter(p => p.id !== patientId);
+      try { localStorage.setItem('nutrink_patients', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    setAppointments(prev => {
+      const updated = prev.filter(a => a.patientId !== patientId);
+      try { localStorage.setItem('nutrink_appointments', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    if (selectedPatientId === patientId) {
+      setSelectedPatientId(null);
+    }
   };
 
   // Open NUTRIA with a prompt
@@ -1000,6 +1021,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
             onOpenNewAppointmentWithPatient={handleOpenNewAppointmentWithPatient}
             onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
             onUpdatePatient={handleUpdatePatient}
+            onDeletePatient={handleDeletePatient}
             foodDatabase={INITIAL_FOOD_DATABASE}
             userAccount={userAccount || undefined}
             onStartTelemedicine={(patientId) => {
