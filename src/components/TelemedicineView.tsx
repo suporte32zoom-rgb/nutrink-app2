@@ -59,6 +59,9 @@ interface TelemedicineViewProps {
   onOpenMealPlanEditor?: (patient: Patient) => void;
   onOpenNutriaWithPrompt?: (prompt: string) => void;
   onNavigateTab?: (tab: any) => void;
+  initialRoomName?: string;
+  initialPatientName?: string;
+  isGuestPatient?: boolean;
 }
 
 export const TelemedicineView: React.FC<TelemedicineViewProps> = ({
@@ -68,18 +71,30 @@ export const TelemedicineView: React.FC<TelemedicineViewProps> = ({
   onUpdatePatient,
   onOpenMealPlanEditor,
   onOpenNutriaWithPrompt,
-  onNavigateTab
+  onNavigateTab,
+  initialRoomName,
+  initialPatientName,
+  isGuestPatient = false
 }) => {
+  // Call configuration & Room identifier
+  const [roomName, setRoomName] = useState<string>(() => initialRoomName || `nutrink-${Math.random().toString(36).substring(2, 9)}`);
+
   // Session flow states: 'lobby' | 'in_call' | 'post_consultation'
-  const [sessionMode, setSessionMode] = useState<'lobby' | 'in_call' | 'post_consultation'>('lobby');
+  const [sessionMode, setSessionMode] = useState<'lobby' | 'in_call' | 'post_consultation'>(() => {
+    if (initialRoomName || isGuestPatient) return 'in_call';
+    return 'lobby';
+  });
   
   // Selected patient & appointment
-  const [selectedPatientId, setSelectedPatientId] = useState<string>(patients[0]?.id || '');
+  const [selectedPatientId, setSelectedPatientId] = useState<string>(() => {
+    if (initialPatientName) {
+      const match = patients.find(p => p.name.toLowerCase().includes(initialPatientName.toLowerCase()));
+      if (match) return match.id;
+    }
+    return patients[0]?.id || '';
+  });
   const [patientSearch, setPatientSearch] = useState<string>('');
-  const [customGuestName, setCustomGuestName] = useState<string>('');
-
-  // Call configuration
-  const [roomName, setRoomName] = useState<string>(() => `nutrink-${Math.random().toString(36).substring(2, 9)}`);
+  const [customGuestName, setCustomGuestName] = useState<string>(() => initialPatientName || '');
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -174,6 +189,13 @@ export const TelemedicineView: React.FC<TelemedicineViewProps> = ({
   const safeRoomUrl = activeJwtToken
     ? `https://8x8.vc/${jaasAppId}/${encodeURIComponent(roomName)}?jwt=${activeJwtToken}`
     : cleanRoomUrl;
+
+  const patientQueryParam = selectedPatient?.name 
+    ? `&patient=${encodeURIComponent(selectedPatient.name)}` 
+    : (customGuestName ? `&patient=${encodeURIComponent(customGuestName)}` : '');
+  const nutrinkRoomUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/telemedicina?room=${encodeURIComponent(roomName)}${patientQueryParam}`
+    : `/telemedicina?room=${encodeURIComponent(roomName)}`;
 
   // Start call timer
   useEffect(() => {
@@ -438,29 +460,30 @@ export const TelemedicineView: React.FC<TelemedicineViewProps> = ({
 
   // WhatsApp Invite Link generator
   const handleSendWhatsAppInvite = () => {
-    const doctorName = userAccount.name || 'Dra. Nutricionista';
+    const doctorName = userAccount.name || 'Dr(a). Nutricionista';
     const clinicName = userAccount.clinicName || 'NutrinK Consultório';
     const message = `Olá, ${currentPatientName}! Tudo bem? 
 
 Aqui é o consultório do(a) *${doctorName}* (${clinicName}). 
 Seu link seguro e privativo para a nossa *Vídeoconsulta Nutricional* hoje é:
 
-🔗 *${safeRoomUrl}*
+🔗 *${nutrinkRoomUrl}*
 
 Basta clicar no link acima pelo seu celular ou computador (com câmera e microfone liberados) para entrar direto na sala de atendimento. Aguardo você!`;
 
     const phoneDigits = selectedPatient?.phone?.replace(/\D/g, '') || '';
-    const url = phoneDigits 
+    const whatsappUrl = phoneDigits 
       ? `https://wa.me/55${phoneDigits}?text=${encodeURIComponent(message)}`
       : `https://wa.me/?text=${encodeURIComponent(message)}`;
 
-    window.open(url, '_blank');
+    // Abre diretamente o WhatsApp em uma nova guia/janela externa sem alterar a navegação da aba atual
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
     setCopiedWhatsApp(true);
     setTimeout(() => setCopiedWhatsApp(false), 3000);
   };
 
   const handleCopyRoomLink = () => {
-    navigator.clipboard.writeText(safeRoomUrl);
+    navigator.clipboard.writeText(nutrinkRoomUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
   };
@@ -745,11 +768,11 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
               {/* Room Identifier Display */}
               <div>
                 <label className="block text-[11px] font-bold text-purple-300 uppercase tracking-wider mb-1">
-                  Endereço Seguro da Sala (Criptografia E2EE)
+                  Endereço Seguro da Sala (Link de Acesso Direto do Paciente)
                 </label>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 bg-[#1b0638] border border-purple-700/60 rounded-xl px-3 py-2 text-purple-200 text-xs font-mono truncate select-all">
-                    {safeRoomUrl}
+                    {nutrinkRoomUrl}
                   </div>
                   <button
                     onClick={handleCopyRoomLink}
@@ -776,7 +799,7 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
                 </div>
 
                 <p className="text-[11px] text-emerald-100/90 leading-relaxed bg-[#0b241b] p-2.5 rounded-xl border border-emerald-800/40 font-mono text-[10.5px]">
-                  "Olá, {currentPatientName}! Seu link para a Vídeoconsulta Nutricional com {userAccount.name || 'sua Nutricionista'} é: {safeRoomUrl}. Aguardo você na sala!"
+                  "Olá, {currentPatientName}! Seu link para a Vídeoconsulta Nutricional com {userAccount.name || 'sua Nutricionista'} é: {nutrinkRoomUrl}. Aguardo você na sala!"
                 </p>
 
                 <button
@@ -866,9 +889,9 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
                   appId={jaasAppId}
                   roomName={roomName}
                   jwtToken={activeJwtToken}
-                  userName={userAccount.name || 'Dr(a). Nutricionista NutrinK'}
-                  userEmail={userAccount.email || 'clinica@nutrink.com.br'}
-                  isModerator={true}
+                  userName={isGuestPatient ? (customGuestName || 'Paciente Convidado') : (userAccount.name || 'Dr(a). Nutricionista NutrinK')}
+                  userEmail={isGuestPatient ? 'paciente@nutrink.com.br' : (userAccount.email || 'clinica@nutrink.com.br')}
+                  isModerator={!isGuestPatient}
                 />
               </div>
 

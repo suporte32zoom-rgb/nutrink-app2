@@ -38,8 +38,59 @@ import { callNutriaDirect } from './services/nutriaGeminiDirect';
 import { Bot, Sparkles, MessageSquare, X } from 'lucide-react';
 
 export function App() {
-  // Navigation
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'patients' | 'calendar' | 'finance' | 'nutricalc' | 'telemedicine' | 'nutria_hub' | 'plans'>('dashboard');
+  // Check URL parameters for direct deep-linking (e.g. /telemedicina?room=xyz, ?tab=telemedicine)
+  const [telemedRoomFromUrl, setTelemedRoomFromUrl] = useState<string | null>(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('room') || urlParams.get('r') || urlParams.get('sala') || null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [telemedPatientFromUrl, setTelemedPatientFromUrl] = useState<string | null>(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('patient') || urlParams.get('paciente') || urlParams.get('name') || null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Navigation state with direct route support
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'patients' | 'calendar' | 'finance' | 'nutricalc' | 'telemedicine' | 'nutria_hub' | 'plans'>(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const pathname = window.location.pathname.toLowerCase();
+      const hasRoom = urlParams.has('room') || urlParams.has('r') || urlParams.has('sala');
+      const isTelemed = pathname.includes('/telemedicina') || urlParams.get('tab') === 'telemedicine' || hasRoom;
+      if (isTelemed) return 'telemedicine';
+      if (urlParams.get('tab') === 'patients') return 'patients';
+      if (urlParams.get('tab') === 'calendar') return 'calendar';
+      if (urlParams.get('tab') === 'finance') return 'finance';
+      if (urlParams.get('tab') === 'plans') return 'plans';
+    } catch {}
+    return 'dashboard';
+  });
+
+  // Listen to popstate for browser back/forward and deep link updates
+  useEffect(() => {
+    const handlePopState = () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pathname = window.location.pathname.toLowerCase();
+        const room = urlParams.get('room') || urlParams.get('r') || urlParams.get('sala');
+        const patientName = urlParams.get('patient') || urlParams.get('paciente') || urlParams.get('name');
+        if (room) setTelemedRoomFromUrl(room);
+        if (patientName) setTelemedPatientFromUrl(patientName);
+        if (pathname.includes('/telemedicina') || urlParams.get('tab') === 'telemedicine' || !!room) {
+          setCurrentTab('telemedicine');
+        }
+      } catch {}
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Application Data States (persistent in localStorage with initial empty/clean state)
   const [patients, setPatients] = useState<Patient[]>(() => {
@@ -1074,6 +1125,9 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
             patients={patients}
             appointments={appointments}
             userAccount={effectiveUserAccount}
+            initialRoomName={telemedRoomFromUrl || undefined}
+            initialPatientName={telemedPatientFromUrl || undefined}
+            isGuestPatient={!isAuthenticated && Boolean(telemedRoomFromUrl)}
             onUpdatePatient={handleUpdatePatient}
             onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
             onNavigateTab={(tab) => {
