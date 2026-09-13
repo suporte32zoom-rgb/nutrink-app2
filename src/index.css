@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -8,12 +15,16 @@ html, body {
   touch-action: pan-x pan-y;
   overflow-x: hidden;
   max-width: 100vw;
+  min-height: 100vh;
+  min-height: 100dvh;
   -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  background-color: #0a0712;
 }
 
 @layer base {
   body {
-    background-color: #0c0217;
+    background-color: #0a0712;
     color: #f8fafc;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     box-sizing: border-box;
@@ -23,8 +34,25 @@ html, body {
   }
 
   header {
-    padding-top: max(0.625rem, env(safe-area-inset-top, 0.625rem));
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
   }
+}
+
+/* Safe Area Inset Helpers */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 /* NutrinK Original Theme Custom Styles */
