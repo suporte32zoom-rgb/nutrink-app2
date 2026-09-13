@@ -18,6 +18,7 @@ import { InstitutionalDocModal } from './components/InstitutionalDocModal';
 import { LoginModal } from './components/LoginModal';
 import { TelemedicineView } from './components/TelemedicineView';
 import { MercadoPagoSubscriptionsView } from './components/MercadoPagoSubscriptionsView';
+import { OnboardingView } from './components/OnboardingView';
 import { 
   INITIAL_PATIENTS, 
   INITIAL_APPOINTMENTS, 
@@ -293,8 +294,7 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     setUserAccount(null);
     setIsAuthenticated(false);
     setIsProfileModalOpen(false);
-    setAuthModalTab('login'); // strictly asks to enter email and password from original registration
-    setIsLoginModalOpen(true);
+    setIsLoginModalOpen(false);
   };
 
   // Real-time backend subscription sync (via Mercado Pago Webhook)
@@ -982,6 +982,32 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
       setIsNutriaLoading(false);
     }
   };
+
+  // Auth Guard: If user is not authenticated and not joining a telemedicine guest link, render the Onboarding flow
+  const isGuestTelemedSession = !!(telemedRoomFromUrl && currentTab === 'telemedicine');
+
+  if (!isAuthenticated && !isGuestTelemedSession) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-fuchsia-500 selection:text-white">
+        <OnboardingView
+          onCompleteAuth={(user, destinationTab) => {
+            handleLoginAs(user);
+            if (destinationTab) {
+              setCurrentTab(destinationTab as any);
+            }
+          }}
+          onOpenTermsDoc={(pageId) => handleOpenInstitutionalPage(pageId)}
+        />
+
+        {/* Institutional Document Modal (Terms, Privacy, LGPD) */}
+        <InstitutionalDocModal
+          isOpen={isInstitutionalModalOpen}
+          onClose={() => setIsInstitutionalModalOpen(false)}
+          initialPageId={activeInstitutionalPageId}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-fuchsia-500 selection:text-white">
