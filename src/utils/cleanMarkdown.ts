@@ -21,20 +21,26 @@ export function cleanMathAndLatex(rawText: string): string {
     return `__BRL_CURRENCY_${idx}__`;
   });
 
-  // 2. Limpar blocos de equações delimitados por $$ ... $$
+  // 2. Converter linhas de separação longas e repetitivas (como =======, -------, ______, ━━━━━, ═════, ~~~~~~) em regras horizontais limpas (<hr />)
+  text = text.replace(/^[ \t]*[=\-_*~━═—─]{3,}[ \t]*$/gm, '\n\n---\n\n');
+
+  // 3. Tratar sequências repetitivas no meio de textos ou títulos
+  text = text.replace(/([=\-_*~━═—─]{5,})/g, ' --- ');
+
+  // 4. Limpar blocos de equações delimitados por $$ ... $$
   text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, inner) => {
     return cleanFormulaSnippet(inner);
   });
 
-  // 3. Limpar expressões inline delimitadas por $ ... $
+  // 5. Limpar expressões inline delimitadas por $ ... $
   text = text.replace(/\$([^$\n\r]+?)\$/g, (match, inner) => {
     return cleanFormulaSnippet(inner);
   });
 
-  // 4. Limpar comandos LaTeX comuns que possam ter ficado fora de delimitadores
+  // 6. Limpar comandos LaTeX comuns que possam ter ficado fora de delimitadores
   text = cleanLatexCommands(text);
 
-  // 5. Restaurar os valores monetários em Reais protegidos
+  // 7. Restaurar os valores monetários em Reais protegidos
   text = text.replace(/__BRL_CURRENCY_(\d+)__/g, (match, idxStr) => {
     const idx = parseInt(idxStr, 10);
     return currencyPlaceholders[idx] || match;

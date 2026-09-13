@@ -1201,7 +1201,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
       {/* Floating NUTRIA Chat Drawer */}
       {isFloatingChatOpen && (
         <div 
-          className="fixed bottom-4 right-4 z-50 w-[calc(100vw-32px)] sm:w-full max-w-md p-1 sm:p-2"
+          className="fixed bottom-2.5 sm:bottom-4 right-2.5 sm:right-4 z-50 w-[calc(100vw-20px)] sm:w-full max-w-lg p-0.5 sm:p-2 max-h-[92vh] flex flex-col box-border min-w-0"
         >
           <NutriaCopilot
             messages={nutriaMessages}

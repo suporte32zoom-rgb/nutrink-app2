@@ -455,10 +455,10 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
       </div>
 
       {/* Messages Scroll Area - Renderiza a lista de balões entre Usuário e Assistente */}
-      <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-4 text-xs sm:text-sm">
+      <div className="flex-1 p-3.5 sm:p-5 overflow-y-auto overflow-x-hidden space-y-4 text-xs sm:text-sm w-full max-w-full box-border">
         
         {messages.length === 0 ? (
-          <div className="py-8 text-center space-y-4 max-w-lg mx-auto">
+          <div className="py-8 text-center space-y-4 max-w-lg mx-auto w-full px-2 box-border">
             <div className="w-14 h-14 rounded-2xl bg-purple-950/60 border border-fuchsia-500/40 text-fuchsia-400 flex items-center justify-center mx-auto shadow-md shadow-fuchsia-950/40">
               <FileText className="w-7 h-7" />
             </div>
@@ -470,20 +470,20 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
             </div>
 
             {/* Quick Prompts */}
-            <div className="space-y-2 pt-2 text-left">
+            <div className="space-y-2 pt-2 text-left w-full max-w-full box-border">
               <span className="text-[11px] font-bold uppercase text-purple-300 block text-center">
                 Exemplos de Comandos Clínicos e Operacionais:
               </span>
-              <div className="grid grid-cols-1 gap-1.5">
+              <div className="grid grid-cols-1 gap-1.5 w-full max-w-full">
                 {clinicalPromptTemplates.map((tmpl, idx) => (
                   <button
                     key={idx}
                     onClick={() => {
                       setInputText(tmpl.prompt);
                     }}
-                    className="p-3 rounded-2xl bg-[#1d0637] hover:bg-[#250847] border border-purple-800/40 text-left text-xs text-purple-100 transition-all flex items-center justify-between group shadow-sm cursor-pointer"
+                    className="p-3 rounded-2xl bg-[#1d0637] hover:bg-[#250847] border border-purple-800/40 text-left text-xs text-purple-100 transition-all flex items-center justify-between group shadow-sm cursor-pointer w-full max-w-full box-border min-w-0"
                   >
-                    <span className="truncate pr-2 font-medium">{tmpl.prompt}</span>
+                    <span className="truncate pr-2 font-medium min-w-0">{tmpl.prompt}</span>
                     <ArrowRight className="w-3.5 h-3.5 text-fuchsia-400 shrink-0 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                   </button>
                 ))}
@@ -496,51 +496,74 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
             return (
               <div
                 key={msg.id}
-                className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
+                className={`flex gap-2 sm:gap-3 w-full max-w-full min-w-0 box-border ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 {!isUser && (
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-fuchsia-600 to-purple-700 flex items-center justify-center text-white text-xs shrink-0 shadow-md font-black border border-fuchsia-400/40">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-fuchsia-600 to-purple-700 flex items-center justify-center text-white text-[11px] sm:text-xs shrink-0 shadow-md font-black border border-fuchsia-400/40 mt-0.5">
                     N
                   </div>
                 )}
 
-                <div className={`max-w-[90%] sm:max-w-[85%] rounded-3xl p-4 space-y-3 shadow-md ${
-                  isUser
-                    ? 'bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white rounded-tr-none border border-fuchsia-400/30'
-                    : 'bg-[#1d0637] text-purple-100 border border-purple-800/50 rounded-tl-none'
-                }`}>
+                <div 
+                  className={`min-w-0 max-w-[92%] sm:max-w-[85%] rounded-3xl p-3.5 sm:p-4 space-y-3 shadow-md box-border break-words [overflow-wrap:anywhere] [word-break:break-word] ${
+                    isUser
+                      ? 'bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white rounded-tr-none border border-fuchsia-400/30'
+                      : 'bg-[#1d0637] text-purple-100 border border-purple-800/50 rounded-tl-none'
+                  }`}
+                  style={{
+                    maxWidth: '92%',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-word',
+                    boxSizing: 'border-box'
+                  }}
+                >
                   
                   {/* Message Content formatted with Markdown tables */}
-                  <div className="leading-relaxed text-xs sm:text-sm font-sans text-purple-100 space-y-2.5">
+                  <div className="leading-relaxed text-xs sm:text-sm font-sans text-purple-100 space-y-2.5 w-full max-w-full min-w-0 box-border break-words [overflow-wrap:anywhere] [word-break:break-word]">
                     {isUser ? (
-                      <p className="whitespace-pre-wrap font-medium">{msg.content}</p>
+                      <p className="whitespace-pre-wrap font-medium break-words [overflow-wrap:anywhere] [word-break:break-word] max-w-full">
+                        {msg.content}
+                      </p>
                     ) : (
-                      <div className="markdown-content space-y-3">
+                      <div className="markdown-content space-y-3 w-full max-w-full min-w-0 box-border break-words [overflow-wrap:anywhere] [word-break:break-word]">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
-                            h1: ({ node, ...props }) => <h1 className="text-base sm:text-lg font-black text-fuchsia-300 border-b border-purple-700/60 pb-2 mt-4 mb-3 flex items-center gap-1.5" {...props} />,
-                            h2: ({ node, ...props }) => <h2 className="text-sm sm:text-base font-bold text-white mt-4 mb-2 flex items-center gap-1.5" {...props} />,
-                            h3: ({ node, ...props }) => <h3 className="text-xs sm:text-sm font-bold text-fuchsia-200 mt-3 mb-1.5" {...props} />,
-                            p: ({ node, ...props }) => <p className="leading-relaxed text-purple-100 text-xs sm:text-sm my-1.5" {...props} />,
-                            strong: ({ node, ...props }) => <strong className="font-bold text-white" {...props} />,
-                            em: ({ node, ...props }) => <em className="italic text-purple-200" {...props} />,
-                            ul: ({ node, ...props }) => <ul className="list-disc pl-5 space-y-1.5 text-purple-200 my-2" {...props} />,
-                            ol: ({ node, ...props }) => <ol className="list-decimal pl-5 space-y-1.5 text-purple-200 my-2" {...props} />,
-                            li: ({ node, ...props }) => <li className="leading-relaxed" {...props} />,
-                            hr: ({ node, ...props }) => <hr className="border-purple-800/70 my-3.5" {...props} />,
+                            h1: ({ node, ...props }) => <h1 className="text-base sm:text-lg font-black text-fuchsia-300 border-b border-purple-700/60 pb-2 mt-4 mb-3 flex items-center gap-1.5 break-words [overflow-wrap:anywhere] max-w-full" {...props} />,
+                            h2: ({ node, ...props }) => <h2 className="text-sm sm:text-base font-bold text-white mt-4 mb-2 flex items-center gap-1.5 break-words [overflow-wrap:anywhere] max-w-full" {...props} />,
+                            h3: ({ node, ...props }) => <h3 className="text-xs sm:text-sm font-bold text-fuchsia-200 mt-3 mb-1.5 break-words [overflow-wrap:anywhere] max-w-full" {...props} />,
+                            p: ({ node, ...props }) => <p className="leading-relaxed text-purple-100 text-xs sm:text-sm my-1.5 break-words [overflow-wrap:anywhere] [word-break:break-word] max-w-full" {...props} />,
+                            strong: ({ node, ...props }) => <strong className="font-bold text-white break-words [overflow-wrap:anywhere]" {...props} />,
+                            em: ({ node, ...props }) => <em className="italic text-purple-200 break-words [overflow-wrap:anywhere]" {...props} />,
+                            ul: ({ node, ...props }) => <ul className="list-disc pl-5 space-y-1.5 text-purple-200 my-2 break-words [overflow-wrap:anywhere] max-w-full" {...props} />,
+                            ol: ({ node, ...props }) => <ol className="list-decimal pl-5 space-y-1.5 text-purple-200 my-2 break-words [overflow-wrap:anywhere] max-w-full" {...props} />,
+                            li: ({ node, ...props }) => <li className="leading-relaxed break-words [overflow-wrap:anywhere] max-w-full" {...props} />,
+                            hr: ({ node, ...props }) => <hr className="border-purple-800/70 my-3.5 w-full max-w-full border-t border-b-0 border-x-0 overflow-hidden" {...props} />,
                             table: ({ node, ...props }) => (
-                              <div className="overflow-x-auto my-3.5 rounded-xl border border-purple-700/60 bg-[#120326] shadow-sm">
-                                <table className="w-full text-left text-[11px] sm:text-xs border-collapse" {...props} />
+                              <div className="w-full max-w-full overflow-x-auto my-3.5 rounded-xl border border-purple-700/60 bg-[#120326] shadow-sm box-border">
+                                <table className="w-full text-left text-[11px] sm:text-xs border-collapse min-w-[300px]" {...props} />
                               </div>
                             ),
                             thead: ({ node, ...props }) => <thead className="bg-[#280a4f] text-fuchsia-300 font-bold border-b border-purple-700/80" {...props} />,
                             tbody: ({ node, ...props }) => <tbody className="divide-y divide-purple-900/50" {...props} />,
                             tr: ({ node, ...props }) => <tr className="hover:bg-purple-950/40 transition-colors" {...props} />,
                             th: ({ node, ...props }) => <th className="py-2.5 px-3 font-bold text-fuchsia-300 text-left border-r border-purple-800/40 last:border-r-0 whitespace-nowrap" {...props} />,
-                            td: ({ node, ...props }) => <td className="py-2 px-3 text-purple-100 border-r border-purple-900/40 last:border-r-0" {...props} />,
-                            code: ({ node, ...props }) => <code className="bg-[#120326] px-1.5 py-0.5 rounded text-fuchsia-300 text-[11px] font-mono border border-purple-800/50" {...props} />,
-                            blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-fuchsia-500 pl-3.5 py-1.5 bg-purple-950/40 text-purple-100 italic my-3 rounded-r-xl border-y border-r border-purple-900/30 text-xs sm:text-sm" {...props} />
+                            td: ({ node, ...props }) => <td className="py-2 px-3 text-purple-100 border-r border-purple-900/40 last:border-r-0 break-words" {...props} />,
+                            pre: ({ node, ...props }) => (
+                              <div className="w-full max-w-full overflow-x-auto my-2.5 rounded-xl bg-[#0f021f] border border-purple-800/70 p-3 box-border">
+                                <pre className="text-[11px] sm:text-xs font-mono text-purple-200 whitespace-pre overflow-x-auto" {...props} />
+                              </div>
+                            ),
+                            code: ({ node, inline, ...props }: any) => (
+                              inline ? (
+                                <code className="bg-[#120326] px-1.5 py-0.5 rounded text-fuchsia-300 text-[11px] font-mono border border-purple-800/50 break-all max-w-full inline-block" {...props} />
+                              ) : (
+                                <div className="w-full max-w-full overflow-x-auto my-2 rounded-lg bg-[#120326] p-2 border border-purple-800/50 box-border">
+                                  <code className="text-fuchsia-300 text-[11px] font-mono whitespace-pre" {...props} />
+                                </div>
+                              )
+                            ),
+                            blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-fuchsia-500 pl-3.5 py-1.5 bg-purple-950/40 text-purple-100 italic my-3 rounded-r-xl border-y border-r border-purple-900/30 text-xs sm:text-sm break-words [overflow-wrap:anywhere] max-w-full box-border" {...props} />
                           }}
                         >
                           {cleanMathAndLatex(msg.content)}
@@ -551,14 +574,14 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
                           msg.content.includes('Planos de Assinatura') || 
                           msg.content.includes('Plano Premium') ||
                           msg.content.includes('Painel de Assinaturas')) && onOpenSubscriptionModal && (
-                          <div className="mt-4 pt-3 border-t border-purple-800/50 flex flex-wrap items-center gap-2.5">
+                          <div className="mt-4 pt-3 border-t border-purple-800/50 flex flex-wrap items-center gap-2.5 w-full max-w-full box-border">
                             <button
                               onClick={onOpenSubscriptionModal}
-                              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-fuchsia-600 to-purple-600 hover:from-amber-400 hover:to-fuchsia-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-purple-950/60 border border-fuchsia-400/40 transition-all cursor-pointer"
+                              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-fuchsia-600 to-purple-600 hover:from-amber-400 hover:to-fuchsia-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-purple-950/60 border border-fuchsia-400/40 transition-all cursor-pointer max-w-full min-w-0"
                             >
-                              <Crown className="w-4 h-4 text-amber-200" />
-                              <span>Ver Planos & Desbloquear Acesso Completo</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
+                              <Crown className="w-4 h-4 text-amber-200 shrink-0" />
+                              <span className="truncate">Ver Planos & Desbloquear Acesso Completo</span>
+                              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                             </button>
                             <span className="text-[11px] text-purple-300">
                               A partir de <strong>R$ 39,90/mês</strong> ou <strong>R$ 399,90/ano</strong>
@@ -571,21 +594,21 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
 
                   {/* Visual Tool Action Confirmation Badge if executed */}
                   {msg.actionExecuted && (
-                    <div className="mt-3 p-3 rounded-2xl bg-[#120326] border border-fuchsia-500/50 text-xs text-fuchsia-300 space-y-1">
+                    <div className="mt-3 p-3 rounded-2xl bg-[#120326] border border-fuchsia-500/50 text-xs text-fuchsia-300 space-y-1 w-full max-w-full box-border min-w-0 break-words">
                       <div className="flex items-center gap-1.5 font-bold">
-                        <CheckCircle2 className="w-4 h-4 text-fuchsia-400" />
-                        <span>Ação Executada no NutrinK:</span>
+                        <CheckCircle2 className="w-4 h-4 text-fuchsia-400 shrink-0" />
+                        <span className="truncate">Ação Executada no NutrinK:</span>
                       </div>
-                      <p className="text-purple-200">{msg.actionExecuted.summary}</p>
+                      <p className="text-purple-200 break-words [overflow-wrap:anywhere]">{msg.actionExecuted.summary}</p>
                     </div>
                   )}
 
                   {/* Message Footer with Document Export Tools */}
-                  <div className="flex items-center justify-between text-[11px] text-purple-300 pt-2 border-t border-purple-900/40">
-                    <span className="font-medium">{msg.timestamp}</span>
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px] text-purple-300 pt-2 border-t border-purple-900/40 w-full max-w-full box-border">
+                    <span className="font-medium shrink-0">{msg.timestamp}</span>
                     
                     {!isUser && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                         {/* Audio TTS Speech Playback */}
                         <button
                           onClick={() => handleToggleSpeak(msg.id, msg.content)}
