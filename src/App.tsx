@@ -426,7 +426,23 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
 
   // Patient Updates
   const handleUpdatePatient = (updated: Patient) => {
-    setPatients(prev => prev.map(p => p.id === updated.id ? updated : p));
+    setPatients(prev => {
+      const list = prev.map(p => p.id === updated.id ? updated : p);
+      try { localStorage.setItem('nutrink_patients_data', JSON.stringify(list)); } catch {}
+      return list;
+    });
+  };
+
+  // Delete Patient Permanent
+  const handleDeletePatient = (patientId: string) => {
+    setPatients(prev => {
+      const updated = prev.filter(p => p.id !== patientId);
+      try { localStorage.setItem('nutrink_patients_data', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    if (selectedPatientId === patientId) {
+      setSelectedPatientId(null);
+    }
   };
 
   // Open NUTRIA with a prompt
@@ -660,9 +676,12 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
             : Math.round(10 * rawWeight + 6.25 * rawHeight - 5 * rawAge - 161);
           const getVal = Math.round(tmb * 1.4);
 
+          const anamneseData = payload.anamnese || {};
+          const patName = payload.name || payload.nome || (rawGender === 'feminino' ? 'Paciente Feminina' : 'Paciente Masculino');
+
           const newPat: Patient = {
             id: payload.id || `pat-${Date.now()}`,
-            name: payload.name || payload.nome || 'Novo Paciente',
+            name: patName,
             age: rawAge,
             gender: rawGender,
             heightCm: rawHeight,
@@ -677,14 +696,20 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
             get: getVal,
             status: 'ativo',
             phone: payload.phone || payload.telefone || '(11) 99999-0000',
-            email: payload.email || `${(payload.name || 'paciente').toLowerCase().replace(/\s+/g, '')}@email.com`,
+            email: payload.email || `${patName.toLowerCase().replace(/\s+/g, '')}@email.com`,
             notes: payload.notes || payload.observacoes || 'Cadastrado via copiloto autônomo NÚTRIA.',
             tags: [payload.objective || 'nutricao_clinica'],
             createdAt: new Date().toISOString().split('T')[0],
             anamnese: {
-              clinicalHistory: payload.notes || 'Sem restrições relatadas.',
-              foodAllergiesAndIntolerances: 'Nenhuma alergia relatada.',
-              currentMedicationsAndSupplements: 'Nenhum medicamento informado.',
+              clinicalHistory: anamneseData.clinicalHistory || payload.clinicalHistory || payload.notes || 'Sem histórico patológico relatado.',
+              foodAllergiesAndIntolerances: anamneseData.foodAllergiesAndIntolerances || payload.allergies || 'Nenhuma alergia relatada.',
+              currentMedicationsAndSupplements: anamneseData.currentMedicationsAndSupplements || payload.medications || 'Nenhum medicamento informado.',
+              routineAndOccupation: anamneseData.routineAndOccupation || payload.routine || 'Rotina comercial padrão',
+              dietaryPreferences: anamneseData.dietaryPreferences || payload.preferences || 'Variadas e bem aceitas',
+              dietaryAversions: anamneseData.dietaryAversions || payload.aversions || 'Nenhuma aversão específica',
+              bowelHabit: anamneseData.bowelHabit || 'diario_normal',
+              sleepHoursPerNight: anamneseData.sleepHoursPerNight || 7,
+              emotionalRelationshipWithFood: anamneseData.emotionalRelationshipWithFood || 'Equilibrada',
               waterIntakeLiters: 2.5
             },
             evolutionHistory: [
@@ -711,9 +736,11 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         // 2. AÇÃO: ATUALIZAR PRONTUÁRIO DE PACIENTE
         else if (actionExecuted.type === 'patient_updated' || actionExecuted.type === 'UPDATE_PATIENT') {
           const pName = (payload.patientName || payload.nomePaciente || '').toLowerCase();
+          const anamneseData = payload.anamnese || {};
+
           setPatients(prev => {
             const updated = prev.map(p => {
-              if (p.id === payload.patientId || (pName && p.name.toLowerCase().includes(pName))) {
+              if (p.id === payload.id || p.id === payload.patientId || (pName && p.name.toLowerCase().includes(pName))) {
                 const newW = payload.weightKg ? parseFloat(payload.weightKg) : p.currentWeightKg;
                 const newH = payload.heightCm ? parseFloat(payload.heightCm) : p.heightCm;
                 const newBf = payload.bodyFatPercentage ? parseFloat(payload.bodyFatPercentage) : p.bodyFatPercentage;
@@ -741,6 +768,17 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
                   bmi: newBmi,
                   objective: payload.objective || p.objective,
                   notes: payload.notes ? `${p.notes}\n${payload.notes}` : p.notes,
+                  anamnese: {
+                    ...p.anamnese,
+                    clinicalHistory: anamneseData.clinicalHistory || p.anamnese?.clinicalHistory || 'Sem restrições relatadas.',
+                    foodAllergiesAndIntolerances: anamneseData.foodAllergiesAndIntolerances || p.anamnese?.foodAllergiesAndIntolerances || 'Nenhuma alergia relatada.',
+                    currentMedicationsAndSupplements: anamneseData.currentMedicationsAndSupplements || p.anamnese?.currentMedicationsAndSupplements || 'Nenhum medicamento informado.',
+                    routineAndOccupation: anamneseData.routineAndOccupation || p.anamnese?.routineAndOccupation || 'Rotina comercial padrão',
+                    dietaryPreferences: anamneseData.dietaryPreferences || p.anamnese?.dietaryPreferences || 'Variadas e bem aceitas',
+                    dietaryAversions: anamneseData.dietaryAversions || p.anamnese?.dietaryAversions || 'Nenhuma aversão específica',
+                    bowelHabit: anamneseData.bowelHabit || p.anamnese?.bowelHabit || 'diario_normal',
+                    sleepHoursPerNight: anamneseData.sleepHoursPerNight || p.anamnese?.sleepHoursPerNight || 7
+                  },
                   evolutionHistory: newHistory
                 };
               }
@@ -1000,6 +1038,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
             onOpenNewAppointmentWithPatient={handleOpenNewAppointmentWithPatient}
             onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
             onUpdatePatient={handleUpdatePatient}
+            onDeletePatient={handleDeletePatient}
             foodDatabase={INITIAL_FOOD_DATABASE}
             userAccount={userAccount || undefined}
             onStartTelemedicine={(patientId) => {

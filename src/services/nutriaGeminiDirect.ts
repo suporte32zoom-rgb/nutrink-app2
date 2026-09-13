@@ -246,25 +246,59 @@ Antes de sugerir qualquer plano dietético ou fórmula magistral, valide se há 
   "Prescrição estruturada pela NÚTRIA para o consultório NutrinK."`;
 
 /**
- * Extrai dados antropométricos expressos na mensagem do usuário para garantia de override
+ * Extrai dados antropométricos e clínicos expressos na mensagem do usuário para garantia de override e autopreenchimento
  */
 export function extractMessageAnthropometrics(message: string): {
+  name?: string;
   weight?: number;
   height?: number;
   age?: number;
   gender?: 'masculino' | 'feminino';
   objective?: string;
+  clinicalHistory?: string;
+  allergies?: string;
+  medications?: string;
+  routine?: string;
+  preferences?: string;
+  aversions?: string;
+  bowelHabit?: 'diario_normal' | 'constipado' | 'diarreico' | 'irregular';
+  sleep?: number;
+  emotional?: string;
 } {
   const result: {
+    name?: string;
     weight?: number;
     height?: number;
     age?: number;
     gender?: 'masculino' | 'feminino';
     objective?: string;
+    clinicalHistory?: string;
+    allergies?: string;
+    medications?: string;
+    routine?: string;
+    preferences?: string;
+    aversions?: string;
+    bowelHabit?: 'diario_normal' | 'constipado' | 'diarreico' | 'irregular';
+    sleep?: number;
+    emotional?: string;
   } = {};
 
   if (!message) return result;
+  const rawText = message;
   const text = message.toLowerCase();
+
+  // Nome do Paciente (extração inteligente com eliminação de palavras genéricas)
+  const nameMatch = rawText.match(/(?:paciente|nome(?:\s+do\s+paciente|\s+da\s+paciente)?)\s*[:=-]?\s*([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)*)/i)
+    || rawText.match(/cadastr(?:ar|e)\s+(?:o|a)?\s*(?:paciente)?\s*([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)*)/i)
+    || rawText.match(/atendimento\s+(?:de|do|da)\s+([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)*)/i);
+  
+  if (nameMatch && nameMatch[1]) {
+    const candidate = nameMatch[1].trim();
+    const blacklist = ['masculino', 'feminino', 'novo', 'nova', 'paciente', 'prontuario', 'prontuário', 'consulta', 'dieta', 'plano', 'nutria', 'anamnese'];
+    if (!blacklist.includes(candidate.toLowerCase()) && candidate.length >= 3) {
+      result.name = candidate;
+    }
+  }
 
   // Peso: 80kg, 80 kg, 80.5kg, peso de 80, pesando 80
   const weightMatch = text.match(/(?:peso(?:\s+de|\s*[:=])?\s*|pesando\s*|com\s*)?(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos|kilos)\b/i)
@@ -306,8 +340,91 @@ export function extractMessageAnthropometrics(message: string): {
     result.objective = 'Hipertrofia Muscular';
   } else if (text.includes('emagrecimento') || text.includes('perder peso') || text.includes('queimar gordura') || text.includes('secagem') || text.includes('cutting')) {
     result.objective = 'Emagrecimento e Perda de Gordura';
-  } else if (text.includes('manutenção') || text.includes('manter peso') || text.includes('saude')) {
+  } else if (text.includes('manutenção') || text.includes('manter peso') || text.includes('saude') || text.includes('longevidade')) {
     result.objective = 'Manutenção e Saúde Metabólica';
+  }
+
+  // Histórico Clínico, Queixas e Sintomas
+  const historyMatch = rawText.match(/(?:histórico|patologias|queixa|sintomas|diagnóstico|quadro)\s*[:=-]?\s*([^.;\n]+)/i);
+  if (historyMatch && historyMatch[1]) {
+    result.clinicalHistory = historyMatch[1].trim();
+  } else {
+    const symptoms: string[] = [];
+    if (text.includes('refluxo')) symptoms.push('Refluxo Gastroesofágico');
+    if (text.includes('gastrite')) symptoms.push('Gastrite');
+    if (text.includes('hipertens') || text.includes('has')) symptoms.push('Hipertensão Arterial');
+    if (text.includes('diabetes') || text.includes('dm2')) symptoms.push('Diabetes Mellitus Tipo 2');
+    if (text.includes('esteatose')) symptoms.push('Esteatose Hepática');
+    if (text.includes('gota') || text.includes('ácido úrico') || text.includes('acido urico')) symptoms.push('Hiperuricemia / Gota');
+    if (text.includes('renal') || text.includes('irc')) symptoms.push('Insuficiência Renal Crônica');
+    if (text.includes('intestino irritável') || text.includes('sii')) symptoms.push('Síndrome do Intestino Irritável');
+    if (text.includes('insônia') || text.includes('insonia')) symptoms.push('Distúrbio do Sono / Insônia');
+    if (text.includes('ansiedade')) symptoms.push('Ansiedade');
+    if (symptoms.length > 0) {
+      result.clinicalHistory = symptoms.join(', ');
+    }
+  }
+
+  // Alergias e Intolerâncias
+  const allergyMatch = rawText.match(/(?:alergias?|intolerâncias?|alérgic[ao]\s+a|intolerante\s+a)\s*[:=-]?\s*([^.;\n]+)/i);
+  if (allergyMatch && allergyMatch[1]) {
+    result.allergies = allergyMatch[1].trim();
+  } else {
+    const allergies: string[] = [];
+    if (text.includes('lactose')) allergies.push('Intolerância a Lactose');
+    if (text.includes('glúten') || text.includes('gluten')) allergies.push('Sensibilidade ao Glúten');
+    if (text.includes('frutos do mar') || text.includes('camarão') || text.includes('camarao')) allergies.push('Alergia a Frutos do Mar');
+    if (text.includes('amendoim')) allergies.push('Alergia a Amendoim');
+    if (text.includes('ovo') && text.includes('alergia')) allergies.push('Alergia a Ovo');
+    if (allergies.length > 0) {
+      result.allergies = allergies.join(', ');
+    }
+  }
+
+  // Medicamentos e Suplementos em Uso
+  const medMatch = rawText.match(/(?:medicamentos?|remédios?|suplementos?|medicação|faz uso de|em uso de|toma|usa)\s*[:=-]?\s*([^.;\n]+)/i);
+  if (medMatch && medMatch[1]) {
+    result.medications = medMatch[1].trim();
+  } else {
+    const meds: string[] = [];
+    if (text.includes('omeprazol')) meds.push('Omeprazol');
+    if (text.includes('metformina')) meds.push('Metformina');
+    if (text.includes('losartana')) meds.push('Losartana');
+    if (text.includes('rosuvastatina') || text.includes('atorvastatina') || text.includes('estatina')) meds.push('Estatina');
+    if (text.includes('levotiroxina') || text.includes('puran')) meds.push('Levotiroxina');
+    if (text.includes('creatina')) meds.push('Creatina');
+    if (text.includes('whey')) meds.push('Whey Protein');
+    if (text.includes('vitamina d')) meds.push('Vitamina D');
+    if (meds.length > 0) {
+      result.medications = meds.join(', ');
+    }
+  }
+
+  // Preferências e Aversões
+  const prefMatch = rawText.match(/(?:preferências?|gosta de|prefere)\s*[:=-]?\s*([^.;\n]+)/i);
+  if (prefMatch && prefMatch[1]) result.preferences = prefMatch[1].trim();
+
+  const avMatch = rawText.match(/(?:aversões?|aversao|não come|nao come|evita|não tolera|restrição a)\s*[:=-]?\s*([^.;\n]+)/i);
+  if (avMatch && avMatch[1]) result.aversions = avMatch[1].trim();
+
+  // Rotina
+  const routineMatch = rawText.match(/(?:rotina|trabalho|ocupação)\s*[:=-]?\s*([^.;\n]+)/i);
+  if (routineMatch && routineMatch[1]) result.routine = routineMatch[1].trim();
+
+  // Hábito Intestinal
+  if (text.includes('constipa') || text.includes('preso') || text.includes('ressecado')) {
+    result.bowelHabit = 'constipado';
+  } else if (text.includes('diarre') || text.includes('solto')) {
+    result.bowelHabit = 'diarreico';
+  } else if (text.includes('irregular')) {
+    result.bowelHabit = 'irregular';
+  }
+
+  // Sono
+  const sleepMatch = text.match(/(\d{1,2})\s*(?:horas|h)\s*(?:de\s+sono|por\s+noite)?/i);
+  if (sleepMatch) {
+    const s = parseInt(sleepMatch[1], 10);
+    if (s >= 3 && s <= 14) result.sleep = s;
   }
 
   return result;
@@ -539,19 +656,57 @@ export function detectOperationalAction(userInput: string, aiReply: string, para
   const lower = userInput.toLowerCase();
   const patients = Array.isArray(params.patients) ? params.patients : [];
 
-  // 1. Ação de cadastrar paciente
-  if (lower.includes('cadastrar paciente') || lower.includes('cadastre o paciente') || lower.includes('novo paciente') || lower.includes('criar prontuário') || lower.includes('cadastrar a paciente')) {
+  // 1. Ação de cadastrar paciente ou dados completos de novo paciente
+  const anthropo = extractMessageAnthropometrics(userInput);
+  const isExplicitCreate = lower.includes('cadastrar paciente') || lower.includes('cadastre o paciente') || lower.includes('novo paciente') || lower.includes('criar prontuário') || lower.includes('cadastrar a paciente');
+  const hasRichPatientData = !!(anthropo.name && (anthropo.weight || anthropo.age || anthropo.clinicalHistory || anthropo.medications));
+
+  if (isExplicitCreate || hasRichPatientData) {
     const match = userInput.match(/(?:paciente|nome)\s+([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)*)/i)
       || userInput.match(/cadastr(?:ar|e)\s+(?:o|a)?\s*(?:paciente)?\s*([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)*)/i);
-    const patientName = match ? match[1].trim() : 'Novo Paciente';
     
-    const anthropo = extractMessageAnthropometrics(userInput);
+    // Nome com prioridade para a extração do anthropometrics, regex ou fallback limpo
+    const patientName = anthropo.name || (match ? match[1].trim() : (anthropo.gender === 'feminino' ? 'Paciente Feminina' : 'Paciente Masculino'));
+    
+    // Verifica se paciente já existe pelo nome para atualizar em vez de duplicar
+    const existing = patients.find(p => p.name.toLowerCase() === patientName.toLowerCase());
+
     const ageMatch = userInput.match(/(\d{1,3})\s*(?:anos|ano)/i);
-    const age = anthropo.age || (ageMatch ? parseInt(ageMatch[1], 10) : 30);
-    const weight = anthropo.weight || 70;
-    const height = anthropo.height || 170;
-    const gender = anthropo.gender || (lower.includes('mulher') || lower.includes('feminina') ? 'feminino' : 'masculino');
-    const objective = anthropo.objective || (lower.includes('emagrec') ? 'Emagrecimento' : lower.includes('hipertrof') ? 'Hipertrofia Muscular' : 'Acompanhamento Nutricional');
+    const age = anthropo.age || (ageMatch ? parseInt(ageMatch[1], 10) : (existing?.age || 30));
+    const weight = anthropo.weight || existing?.currentWeightKg || 70;
+    const height = anthropo.height || existing?.heightCm || 170;
+    const gender = anthropo.gender || existing?.gender || (lower.includes('mulher') || lower.includes('feminina') ? 'feminino' : 'masculino');
+    const objective = anthropo.objective || existing?.objective || (lower.includes('emagrec') ? 'Emagrecimento' : lower.includes('hipertrof') ? 'Hipertrofia Muscular' : 'Acompanhamento Nutricional');
+
+    const anamneseObj = {
+      clinicalHistory: anthropo.clinicalHistory || existing?.anamnese?.clinicalHistory || 'Sem histórico patológico relatado.',
+      foodAllergiesAndIntolerances: anthropo.allergies || existing?.anamnese?.foodAllergiesAndIntolerances || 'Nenhuma alergia relatada.',
+      currentMedicationsAndSupplements: anthropo.medications || existing?.anamnese?.currentMedicationsAndSupplements || 'Nenhum medicamento informado.',
+      routineAndOccupation: anthropo.routine || existing?.anamnese?.routineAndOccupation || 'Rotina comercial padrão',
+      dietaryPreferences: anthropo.preferences || existing?.anamnese?.dietaryPreferences || 'Variadas e bem aceitas',
+      dietaryAversions: anthropo.aversions || existing?.anamnese?.dietaryAversions || 'Nenhuma aversão específica',
+      bowelHabit: anthropo.bowelHabit || existing?.anamnese?.bowelHabit || 'diario_normal',
+      sleepHoursPerNight: anthropo.sleep || existing?.anamnese?.sleepHoursPerNight || 7,
+      emotionalRelationshipWithFood: anthropo.emotional || existing?.anamnese?.emotionalRelationshipWithFood || 'Equilibrada'
+    };
+
+    if (existing) {
+      return {
+        type: 'patient_updated',
+        payload: {
+          id: existing.id,
+          patientName: existing.name,
+          age,
+          gender,
+          weightKg: weight,
+          heightCm: height,
+          objective,
+          anamnese: anamneseObj,
+          notes: `Conduta estruturada pela NÚTRIA para ${existing.name}.`
+        },
+        summary: `Prontuário de ${existing.name} atualizado com novas informações clínicas.`
+      };
+    }
 
     return {
       type: 'patient_created',
@@ -567,7 +722,9 @@ export function detectOperationalAction(userInput: string, aiReply: string, para
         objective: objective,
         bodyFatPercentage: 20,
         status: 'ativo',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        anamnese: anamneseObj,
+        notes: `Prescrição e conduta inicial estruturada pela NÚTRIA para ${patientName}.`
       },
       summary: `Paciente ${patientName} cadastrado(a) no prontuário.`
     };
@@ -575,7 +732,6 @@ export function detectOperationalAction(userInput: string, aiReply: string, para
 
   // 2. Ação de atualizar paciente
   if (lower.includes('atualizar paciente') || lower.includes('atualize o peso') || lower.includes('atualize o prontuário') || lower.includes('mude o peso') || lower.includes('novo peso')) {
-    const anthropo = extractMessageAnthropometrics(userInput);
     let targetName = params.activePatient?.name || '';
     for (const p of patients) {
       if (lower.includes(p.name.toLowerCase())) {
@@ -583,13 +739,27 @@ export function detectOperationalAction(userInput: string, aiReply: string, para
         break;
       }
     }
+    const existing = patients.find(p => p.name.toLowerCase() === targetName.toLowerCase()) || params.activePatient;
+
     return {
       type: 'patient_updated',
       payload: {
-        patientName: targetName,
-        weightKg: anthropo.weight,
-        heightCm: anthropo.height,
-        objective: anthropo.objective
+        id: existing?.id,
+        patientName: targetName || existing?.name,
+        weightKg: anthropo.weight || existing?.currentWeightKg,
+        heightCm: anthropo.height || existing?.heightCm,
+        age: anthropo.age || existing?.age,
+        objective: anthropo.objective || existing?.objective,
+        anamnese: {
+          clinicalHistory: anthropo.clinicalHistory || existing?.anamnese?.clinicalHistory,
+          foodAllergiesAndIntolerances: anthropo.allergies || existing?.anamnese?.foodAllergiesAndIntolerances,
+          currentMedicationsAndSupplements: anthropo.medications || existing?.anamnese?.currentMedicationsAndSupplements,
+          routineAndOccupation: anthropo.routine || existing?.anamnese?.routineAndOccupation,
+          dietaryPreferences: anthropo.preferences || existing?.anamnese?.dietaryPreferences,
+          dietaryAversions: anthropo.aversions || existing?.anamnese?.dietaryAversions,
+          bowelHabit: anthropo.bowelHabit || existing?.anamnese?.bowelHabit,
+          sleepHoursPerNight: anthropo.sleep || existing?.anamnese?.sleepHoursPerNight
+        }
       },
       summary: `Prontuário de ${targetName || 'paciente'} atualizado.`
     };

@@ -70,6 +70,7 @@ interface PatientsViewProps {
   onOpenNewAppointmentWithPatient: (patient: Patient) => void;
   onOpenNutriaWithPrompt: (prompt: string) => void;
   onUpdatePatient: (updatedPatient: Patient) => void;
+  onDeletePatient?: (patientId: string) => void;
   foodDatabase: FoodItem[];
   userAccount?: UserAccount;
   onStartTelemedicine?: (patientId: string) => void;
@@ -85,6 +86,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
   onOpenNewAppointmentWithPatient,
   onOpenNutriaWithPrompt,
   onUpdatePatient,
+  onDeletePatient,
   foodDatabase,
   userAccount,
   onStartTelemedicine,
@@ -101,6 +103,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
   // 4: Evolução & Consultas
   // 5: Exames Laboratoriais
   const [activeTab, setActiveTab] = useState<'resumo' | 'plano' | 'prescricoes' | 'evolucao' | 'exames'>('resumo');
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   
   // Modal de Avaliação Antropométrica (Aba 4)
   const [isAddingAntro, setIsAddingAntro] = useState(false);
@@ -136,6 +139,10 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
 
   // Modal de Edição de Dados Clínicos & Parâmetros (Aba 1)
   const [isEditingClinical, setIsEditingClinical] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editNotes, setEditNotes] = useState('');
   const [editWeight, setEditWeight] = useState('');
   const [editHeight, setEditHeight] = useState('');
   const [editAge, setEditAge] = useState('');
@@ -174,6 +181,10 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
 
   const handleOpenEditClinical = () => {
     if (!selectedPatient) return;
+    setEditName(selectedPatient.name || '');
+    setEditPhone(selectedPatient.phone || '');
+    setEditEmail(selectedPatient.email || '');
+    setEditNotes(selectedPatient.notes || '');
     setEditWeight(selectedPatient.currentWeightKg > 0 ? String(selectedPatient.currentWeightKg) : '');
     setEditHeight(selectedPatient.heightCm > 0 ? String(selectedPatient.heightCm) : '');
     setEditAge(selectedPatient.age > 0 ? String(selectedPatient.age) : '');
@@ -212,17 +223,21 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
     if (!selectedPatient) return;
     const updated: Patient = {
       ...selectedPatient,
-      age: editAgeNum,
+      name: editName.trim() || selectedPatient.name,
+      phone: editPhone.trim() || selectedPatient.phone,
+      email: editEmail.trim() || selectedPatient.email,
+      notes: editNotes.trim() || selectedPatient.notes,
+      age: editAgeNum || selectedPatient.age,
       gender: editGender,
       objective: editObjective,
-      currentWeightKg: editWeightNum,
-      targetWeightKg: editTargetWeightNum,
-      heightCm: editHeightCm,
-      bmi: editBmiData.bmi,
-      tmb: editTmb,
-      get: editGet,
-      bodyFatPercentage: editBfNum,
-      activityFactor: editNaf,
+      currentWeightKg: editWeightNum || selectedPatient.currentWeightKg,
+      targetWeightKg: editTargetWeightNum || selectedPatient.targetWeightKg,
+      heightCm: editHeightCm || selectedPatient.heightCm,
+      bmi: editBmiData.bmi > 0 ? editBmiData.bmi : selectedPatient.bmi,
+      tmb: editTmb > 0 ? editTmb : selectedPatient.tmb,
+      get: editGet > 0 ? editGet : selectedPatient.get,
+      bodyFatPercentage: editBfNum || selectedPatient.bodyFatPercentage,
+      activityFactor: editNaf || selectedPatient.activityFactor,
       anamnese: {
         ...selectedPatient.anamnese,
         clinicalHistory: editClinicalHistory,
@@ -234,11 +249,19 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
         dietaryPreferences: editPreferences,
         dietaryAversions: editAversions,
         emotionalRelationshipWithFood: editEmotional,
-        waterIntakeLiters: editWater.liters
+        waterIntakeLiters: editWater.liters > 0 ? editWater.liters : 2.5
       }
     };
     onUpdatePatient(updated);
     setIsEditingClinical(false);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!selectedPatient) return;
+    if (onDeletePatient) {
+      onDeletePatient(selectedPatient.id);
+    }
+    setIsConfirmingDelete(false);
   };
 
   // Salvar registro de antropometria (Aba 4)
@@ -464,6 +487,18 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 <Edit3 className="w-3.5 h-3.5 text-fuchsia-300" />
                 <span>Editar Dados Clínicos</span>
               </button>
+
+              {onDeletePatient && (
+                <button
+                  onClick={() => setIsConfirmingDelete(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-950/60 hover:bg-rose-900/80 text-rose-200 border border-rose-700/60 rounded-xl text-xs font-bold transition-all shadow-sm hover:text-white"
+                  title="Excluir o cadastro deste paciente e todo o histórico do prontuário"
+                  id="btn-delete-patient-record"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Excluir Cadastro</span>
+                </button>
+              )}
 
               {onStartTelemedicine && (
                 <button
@@ -759,6 +794,13 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                       <Award className="w-4 h-4 text-purple-300" />
                       Conduta Clínica Atual
                     </h3>
+                    <button
+                      onClick={handleOpenEditClinical}
+                      className="text-xs text-fuchsia-300 hover:text-white font-bold flex items-center gap-1"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Editar</span>
+                    </button>
                   </div>
                   <p className="text-xs text-purple-100 leading-relaxed font-medium">
                     {selectedPatient.notes || 'Paciente em acompanhamento nutricional personalizado para adequação metabólica e alcance de metas antropométricas.'}
@@ -1230,6 +1272,46 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 </button>
               </div>
 
+              {/* Dados Principais e Identificação */}
+              <div className="space-y-3 pb-3 border-b border-purple-800/60 text-xs">
+                <h4 className="font-bold text-fuchsia-300 uppercase flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-fuchsia-400" />
+                  Identificação & Contato do Paciente
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">Nome Completo:</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Nome do paciente"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white font-bold focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">WhatsApp / Telefone:</label>
+                    <input
+                      type="text"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      placeholder="(11) 99999-0000"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">E-mail:</label>
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      placeholder="paciente@email.com"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Form Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div>
@@ -1365,45 +1447,45 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-purple-200 font-bold block mb-1">Histórico Clínico / Patologias:</label>
-                    <input
-                      type="text"
+                    <textarea
+                      rows={2}
                       value={editClinicalHistory}
                       onChange={(e) => setEditClinicalHistory(e.target.value)}
                       placeholder="Patologias, cirurgias, histórico familiar..."
-                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400 resize-none"
                     />
                   </div>
 
                   <div>
                     <label className="text-purple-200 font-bold block mb-1">Alergias e Intolerâncias:</label>
-                    <input
-                      type="text"
+                    <textarea
+                      rows={2}
                       value={editAllergies}
                       onChange={(e) => setEditAllergies(e.target.value)}
                       placeholder="Lactose, glúten, frutos do mar..."
-                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400 resize-none"
                     />
                   </div>
 
                   <div>
                     <label className="text-purple-200 font-bold block mb-1">Medicamentos e Suplementos em Uso:</label>
-                    <input
-                      type="text"
+                    <textarea
+                      rows={2}
                       value={editMedications}
                       onChange={(e) => setEditMedications(e.target.value)}
                       placeholder="Medicamentos contínuos, dosagens..."
-                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400 resize-none"
                     />
                   </div>
 
                   <div>
                     <label className="text-purple-200 font-bold block mb-1">Rotina & Ocupação:</label>
-                    <input
-                      type="text"
+                    <textarea
+                      rows={2}
                       value={editRoutine}
                       onChange={(e) => setEditRoutine(e.target.value)}
                       placeholder="Horários de trabalho, deslocamento..."
-                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400 resize-none"
                     />
                   </div>
 
@@ -1425,6 +1507,53 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                       value={editAversions}
                       onChange={(e) => setEditAversions(e.target.value)}
                       placeholder="Alimentos que não consome..."
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">Hábito Intestinal:</label>
+                    <select
+                      value={editBowel}
+                      onChange={(e) => setEditBowel(e.target.value as any)}
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
+                    >
+                      <option value="diario_normal">Diário Normal</option>
+                      <option value="constipado">Constipado / Ressecado</option>
+                      <option value="diarreico">Diarreico / Amolecido</option>
+                      <option value="irregular">Irregular / Variável</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-purple-200 font-bold block mb-1">Horas de Sono / Noite:</label>
+                    <input
+                      type="number"
+                      value={editSleep}
+                      onChange={(e) => setEditSleep(e.target.value)}
+                      placeholder="ex: 7"
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-purple-200 font-bold block mb-1">Relação Emocional com a Comida:</label>
+                    <input
+                      type="text"
+                      value={editEmotional}
+                      onChange={(e) => setEditEmotional(e.target.value)}
+                      placeholder="ex: Equilibrada, ansiedade noturna, etc."
+                      className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-purple-200 font-bold block mb-1">Conduta Clínica & Observações Gerais:</label>
+                    <textarea
+                      rows={3}
+                      value={editNotes}
+                      onChange={(e) => setEditNotes(e.target.value)}
+                      placeholder="Anotações gerais do profissional de saúde, diretrizes, etc."
                       className="w-full bg-[#120326] border border-purple-700/80 rounded-xl p-2.5 text-white focus:outline-none focus:border-fuchsia-400"
                     />
                   </div>
@@ -1471,6 +1600,47 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                   className="px-5 py-2.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-fuchsia-950/60 transition-all border border-fuchsia-400/40"
                 >
                   Salvar Alterações no Prontuário
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* MODAL: CONFIRMAR EXCLUSÃO DE PACIENTE                          */}
+        {/* ============================================================== */}
+        {isConfirmingDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-[#17042b] border border-rose-600/80 rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-rose-950/80 text-rose-400 border border-rose-700/60">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Excluir Prontuário</h3>
+                  <p className="text-xs text-rose-300">Confirmação de exclusão permanente</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-purple-100 leading-relaxed">
+                Tem certeza que deseja excluir o cadastro de <strong className="text-white font-bold">{selectedPatient.name}</strong> (ID: {selectedPatient.id})? Todos os dados antropométricos, planos alimentares, prescrições e evoluções associados serão removidos permanentemente.
+              </p>
+
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-purple-800/60">
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmingDelete(false)}
+                  className="px-4 py-2 bg-[#220743] hover:bg-[#2d0959] text-purple-200 rounded-xl text-xs font-bold transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  className="px-5 py-2.5 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-950/60 transition-all border border-rose-400/40 flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Sim, Excluir Cadastro</span>
                 </button>
               </div>
             </div>
