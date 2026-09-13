@@ -110,39 +110,40 @@ O **NutrinK** consolida em uma única interface moderna todos os pilares essenci
 
   planos: {
     id: 'planos',
-    title: 'Planos e Preços',
+    title: 'Planos e Preços • Melhor Custo-Benefício',
     category: 'produto_recursos',
     categoryLabel: 'PRODUTO & RECURSOS',
     iconName: 'CreditCard',
-    shortDescription: 'Tabela comparativa do Plano Gratuito, Premium Mensal R$ 39,00 e Premium Anual R$ 399,00 à vista via PIX.',
-    markdownContent: `# Planos, Valores & Condições de Assinatura NutrinK
+    shortDescription: 'O software de nutrição mais barato e completo do Brasil: IA gratuita (30 msgs/dia), plano mensal por menos de 50 reais e plano anual com 2 meses grátis.',
+    markdownContent: `# Planos, Valores & Melhor Custo-Benefício do NutrinK
 
-Escolha o plano ideal para a escala do seu consultório ou clínica. Pagamento 100% à vista e instantâneo via **PIX com QR Code e Copia e Cola** com liberação imediata.
+O **NutrinK** democratiza a tecnologia clínica com o **software de nutrição mais barato do mercado**, unindo inteligência artificial, prontuário eletrônico completo e telemedicina por um valor acessível (menos de 50 reais por mês).
 
 ---
 
 ## Tabela Comparativa de Planos
 
-| Recursos & Funcionalidades | Plano Gratuito (Free) | Premium Mensal | Premium Anual *(Melhor Valor)* |
+| Recursos & Funcionalidades | Plano Gratuito (IA Free) | Premium Mensal *(Até 50 reais)* | Premium Anual *(Melhor Custo-Benefício)* |
 | :--- | :--- | :--- | :--- |
-| **Investimento À Vista** | **R$ 0,00** | **R$ 39,00 / mês (à vista)** | **R$ 399,00 / ano (à vista)** |
-| **Forma de Pagamento** | — | **PIX Instantâneo (QR Code)** | **PIX Instantâneo (QR Code)** |
-| **Economia** | — | — | **2 Meses Grátis** (R$ 69,00 de economia) |
-| **Consultas com Copiloto NUTRIA AI** | 30 mensagens / dia | **ILIMITADAS** | **ILIMITADAS** |
-| **Cadastro de Pacientes & Prontuários** | Até 10 pacientes | **ILIMITADOS** | **ILIMITADOS** |
+| **Investimento** | **R$ 0,00** | **R$ 39,00 / mês** | **R$ 399,00 / ano (~R$ 33/mês)** |
+| **Forma de Pagamento** | Sem cartão / Sem compromisso | **PIX Instantâneo & Cartão** | **PIX com Liberação Instantânea** |
+| **Economia Real** | 100% Gratuito para Iniciar | Acesso completo sem fidelidade | **2 Meses Grátis** (R$ 69,00 de economia) |
+| **Copiloto Clínico NUTRIA AI** | **30 mensagens / dia grátis** | **ILIMITADAS** | **ILIMITADAS** |
+| **Cadastro de Prontuários** | Até 10 pacientes | **ILIMITADOS** | **ILIMITADOS** |
+| **Telemedicina com Vídeo Nativo** | Sala de teste | **Sala HD Ilimitada** | **Sala HD Ilimitada + Gravação** |
 | **Agenda Clínica Inteligente** | Recursos básicos | Grade completa + Retornos | Grade completa + Sincronização |
-| **Gestão Financeira & Fluxo de Caixa** | Registro básico | Completo com DRE | Completo + Exportação Contábil |
-| **NutriCalc Pro (Todas as Equações)** | Fórmulas básicas | Todas as fórmulas científicas | Todas as fórmulas + Protocolos |
-| **Geração de Pareceres & Impressão** | Marca d'água básica | Sem marca d'água | Com logotipo e identidade visual |
+| **Gestão Financeira & DRE** | Registro básico | Completo com fluxo de caixa | Completo + Exportação Contábil |
+| **NutriCalc Pro (Equações Científicas)** | Fórmulas básicas | Mifflin, Harris, Cunningham | Todas as fórmulas + Protocolos |
+| **Impressão & Prescrição Personalizada** | Marca d'água básica | Sem marca d'água | Com logotipo e cabeçalho CRN/CRM |
 | **Nível de Suporte Técnico** | E-mail comunitário | Prioritário (horário comercial) | **VIP WhatsApp & E-mail 24/7** |
 
 ---
 
-## Vantagens dos Planos Premium
+## Por Que o NutrinK é o Melhor Custo-Benefício?
 
-- **Atendimento Ilimitado**: Utilize o copiloto NUTRIA sem restrições diárias de mensagens para todos os seus pacientes.
-- **Escalabilidade Total**: Cadastre novos prontuários sem teto de pacientes ou armazenamento.
-- **Garantia de 7 Dias**: Conforme o Art. 49 do Código de Defesa do Consumidor, experimente com 100% de reembolso caso decida cancelar no prazo.
+1. **Mensalidade Acessível**: Um sistema completo para nutricionistas por menos de R$ 50 reais ao mês, sem custos ocultos de implantação.
+2. **Plano Anual Barato**: No plano anual, você garante 12 meses pagando apenas 10, com suporte VIP prioritário.
+3. **IA Gratuita para Testar**: Experimente a NUTRIA AI com 30 mensagens gratuitas por dia e comprove o ganho de tempo na consulta.
 
 ---
 
@@ -568,49 +569,49 @@ Nossa equipe técnica, comercial e de suporte clínico está pronta para atender
 
   faq: {
     id: 'faq',
-    title: 'Perguntas Frequentes (FAQ)',
+    title: 'Perguntas Frequentes (FAQ) & SEO',
     category: 'conteudos_sobre',
     categoryLabel: 'CONTEÚDOS & SOBRE',
     iconName: 'BookOpen',
-    shortDescription: 'Perguntas frequentes sobre a plataforma, NÚTRIA, PWA, pagamentos e segurança.',
+    shortDescription: 'Perguntas frequentes sobre o melhor software de nutrição custo-benefício, IA gratuita para nutricionistas, telemedicina e prontuário.',
     markdownContent: `# Perguntas Frequentes sobre o NutrinK
 
-Tire suas dúvidas sobre o funcionamento da plataforma, recursos da inteligência NÚTRIA, instalação PWA, pagamentos e segurança.
+Tire todas as suas dúvidas sobre o software com melhor custo-benefício, inteligência artificial clínica, telemedicina nativa e prontuário eletrônico.
 
 ---
 
-### 1. O NutrinK é voltado para quais profissionais?
-O **NutrinK** foi desenvolvido exclusivamente para nutricionistas, médicos nutrólogos e profissionais da saúde que realizam atendimento clínico e nutricional.
+### 1. Por que o NutrinK é considerado o software de nutrição com melhor custo-benefício do mercado?
+O **NutrinK** foi desenhado para ser o **software de nutrição mais barato e completo**, oferecendo planos a partir de R$ 37 a R$ 39/mês (menos de 50 reais) e um **plano anual super econômico**. Ao contrário de outros sistemas caros, o NutrinK já inclui sem custo extra o copiloto com inteligência artificial, telemedicina com vídeo nativo, cálculos metabólicos e prontuário ilimitado.
 
 ---
 
-### 2. Como a NÚTRIA auxilia no atendimento e prescrição?
-A **NÚTRIA** analisa o histórico do paciente, exames e sintomas para calcular TMB/GET, sugerir planos alimentares e propor dosagens de suplementação e fórmulas manipuladas personalizadas.
+### 2. O NutrinK oferece IA gratuita para nutricionistas?
+**Sim!** No plano gratuito do NutrinK, você tem acesso a **30 mensagens gratuitas por dia com a NUTRIA AI**, o copiloto clínico de inteligência artificial especializada. Você pode calcular TMB/GET, montar cardápios e obter diagnósticos de exames sem pagar nada para começar.
 
 ---
 
-### 3. Como instalar e usar o aplicativo PWA?
-Basta acessar o site pelo celular ou computador e selecionar **"Instalar aplicativo"** no navegador para adicioná-lo à tela inicial sem ocupar armazenamento.
+### 3. Como usar a Inteligência Artificial (NUTRIA AI) na consulta de nutrição e prontuário?
+Durante a consulta física ou teleconsulta, basta ditar ou digitar os dados do paciente (peso, altura, idade, dobras, exames laboratoriais e preferências alimentares). A NUTRIA AI atua como seu **copiloto de inteligência artificial para nutrologia e nutrição**, preenchendo automaticamente o prontuário eletrônico, calculando o déficit/superávit calórico e gerando opções de refeições com gramaturas exatas.
 
 ---
 
-### 4. Como cadastrar e gerenciar pacientes?
-Você pode cadastrar manualmente pelo formulário de pacientes ou enviar os dados no chat da **NÚTRIA** para que ela cadastre automaticamente no prontuário.
+### 4. O NutrinK possui plataforma de telemedicina para nutricionista com vídeo nativo?
+**Sim.** O NutrinK integra uma **plataforma de telemedicina com vídeo em alta definição** diretamente no prontuário. O profissional pode realizar a videoconferência com o paciente e, na mesma tela, registrar a anamnese, consultar exames e emitir a prescrição sem alternar abas ou pagar por ferramentas de reuniões externas.
 
 ---
 
-### 5. Quais são os meios de pagamento disponíveis?
-Disponibilizamos pagamento via **PIX** (com aprovação imediata) e **Cartão de Crédito** para a assinatura dos planos.
+### 5. O sistema é indicado para consultórios virtuais e clínicas com múltiplos profissionais?
+**Sim.** O NutrinK é a solução definitiva tanto para profissionais que atendem 100% online em seu **consultório virtual de nutrição**, quanto para **clínicas de nutrição e nutrologia com múltiplos profissionais**, garantindo controle centralizado de pacientes, agenda inteligente, fluxo financeiro e conformidade absoluta com a LGPD, CFN e CFM.
 
 ---
 
-### 6. Como funciona o cancelamento da assinatura?
-O cancelamento pode ser feito a qualquer momento diretamente no painel da sua conta, sem taxas adicionais ou fidelidade.
+### 6. Como funciona a prescrição magistral e cálculos de TMB/GET?
+O motor **NutriCalc Pro** executa instantaneamente as equações validadas de **Mifflin-St Jeor, Harris-Benedict, Cunningham e FAO/OMS**, além de sugerir fitoterápicos e suplementação personalizada de acordo com os biomarcadores bioquímicos informados.
 
 ---
 
-### 7. Como funciona a segurança dos dados armazenados?
-Os dados dos pacientes e consultas são armazenados em nuvem criptografada, respeitando integralmente as exigências da **LGPD**.
+### 7. Como instalar o aplicativo PWA no celular ou computador?
+O NutrinK é um **PWA (Progressive Web App)** ultra leve. Basta acessar o link da plataforma pelo Chrome, Safari ou Edge e clicar em *"Instalar Aplicativo"* para utilizá-lo como um app nativo na tela inicial do seu smartphone, tablet ou computador.
 
 ---
 
