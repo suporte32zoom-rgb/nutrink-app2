@@ -5,6 +5,7 @@ import {
   DollarSign, 
   TrendingUp, 
   CheckCircle2, 
+  Clock, 
   AlertCircle, 
   Sparkles, 
   ArrowRight, 
@@ -27,7 +28,9 @@ import {
 import { Patient, Appointment, FinancialTransaction, UserAccount } from '../types';
 import { 
   getBrasiliaTodayISODate, 
-  getGreetingByTime 
+  formatBrasiliaFullDate, 
+  getGreetingByTime, 
+  getBrasiliaTimeString 
 } from '../utils/dateUtils';
 
 interface DashboardViewProps {
@@ -59,7 +62,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   const [isBannerDismissed, setIsBannerDismissed] = React.useState(false);
   const currentDateStr = getBrasiliaTodayISODate();
+  const formattedToday = formatBrasiliaFullDate();
   const greeting = getGreetingByTime();
+  const currentTime = getBrasiliaTimeString();
   
   // Professional identity determination
   const isDoctor = userAccount?.crn?.includes('CRM') || userAccount?.specialty?.toLowerCase().includes('nutrolog') || userAccount?.name?.toLowerCase().includes('dr.');
@@ -105,6 +110,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <Sparkles className="w-3.5 h-3.5 text-fuchsia-300" />
                 Copiloto NUTRIA • NutrinK AI
               </span>
+
+              {/* Time & Brasilia Date Indicator */}
+              <span className="inline-flex items-center gap-1 text-xs text-purple-200 bg-[#16032a] px-3 py-1 rounded-full border border-purple-800/60">
+                <Clock className="w-3.5 h-3.5 text-purple-300" />
+                <span className="capitalize">{formattedToday}</span>
+                <span className="text-fuchsia-300 font-bold ml-1">({currentTime} • Horário de Brasília)</span>
+              </span>
             </div>
 
             {/* Welcome greeting with registered professional name */}
@@ -147,7 +159,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               onClick={() => onOpenNutriaWithPrompt(
                 patients.length === 0 
                   ? `Nutria, como você pode me auxiliar na anamnese e prescrição dietoterápica do meu primeiro paciente como ${professionalRoleLabel}?`
-                  : `Nutria, faça um briefing rápido das consultas de hoje com o resumo de cada paciente.`
+                  : `Nutria, faça um briefing rápido das consultas de hoje (${currentTime} em Brasília) com o resumo de cada paciente.`
               )}
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 transition-all hover:scale-[1.02]"
               id="btn-nutria-briefing-dashboard"
