@@ -262,6 +262,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
       onDeletePatient(selectedPatient.id);
     }
     setIsConfirmingDelete(false);
+    setIsEditingClinical(false);
   };
 
   // Salvar registro de antropometria (Aba 4)
@@ -487,18 +488,6 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 <Edit3 className="w-3.5 h-3.5 text-fuchsia-300" />
                 <span>Editar Dados Clínicos</span>
               </button>
-
-              {onDeletePatient && (
-                <button
-                  onClick={() => setIsConfirmingDelete(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-950/60 hover:bg-rose-900/80 text-rose-200 border border-rose-700/60 rounded-xl text-xs font-bold transition-all shadow-sm hover:text-white"
-                  title="Excluir o cadastro deste paciente e todo o histórico do prontuário"
-                  id="btn-delete-patient-record"
-                >
-                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Excluir Cadastro</span>
-                </button>
-              )}
 
               {onStartTelemedicine && (
                 <button
@@ -1586,21 +1575,38 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEditingClinical(false)}
-                  className="px-4 py-2 bg-[#220743] hover:bg-[#2d0959] text-purple-200 rounded-xl text-xs font-bold transition-all"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveClinicalParams}
-                  className="px-5 py-2.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-fuchsia-950/60 transition-all border border-fuchsia-400/40"
-                >
-                  Salvar Alterações no Prontuário
-                </button>
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-purple-800/60 flex-wrap">
+                <div>
+                  {onDeletePatient && (
+                    <button
+                      type="button"
+                      onClick={() => setIsConfirmingDelete(true)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-950/60 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-700/60 rounded-xl text-xs font-bold transition-all shadow-sm"
+                      title="Excluir o cadastro deste paciente e todo o histórico do prontuário"
+                      id="btn-modal-delete-patient-record"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Excluir Cadastro do Paciente</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingClinical(false)}
+                    className="px-4 py-2 bg-[#220743] hover:bg-[#2d0959] text-purple-200 rounded-xl text-xs font-bold transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveClinicalParams}
+                    className="px-5 py-2.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-fuchsia-950/60 transition-all border border-fuchsia-400/40"
+                  >
+                    Salvar Alterações no Prontuário
+                  </button>
+                </div>
               </div>
             </div>
           </div>
