@@ -394,9 +394,11 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
       {/* Header Bar */}
       <div className="bg-[#1b0534] border-b border-purple-900/40 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-fuchsia-600 via-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40">
-            <Bot className="w-5 h-5 text-white" />
-          </div>
+          <img 
+            src="/icon-512.svg" 
+            alt="NUTRIA NutrinK Logo" 
+            className="w-10 h-10 rounded-2xl shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 object-cover shrink-0" 
+          />
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-black text-sm text-white tracking-wide">NUTRIA • Copiloto NutrinK</h2>
@@ -499,9 +501,11 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
                 className={`flex gap-2 sm:gap-3 w-full max-w-full min-w-0 box-border ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 {!isUser && (
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-fuchsia-600 to-purple-700 flex items-center justify-center text-white text-[11px] sm:text-xs shrink-0 shadow-md font-black border border-fuchsia-400/40 mt-0.5">
-                    N
-                  </div>
+                  <img
+                    src="/icon-512.svg"
+                    alt="NUTRIA"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl shrink-0 shadow-md border border-fuchsia-400/40 mt-0.5 object-cover"
+                  />
                 )}
 
                 <div 
@@ -681,9 +685,11 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
 
         {isLoading && (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-fuchsia-600 to-purple-600 flex items-center justify-center text-white text-xs font-bold animate-pulse">
-              N
-            </div>
+            <img
+              src="/icon-512.svg"
+              alt="NUTRIA"
+              className="w-8 h-8 rounded-xl shrink-0 shadow-md border border-fuchsia-400/40 object-cover animate-pulse"
+            />
             <div className="p-3.5 bg-[#1d0637] rounded-2xl border border-purple-800/40 text-xs text-purple-200 flex items-center gap-2 font-medium">
               <RefreshCw className="w-3.5 h-3.5 text-fuchsia-400 animate-spin" />
               <span>NUTRIA processando em tempo real com o modelo Gemini...</span>
