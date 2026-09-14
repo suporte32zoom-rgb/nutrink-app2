@@ -5,7 +5,7 @@
   "start_url": "/?source=pwa",
   "scope": "/",
   "id": "nutrink-app",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "portrait-primary",
   "background_color": "#120326",
   "theme_color": "#120326",

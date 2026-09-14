@@ -302,9 +302,11 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
       {/* Top Header Bar */}
       <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-fuchsia-600 via-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-fuchsia-950/60 font-black text-lg border border-fuchsia-400/40">
-            N
-          </div>
+          <img
+            src="/icon-512.svg"
+            alt="NutrinK Logo"
+            className="w-10 h-10 rounded-2xl shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 object-cover shrink-0"
+          />
           <div>
             <div className="flex items-center gap-2">
               <span className="font-black text-xl tracking-tight text-white">Nutrin<span className="text-fuchsia-400">K</span></span>
