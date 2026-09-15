@@ -345,9 +345,9 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
 
   const clinicalPromptTemplates = [
     {
-      title: "Dashboard Geral",
+      title: "Painel Clínico",
       icon: Layers,
-      prompt: "Nutria, carregue o painel visual do Dashboard Geral em formato de texto estruturado."
+      prompt: "Nutria, carregue o painel visual do Painel Clínico em formato de texto estruturado."
     },
     {
       title: "Pacientes & Prontuários",

@@ -511,7 +511,7 @@ const navegarParaTelaTool: FunctionDeclaration = {
     properties: {
       secao: { 
         type: Type.STRING, 
-        description: "Identificador da tela: 'dashboard' (Dashboard Geral), 'pacientes' (Pacientes & Prontuários), 'agenda' (Agenda & Calendário), 'financeiro' (Financeiro & Faturamento), 'nutricalc' (NutriCalc & Protocolos)" 
+        description: "Identificador da tela: 'dashboard' (Painel Clínico), 'pacientes' (Pacientes & Prontuários), 'agenda' (Agenda & Calendário), 'financeiro' (Financeiro & Faturamento), 'nutricalc' (NutriCalc & Protocolos)" 
       }
     },
     required: ["secao"]

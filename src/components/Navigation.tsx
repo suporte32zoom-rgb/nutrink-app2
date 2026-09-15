@@ -48,7 +48,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   const navItems = [
     {
       id: 'dashboard' as ActiveTab,
-      label: 'Dashboard Geral',
+      label: 'Painel Clínico',
       icon: LayoutDashboard,
       badge: null
     },

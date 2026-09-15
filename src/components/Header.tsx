@@ -70,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const navMenuItems = [
-    { id: 'dashboard', label: 'Dashboard Geral', icon: LayoutDashboard },
+    { id: 'dashboard', label: 'Painel Clínico', icon: LayoutDashboard },
     { id: 'patients', label: 'Pacientes & Prontuários', icon: Users },
     { id: 'calendar', label: 'Agenda & Calendário', icon: CalendarDays },
     { id: 'telemedicine', label: 'Telemedicina & Vídeo', icon: Video },
