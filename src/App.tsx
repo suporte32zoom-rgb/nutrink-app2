@@ -37,6 +37,19 @@ import {
 import { safeFetchJson } from './utils/api';
 import { callNutriaDirect } from './services/nutriaGeminiDirect';
 import { Bot, Sparkles, MessageSquare, X } from 'lucide-react';
+import { 
+  getPatients, 
+  savePatientToDb, 
+  deletePatientFromDb,
+  getAppointments,
+  saveAppointmentToDb,
+  getTransactions,
+  saveTransactionToDb,
+  getProfileByEmail,
+  saveProfile,
+  getNutriaMessages,
+  saveNutriaMessage
+} from './services/databaseService';
 
 export function App() {
   // Check URL parameters for direct deep-linking (e.g. /telemedicina?room=xyz, ?tab=telemedicine)
@@ -123,7 +136,7 @@ export function App() {
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
-  // Sync state changes with localStorage
+  // Sync state changes with localStorage and Cloud Database
   useEffect(() => {
     try {
       localStorage.setItem('nutrink_patients', JSON.stringify(patients));
@@ -268,6 +281,7 @@ export function App() {
     setIsAuthenticated(true);
     setIsLoginModalOpen(false);
     setCurrentTab('dashboard'); // Directs straight to the initial dashboard page
+    saveProfile(newUser).catch(err => console.warn('Erro ao salvar perfil no banco:', err));
 
     // Personalized welcome message in NUTRIA copilot with the real registered professional's name
     setNutriaMessages([
@@ -452,6 +466,39 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
 
   const [isNutriaLoading, setIsNutriaLoading] = useState(false);
 
+  // Initial load and sync with Cloud Database (placed safely after all state initializations)
+  useEffect(() => {
+    const loadCloudData = async () => {
+      try {
+        const cloudPatients = await getPatients();
+        if (cloudPatients && cloudPatients.length > 0) {
+          setPatients(cloudPatients);
+        }
+        const cloudApts = await getAppointments();
+        if (cloudApts && cloudApts.length > 0) {
+          setAppointments(cloudApts);
+        }
+        const cloudTx = await getTransactions();
+        if (cloudTx && cloudTx.length > 0) {
+          setTransactions(cloudTx);
+        }
+        if (userAccount?.email) {
+          const profile = await getProfileByEmail(userAccount.email);
+          if (profile) {
+            setUserAccount(prev => ({ ...prev, ...profile }));
+          }
+          const cloudMsgs = await getNutriaMessages(userAccount.email);
+          if (cloudMsgs && cloudMsgs.length > 0) {
+            setNutriaMessages(cloudMsgs);
+          }
+        }
+      } catch (err) {
+        console.warn('Syncing local data with cloud store...', err);
+      }
+    };
+    loadCloudData();
+  }, [userAccount?.email]);
+
   // Selected Patient object
   const activePatient = patients.find(p => p.id === selectedPatientId) || null;
 
@@ -466,7 +513,14 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
 
   // Update appointment status
   const handleUpdateAppointmentStatus = (aptId: string, newStatus: Appointment['status']) => {
-    setAppointments(prev => prev.map(a => a.id === aptId ? { ...a, status: newStatus } : a));
+    setAppointments(prev => {
+      const updated = prev.map(a => a.id === aptId ? { ...a, status: newStatus } : a);
+      const targetApt = updated.find(a => a.id === aptId);
+      if (targetApt) {
+        saveAppointmentToDb(targetApt, userAccount?.email).catch(err => console.warn('Erro ao atualizar agendamento:', err));
+      }
+      return updated;
+    });
   };
 
   // Open modal with preselected patient
@@ -482,6 +536,7 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
       try { localStorage.setItem('nutrink_patients', JSON.stringify(updatedList)); } catch {}
       return updatedList;
     });
+    savePatientToDb(updated, userAccount?.email).catch(err => console.warn('Erro ao salvar paciente na nuvem:', err));
   };
 
   // Delete Patient (Cascade delete from patients, appointments, and clear active selection)
@@ -496,6 +551,7 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
       try { localStorage.setItem('nutrink_appointments', JSON.stringify(updated)); } catch {}
       return updated;
     });
+    deletePatientFromDb(patientId).catch(err => console.warn('Erro ao deletar paciente na nuvem:', err));
     if (selectedPatientId === patientId) {
       setSelectedPatientId(null);
     }
@@ -968,6 +1024,9 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
       };
 
       setNutriaMessages(prev => [...prev, assistantMsg]);
+      if (effectiveUserAccount.email) {
+        saveNutriaMessage(effectiveUserAccount.email, assistantMsg).catch(err => console.warn('Erro ao salvar mensagem no banco:', err));
+      }
     } catch (err: any) {
       console.error('Erro ao consultar NUTRIA:', err);
 
@@ -1328,6 +1387,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         onClose={() => setIsNewPatientOpen(false)}
         onSavePatient={(newPatient) => {
           setPatients(prev => [newPatient, ...prev]);
+          savePatientToDb(newPatient, userAccount?.email).catch(err => console.warn('Erro ao persistir novo paciente:', err));
         }}
       />
 
@@ -1341,6 +1401,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         preSelectedPatient={preSelectedPatientForApt}
         onSaveAppointment={(newApt) => {
           setAppointments(prev => [...prev, newApt]);
+          saveAppointmentToDb(newApt, userAccount?.email).catch(err => console.warn('Erro ao persistir novo agendamento:', err));
         }}
       />
 
@@ -1350,6 +1411,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         patients={patients}
         onSaveTransaction={(newTx) => {
           setTransactions(prev => [newTx, ...prev]);
+          saveTransactionToDb(newTx, userAccount?.email).catch(err => console.warn('Erro ao persistir nova transação:', err));
         }}
       />
 

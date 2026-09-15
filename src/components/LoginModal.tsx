@@ -30,6 +30,8 @@ import {
   GoogleProfile 
 } from '../services/googleAuth';
 import GoogleLoginButton from './GoogleLoginButton';
+import { saveProfile, getProfileByEmail } from '../services/databaseService';
+import { signInWithGoogleOAuth } from '../services/supabaseClient';
 
 export type AuthModalTab = 'login' | 'register' | 'forgot_password' | 'google_onboarding';
 
@@ -46,7 +48,7 @@ export const getRegisteredUsers = (): RegisteredProfessionalUser[] => {
   }
 };
 
-export const saveRegisteredUser = (user: RegisteredProfessionalUser) => {
+export const saveRegisteredUser = async (user: RegisteredProfessionalUser) => {
   try {
     const users = getRegisteredUsers();
     const existingIndex = users.findIndex(
@@ -60,6 +62,8 @@ export const saveRegisteredUser = (user: RegisteredProfessionalUser) => {
     localStorage.setItem('nutrink_registered_users', JSON.stringify(users));
     if (user.email) {
       localStorage.setItem('nutrink_last_email', user.email.trim().toLowerCase());
+      // Sincroniza diretamente com o banco de dados em nuvem
+      await saveProfile(user);
     }
   } catch (err) {
     console.error('Erro ao persistir usuário:', err);
