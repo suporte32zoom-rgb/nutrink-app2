@@ -1041,6 +1041,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
         unreadNutriaAlerts={2}
         todayAppointmentsCount={appointments.filter(a => a.date === new Date().toISOString().split('T')[0]).length}
+        isSubscribed={Boolean(effectiveUserAccount.isSubscribed || effectiveUserAccount.plan === 'premium_mensal' || effectiveUserAccount.plan === 'premium_anual')}
       />
 
       {/* Main Content Area with 90px bottom padding to prevent FAB overlap */}
@@ -1156,6 +1157,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
             isGuestPatient={!isAuthenticated && Boolean(telemedRoomFromUrl)}
             onUpdatePatient={handleUpdatePatient}
             onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+            onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
             onNavigateTab={(tab) => {
               if (tab === 'patients' && selectedPatientId) {
                 setCurrentTab('patients');

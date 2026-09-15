@@ -36,7 +36,9 @@ import {
   Pill,
   Heart,
   Droplets,
-  Scale
+  Scale,
+  Lock,
+  Crown
 } from 'lucide-react';
 import { safeFetchJson } from '../utils/api';
 import { 
@@ -59,6 +61,7 @@ interface TelemedicineViewProps {
   onOpenMealPlanEditor?: (patient: Patient) => void;
   onOpenNutriaWithPrompt?: (prompt: string) => void;
   onNavigateTab?: (tab: any) => void;
+  onOpenSubscriptionModal?: () => void;
   initialRoomName?: string;
   initialPatientName?: string;
   isGuestPatient?: boolean;
@@ -72,6 +75,7 @@ export const TelemedicineView: React.FC<TelemedicineViewProps> = ({
   onOpenMealPlanEditor,
   onOpenNutriaWithPrompt,
   onNavigateTab,
+  onOpenSubscriptionModal,
   initialRoomName,
   initialPatientName,
   isGuestPatient = false
@@ -536,6 +540,227 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
   const handleSimulatePatientPhrase = (phrase: string) => {
     addTranscriptItem('paciente', phrase);
   };
+
+  // Plan verification: Telemedicine & Video is strictly for active subscribers (Mensal R$ 39 or Anual R$ 399)
+  const isSubscribedProfessional = Boolean(
+    userAccount?.isSubscribed || 
+    userAccount?.plan === 'premium_mensal' || 
+    userAccount?.plan === 'premium_anual'
+  );
+
+  // If this is a guest patient joining via direct shareable link, allow them to participate in the call
+  const isGuestCall = isGuestPatient || Boolean(initialRoomName);
+
+  // Telemedicina Paywall Guard: Block access if user is on Free plan and not a guest patient
+  if (!isSubscribedProfessional && !isGuestCall) {
+    const MP_LINKS = {
+      annual: 'https://mpago.la/1ZYT8kZ',
+      monthly: 'https://mpago.la/1Y7wbXw'
+    };
+
+    return (
+      <div className="space-y-8 pb-12 animate-fadeIn max-w-5xl mx-auto" id="telemedicina-paywall-locked">
+        {/* Lock Banner / Header */}
+        <div className="bg-gradient-to-r from-[#20053b] via-[#320857] to-[#20053b] border border-purple-800/60 rounded-3xl p-6 sm:p-10 text-center relative overflow-hidden shadow-2xl shadow-purple-950/80">
+          <div className="absolute -top-20 -right-20 w-64 h-64 bg-fuchsia-600/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <div className="relative z-10 max-w-2xl mx-auto space-y-4">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-amber-500 via-fuchsia-600 to-purple-600 flex items-center justify-center text-white shadow-xl shadow-fuchsia-950/60 border-2 border-amber-300/60 mx-auto animate-bounce">
+              <Lock className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            </div>
+
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 text-xs font-black uppercase tracking-wider">
+              <Crown className="w-4 h-4 fill-amber-300" />
+              <span>Recurso Exclusivo para Assinantes NutrinK</span>
+            </div>
+
+            <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+              Telemedicina & Vídeoconsulta com <span className="text-[#15DEC0]">NÚTRIA IA</span>
+            </h1>
+
+            <p className="text-sm sm:text-base text-purple-200/90 leading-relaxed font-normal">
+              A sala de telemedicina em alta definição com <strong>transcrição em tempo real, sugestões clínicas automatizadas, cálculo bioenergético durante a chamada e integração instantânea ao prontuário</strong> está disponível nos planos de assinatura do NutrinK.
+            </p>
+          </div>
+        </div>
+
+        {/* Plan Cards Grid (Mensal R$ 39,00 / Anual R$ 399,00) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+          
+          {/* Card 1: Plano Mensal (R$ 39,00/mês) */}
+          <div className="bg-[#17042c] border border-purple-800/60 rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative shadow-xl shadow-purple-950/50 hover:border-purple-600/80 transition-all">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-purple-900/60 border border-purple-700/50 text-purple-200 text-xs font-bold uppercase tracking-wider">
+                  Assinatura Mensal
+                </span>
+                <span className="text-xs text-purple-300 font-medium">Sem fidelidade</span>
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-black text-white">Plano Mensal Pro</h3>
+                <p className="text-xs text-purple-300 mt-1">Liberdade total com renovação mensal automática.</p>
+              </div>
+
+              <div className="pt-2 pb-1 border-y border-purple-900/40">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-semibold text-purple-300">R$</span>
+                  <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">39</span>
+                  <span className="text-lg font-bold text-purple-300">,00</span>
+                  <span className="text-xs text-purple-400 font-medium ml-1">/mês</span>
+                </div>
+              </div>
+
+              <ul className="space-y-2.5 pt-2 text-xs sm:text-sm text-purple-100 font-medium">
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>Telemedicina HD Ilimitada</strong> com sala privativa</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>NÚTRIA IA ao vivo</strong> (transcrição e condutas na tela)</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Pacientes e prontuários <strong>ilimitados</strong></span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Mensagens diárias da IA <strong>ilimitadas</strong></span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Prescrição e plano alimentar com timbrado oficial</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="pt-6 space-y-2">
+              <button
+                onClick={() => window.open(MP_LINKS.monthly, '_blank', 'noopener,noreferrer')}
+                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 hover:to-indigo-500 text-white font-black text-sm shadow-lg shadow-purple-950/60 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                id="btn-subscribe-monthly-telemed"
+              >
+                <span>Assinar Plano Mensal • R$ 39,00</span>
+                <ExternalLink className="w-4 h-4" />
+              </button>
+              <p className="text-[11px] text-center text-purple-400">Pagamento seguro via Mercado Pago (Cartão, Pix ou Boleto)</p>
+            </div>
+          </div>
+
+          {/* Card 2: Plano Anual (R$ 399,00/ano) - DESTAQUE */}
+          <div className="bg-gradient-to-b from-[#240645] via-[#1a0433] to-[#140226] border-2 border-amber-400/80 rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative shadow-2xl shadow-amber-950/40 hover:border-amber-300 transition-all">
+            <div className="absolute -top-3.5 right-6 px-3.5 py-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-md">
+              Mais Econômico • 2 Meses Grátis
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/60 text-amber-300 text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+                  <Crown className="w-3.5 h-3.5 fill-amber-300" />
+                  Plano Anual Pro
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-black text-white">Acesso Anual Ilimitado</h3>
+                <p className="text-xs text-amber-200/90 mt-1">Economize pagando o equivalente a R$ 33,25/mês.</p>
+              </div>
+
+              <div className="pt-2 pb-1 border-y border-purple-800/40">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-semibold text-amber-200">R$</span>
+                  <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">399</span>
+                  <span className="text-lg font-bold text-amber-200">,00</span>
+                  <span className="text-xs text-purple-300 font-medium ml-1">/ano</span>
+                </div>
+                <p className="text-[11px] text-emerald-400 font-semibold mt-1">Equivalente a R$ 33,25 por mês à vista ou parcelado</p>
+              </div>
+
+              <ul className="space-y-2.5 pt-2 text-xs sm:text-sm text-purple-100 font-medium">
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span><strong>Tudo do Plano Mensal incluído</strong></span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span><strong>Telemedicina Ilimitada</strong> por 365 dias</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span><strong>Suporte Prioritário VIP</strong> via WhatsApp</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Acesso prioritário a todos os novos lançamentos da NÚTRIA</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="pt-6 space-y-2">
+              <button
+                onClick={() => window.open(MP_LINKS.annual, '_blank', 'noopener,noreferrer')}
+                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-sm shadow-xl shadow-amber-950/60 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                id="btn-subscribe-annual-telemed"
+              >
+                <Sparkles className="w-4 h-4 text-slate-950" />
+                <span>Assinar Plano Anual • R$ 399,00</span>
+                <ExternalLink className="w-4 h-4" />
+              </button>
+              <p className="text-[11px] text-center text-purple-400">Ativação instantânea via Mercado Pago</p>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Feature Highlights Strip */}
+        <div className="bg-[#140326] border border-purple-900/50 rounded-3xl p-6 sm:p-8">
+          <h4 className="text-sm font-bold uppercase tracking-wider text-purple-300 mb-5 text-center">
+            O que você desbloqueia na Telemedicina & Vídeo ao assinar:
+          </h4>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div className="p-4 rounded-2xl bg-[#1e0538] border border-purple-800/40 space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-fuchsia-900/60 border border-fuchsia-500/40 flex items-center justify-center text-fuchsia-300">
+                <Video className="w-4 h-4" />
+              </div>
+              <h5 className="font-bold text-white text-sm">Salas de Vídeo Criptografadas</h5>
+              <p className="text-xs text-purple-300">Sem necessidade de instalar programas. O paciente clica no link do WhatsApp e entra direto no atendimento.</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#1e0538] border border-purple-800/40 space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-purple-900/60 border border-purple-500/40 flex items-center justify-center text-purple-300">
+                <Bot className="w-4 h-4" />
+              </div>
+              <h5 className="font-bold text-white text-sm">Copiloto NÚTRIA Ao Vivo</h5>
+              <p className="text-xs text-purple-300">A IA escuta o diálogo da consulta com permissão, calcula TMB/GET, sugere protocolos e rascunha a conduta.</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#1e0538] border border-purple-800/40 space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-indigo-900/60 border border-indigo-500/40 flex items-center justify-center text-indigo-300">
+                <FileText className="w-4 h-4" />
+              </div>
+              <h5 className="font-bold text-white text-sm">Síntese Pós-Consulta em 1 Clique</h5>
+              <p className="text-xs text-purple-300">Ao desligar a chamada, o resumo clínico, plano alimentar e evolução são salvos automaticamente no prontuário do paciente.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Action button to switch to Plans tab */}
+        {onNavigateTab && (
+          <div className="text-center">
+            <button
+              onClick={() => onNavigateTab('plans')}
+              className="text-xs font-bold text-purple-300 hover:text-white underline underline-offset-4 cursor-pointer transition-colors"
+            >
+              Ver página completa de Planos & Assinaturas →
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5 pb-12">
