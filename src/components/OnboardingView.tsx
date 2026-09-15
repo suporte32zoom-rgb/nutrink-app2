@@ -173,10 +173,10 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
 
       saveRegisteredUser(newUser);
 
-      // Authenticate immediately and direct to patients / dashboard
+      // Authenticate immediately and direct to dashboard
       setTimeout(() => {
         setIsSubmitting(false);
-        onCompleteAuth(newUser, 'patients');
+        onCompleteAuth(newUser, 'dashboard');
       }, 400);
 
     } catch (err: any) {
@@ -285,7 +285,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
       saveRegisteredUser(finalUser as RegisteredProfessionalUser);
     }
 
-    onCompleteAuth(finalUser, 'patients');
+    onCompleteAuth(finalUser, 'dashboard');
   };
 
   return (

@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import path from "path";
 import crypto from "crypto";
 import dotenv from "dotenv";
-import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
+import { GoogleGenAI, Type, FunctionDeclaration, ThinkingLevel } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import { MercadoPagoConfig, Payment as MercadoPagoPayment, Preference as MercadoPagoPreference } from "mercadopago";
 import QRCode from "qrcode";
@@ -698,16 +698,16 @@ app.get("/api/health", (req: Request, res: Response) => {
   });
 });
 
-// Multi-model candidate list prioritizing modern gemini-3.7-flash with automatic failover
+// Multi-model candidate list prioritizing ultra-fast models (gemini-3.8-flash, gemini-3.1-flash-lite)
 const rawCustomModel = (process.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL || "").trim();
 const validCustomModel = isValidGeminiModelName(rawCustomModel) ? rawCustomModel : null;
 
-// Official models supported by @google/genai SDK (gemini-3.7-flash as primary)
+// Official models supported by @google/genai SDK (gemini-3.8-flash as primary for instant responses)
 const BASE_GEMINI_MODELS = [
   ...(validCustomModel ? [validCustomModel] : []),
-  "gemini-3.7-flash",
-  "gemini-3.1-flash-lite",
   "gemini-3.8-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-3.7-flash",
   "gemini-flash-latest"
 ].filter((m, idx, arr) => isValidGeminiModelName(m) && arr.indexOf(m) === idx);
 
@@ -731,7 +731,7 @@ function getPrioritizedGeminiModels(): string[] {
 
 function markModelCooldown(model: string, errMessage: string) {
   const is429 = errMessage.includes("429") || errMessage.toLowerCase().includes("quota") || errMessage.toLowerCase().includes("resource_exhausted");
-  const cooldownMs = is429 ? 180 * 1000 : 30 * 1000;
+  const cooldownMs = is429 ? 120 * 1000 : 20 * 1000;
   modelCooldowns.set(model, Date.now() + cooldownMs);
 }
 
@@ -747,13 +747,29 @@ async function generateContentWithFallback(ai: GoogleGenAI, params: any) {
     }
 
     try {
-      console.log(`[NutrinK AI Engine] Executando com modelo: ${model}...`);
-      const result = await ai.models.generateContent({
+      console.log(`[NutrinK AI Engine] Executando com modelo rápido: ${model}...`);
+      
+      const configWithThinking = {
+        ...(params.config || {}),
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.LOW
+        }
+      };
+
+      const generatePromise = ai.models.generateContent({
         ...params,
+        config: configWithThinking,
         model
       });
+
+      // Max 10s per model attempt to guarantee ultra-fast response for the user
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error(`Timeout de resposta no modelo ${model} (>10s)`)), 10000)
+      );
+
+      const result: any = await Promise.race([generatePromise, timeoutPromise]);
       if (result) {
-        console.log(`[NutrinK AI Engine] Sucesso com Google Gemini (${model})!`);
+        console.log(`[NutrinK AI Engine] Resposta gerada com sucesso via ${model}!`);
         const text = result.text || (result as any)?.candidates?.[0]?.content?.parts?.[0]?.text || "";
         return { result, model, text };
       }
@@ -761,8 +777,7 @@ async function generateContentWithFallback(ai: GoogleGenAI, params: any) {
       lastError = err;
       const errMsg = String(err?.message || "");
       markModelCooldown(model, errMsg);
-      console.log(`[NutrinK AI Engine] Modelo ${model} temporariamente ocupado ou com limite de cota. Alternando automaticamente para o próximo modelo.`);
-      await new Promise(resolve => setTimeout(resolve, 150));
+      console.log(`[NutrinK AI Engine] Modelo ${model} ocupado/lento. Alternando imediatamente para o próximo modelo.`);
       continue;
     }
   }
@@ -961,7 +976,7 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
 
     let replyText = "";
     let actionExecuted: any = null;
-    let usedModel = "gemini-3.7-flash";
+    let usedModel = "gemini-3.8-flash";
     let geminiResult: any = null;
 
     try {
@@ -971,13 +986,13 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
           systemInstruction: NUTRIA_SYSTEM_INSTRUCTION + `
 [DIRETRIZES DE ATUAÇÃO DA NÚTRIA]:
 1. Você é a NÚTRIA, a inteligência clínica máxima e copiloto operacional do consultório NutrinK.
-2. Responda DIRETAMENTE, de forma dinâmica, científica e completa a TODA e QUALQUER pergunta do profissional de saúde.
+2. Responda DIRETAMENTE, com extrema agilidade e precisão científica a TODA e QUALQUER pergunta do profissional de saúde.
 3. Se o usuário solicitou plano alimentar, cardápio, dieta ou refeições (mesmo junto com TMB), OBRIGATORIAMENTE entregue a avaliação metabólica E o plano diário completo com todas as refeições (Desjejum, Colação, Almoço, Lanche, Jantar, Ceia), gramaturas exatas, medidas caseiras, macros e tabela de substituições.
 4. NUNCA utilize templates estáticos ou mensagens evasivas pré-prontas como "estou à disposição no consultório".
 5. Formate as respostas em Markdown limpo, sofisticado e legível, com tabelas organizadas.
 `,
-          temperature: 0.5,
-          maxOutputTokens: 8192,
+          temperature: 0.4,
+          maxOutputTokens: 4096,
           tools: [{
             functionDeclarations: [
               abrirPaginaInstitucionalTool,

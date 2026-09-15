@@ -280,6 +280,7 @@ export function App() {
     setUserAccount(newUser);
     setIsAuthenticated(true);
     setIsLoginModalOpen(false);
+    setSelectedPatientId(null);
     setCurrentTab('dashboard'); // Directs straight to the initial dashboard page
     saveProfile(newUser).catch(err => console.warn('Erro ao salvar perfil no banco:', err));
 
