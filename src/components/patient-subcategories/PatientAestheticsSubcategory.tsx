@@ -55,29 +55,12 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
   const [newAbdominal, setNewAbdominal] = useState('');
   const [newNotes, setNewNotes] = useState('');
 
-  // Fotos de Antes e Depois do Paciente
-  const defaultPhotos: PatientEvolutionPhoto[] = patient.evolutionPhotos || [
-    {
-      id: 'photo-1',
-      date: '2026-01-15',
-      pose: 'frente',
-      photoUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&auto=format&fit=crop&q=80',
-      weightKg: patient.initialWeightKg || 78.5,
-      bodyFatPercentage: 26.8,
-      notes: 'Avaliação Inicial - Início do protocolo NutrinK'
-    },
-    {
-      id: 'photo-2',
-      date: '2026-09-10',
-      pose: 'frente',
-      photoUrl: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=600&auto=format&fit=crop&q=80',
-      weightKg: patient.currentWeightKg || 71.2,
-      bodyFatPercentage: patient.bodyFatPercentage || 19.5,
-      notes: 'Avaliação Atual - 8 meses de acompanhamento consistente'
-    }
-  ];
+  // Fotos de Antes e Depois do Paciente (apenas fotos reais cadastradas pelo profissional)
+  const cleanPatientPhotos = (patient.evolutionPhotos || []).filter(
+    (p) => p && p.photoUrl && !p.photoUrl.includes('unsplash.com') && !p.photoUrl.startsWith('mock-')
+  );
 
-  const [photosList, setPhotosList] = useState<PatientEvolutionPhoto[]>(defaultPhotos);
+  const [photosList, setPhotosList] = useState<PatientEvolutionPhoto[]>(cleanPatientPhotos);
   const [isAddingPhoto, setIsAddingPhoto] = useState(false);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [newPhotoPose, setNewPhotoPose] = useState<PatientEvolutionPhoto['pose']>('frente');
@@ -95,12 +78,12 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Estados do Comparador Lado a Lado
-  const [photoAId, setPhotoAId] = useState<string>(defaultPhotos[0]?.id || '');
-  const [photoBId, setPhotoBId] = useState<string>(defaultPhotos[1]?.id || defaultPhotos[0]?.id || '');
+  const [photoAId, setPhotoAId] = useState<string>(cleanPatientPhotos[0]?.id || '');
+  const [photoBId, setPhotoBId] = useState<string>(cleanPatientPhotos[1]?.id || cleanPatientPhotos[0]?.id || '');
   const [isComparisonMode, setIsComparisonMode] = useState(true);
 
-  const selectedPhotoA = photosList.find(p => p.id === photoAId) || photosList[0];
-  const selectedPhotoB = photosList.find(p => p.id === photoBId) || photosList[photosList.length - 1];
+  const selectedPhotoA = photosList.find(p => p.id === photoAId) || (photosList.length > 0 ? photosList[0] : null);
+  const selectedPhotoB = photosList.find(p => p.id === photoBId) || (photosList.length > 1 ? photosList[photosList.length - 1] : null);
 
   // Drag over states for dropzones
   const [isDragOverA, setIsDragOverA] = useState(false);
@@ -164,9 +147,9 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
         date: new Date().toISOString().split('T')[0],
         pose: 'frente',
         photoUrl: dataUrl,
-        weightKg: slot === 'slotA' ? (patient.initialWeightKg || patient.currentWeightKg) : (patient.currentWeightKg || patient.initialWeightKg),
-        bodyFatPercentage: patient.bodyFatPercentage || 20,
-        notes: slot === 'slotA' ? 'Foto de Antes enviada do aparelho' : 'Foto de Depois enviada do aparelho'
+        weightKg: slot === 'slotA' ? (patient.initialWeightKg || patient.currentWeightKg || 0) : (patient.currentWeightKg || patient.initialWeightKg || 0),
+        bodyFatPercentage: patient.bodyFatPercentage || 0,
+        notes: slot === 'slotA' ? 'Foto de Antes enviada pelo profissional' : 'Foto de Depois enviada pelo profissional'
       };
 
       const updatedPhotos = [newPhoto, ...photosList];
@@ -174,8 +157,16 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
 
       if (slot === 'slotA') {
         setPhotoAId(newPhotoId);
+        if (!photoBId && updatedPhotos.length > 1) {
+          const other = updatedPhotos.find(p => p.id !== newPhotoId);
+          if (other) setPhotoBId(other.id);
+        }
       } else {
         setPhotoBId(newPhotoId);
+        if (!photoAId && updatedPhotos.length > 1) {
+          const other = updatedPhotos.find(p => p.id !== newPhotoId);
+          if (other) setPhotoAId(other.id);
+        }
       }
 
       onUpdatePatient({
@@ -841,68 +832,78 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
           </div>
         </div>
 
-        {/* Seletores das Fotos A e B com Ações Rápidas de Upload */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-3 bg-[#1d0637] rounded-2xl border border-purple-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-purple-200 font-bold">Foto 1 (Inicial / Antes):</span>
+        {/* Seletores das Fotos A e B com Ações Rápidas de Upload (visível quando há fotos) */}
+        {photosList.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-3 bg-[#1d0637] rounded-2xl border border-purple-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-purple-200 font-bold">Foto 1 (Inicial / Antes):</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {photosList.length > 0 ? (
+                  <select
+                    value={photoAId}
+                    onChange={(e) => setPhotoAId(e.target.value)}
+                    className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#120326] text-purple-200 border border-purple-700/60 focus:outline-none"
+                  >
+                    {photosList.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.date} • {p.pose.toUpperCase()} ({p.weightKg || '-'} kg)
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-xs text-purple-300 italic">Nenhuma foto</span>
+                )}
+                <button
+                  onClick={() => slotAFileInputRef.current?.click()}
+                  className="p-1.5 rounded-xl bg-[#250849] hover:bg-[#340b67] text-fuchsia-300 border border-purple-700/60 text-xs font-bold flex items-center gap-1 shrink-0"
+                  title="Fazer upload direto do aparelho para a Foto 1"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Upload</span>
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={photoAId}
-                onChange={(e) => setPhotoAId(e.target.value)}
-                className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#120326] text-purple-200 border border-purple-700/60 focus:outline-none"
-              >
-                {photosList.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.date} • {p.pose.toUpperCase()} ({p.weightKg} kg)
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={() => slotAFileInputRef.current?.click()}
-                className="p-1.5 rounded-xl bg-[#250849] hover:bg-[#340b67] text-fuchsia-300 border border-purple-700/60 text-xs font-bold flex items-center gap-1 shrink-0"
-                title="Fazer upload direto do aparelho para a Foto 1"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Upload</span>
-              </button>
+
+            <div className="p-3 bg-[#1d0637] rounded-2xl border border-purple-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-fuchsia-300 font-bold">Foto 2 (Atual / Depois):</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {photosList.length > 1 ? (
+                  <select
+                    value={photoBId}
+                    onChange={(e) => setPhotoBId(e.target.value)}
+                    className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#120326] text-purple-200 border border-purple-700/60 focus:outline-none"
+                  >
+                    {photosList.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.date} • {p.pose.toUpperCase()} ({p.weightKg || '-'} kg)
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-xs text-fuchsia-300 italic">Aguardando 2ª foto</span>
+                )}
+                <button
+                  onClick={() => slotBFileInputRef.current?.click()}
+                  className="p-1.5 rounded-xl bg-fuchsia-950 hover:bg-fuchsia-900 text-fuchsia-300 border border-fuchsia-600/60 text-xs font-bold flex items-center gap-1 shrink-0"
+                  title="Fazer upload direto do aparelho para a Foto 2"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Upload</span>
+                </button>
+              </div>
             </div>
           </div>
+        )}
 
-          <div className="p-3 bg-[#1d0637] rounded-2xl border border-purple-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-fuchsia-300 font-bold">Foto 2 (Atual / Depois):</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={photoBId}
-                onChange={(e) => setPhotoBId(e.target.value)}
-                className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#120326] text-purple-200 border border-purple-700/60 focus:outline-none"
-              >
-                {photosList.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.date} • {p.pose.toUpperCase()} ({p.weightKg} kg)
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={() => slotBFileInputRef.current?.click()}
-                className="p-1.5 rounded-xl bg-fuchsia-950 hover:bg-fuchsia-900 text-fuchsia-300 border border-fuchsia-600/60 text-xs font-bold flex items-center gap-1 shrink-0"
-                title="Fazer upload direto do aparelho para a Foto 2"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Upload</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Visualizador Comparativo Lado a Lado com Suporte a Drag & Drop e Upload Local */}
-        {photosList.length >= 2 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-            
-            {/* Foto 1 (Antes) */}
+        {/* Visualizador Comparativo Lado a Lado: Casos 0 fotos, 1 foto ou 2+ fotos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          
+          {/* Quadro 1: Foto 1 (Antes / Inicial) */}
+          {selectedPhotoA ? (
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -926,15 +927,28 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                   </span>
                   <p className="text-xs text-white font-bold mt-1">{selectedPhotoA?.date}</p>
                 </div>
-                <div className="text-right">
-                  <span className="text-sm font-black text-white block">{selectedPhotoA?.weightKg} kg</span>
-                  <span className="text-[10px] text-purple-300">{selectedPhotoA?.bodyFatPercentage}% Gordura</span>
+                <div className="text-right flex items-center gap-2">
+                  <div>
+                    {selectedPhotoA?.weightKg ? (
+                      <span className="text-sm font-black text-white block">{selectedPhotoA.weightKg} kg</span>
+                    ) : null}
+                    {selectedPhotoA?.bodyFatPercentage ? (
+                      <span className="text-[10px] text-purple-300">{selectedPhotoA.bodyFatPercentage}% Gordura</span>
+                    ) : null}
+                  </div>
+                  <button
+                    onClick={() => handleDeletePhoto(selectedPhotoA.id)}
+                    className="p-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/50 transition-colors"
+                    title="Excluir esta foto"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
 
               <div className="h-80 sm:h-96 w-full relative bg-purple-950/40 flex items-center justify-center overflow-hidden">
                 <img
-                  src={selectedPhotoA?.photoUrl}
+                  src={selectedPhotoA.photoUrl}
                   alt="Foto Antes"
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -943,7 +957,7 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                 {/* Botão Flutuante de Upload para Foto 1 */}
                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-[#150328]/85 backdrop-blur-md p-2 rounded-2xl border border-purple-700/60">
                   <span className="text-[11px] text-purple-200 font-semibold pl-1">
-                    Arraste ou envie do aparelho:
+                    Arraste ou envie foto:
                   </span>
                   <button
                     onClick={() => slotAFileInputRef.current?.click()}
@@ -955,14 +969,63 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                 </div>
               </div>
 
-              {selectedPhotoA?.notes && (
+              {selectedPhotoA.notes && (
                 <div className="p-3 bg-[#1d0637] text-xs text-purple-200 italic border-t border-purple-800/40">
                   "{selectedPhotoA.notes}"
                 </div>
               )}
             </div>
+          ) : (
+            /* Slot 1 Vazio / Dropzone */
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragOverA(true);
+              }}
+              onDragLeave={() => setIsDragOverA(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragOverA(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) handleDirectSlotUpload(file, 'slotA');
+              }}
+              className={`bg-[#120326]/70 rounded-3xl border-2 border-dashed p-8 h-80 sm:h-96 flex flex-col items-center justify-center text-center transition-all ${
+                isDragOverA ? 'border-fuchsia-400 bg-fuchsia-950/40' : 'border-purple-800/60 hover:border-purple-600'
+              }`}
+            >
+              <div className="w-14 h-14 rounded-2xl bg-purple-950/80 border border-purple-700/60 text-fuchsia-300 flex items-center justify-center mb-3">
+                <Camera className="w-7 h-7" />
+              </div>
+              <span className="text-[11px] px-3 py-1 rounded-full font-bold uppercase bg-purple-950 text-purple-300 border border-purple-700/60 mb-2">
+                Foto 1 (Inicial / Antes)
+              </span>
+              <p className="text-xs font-bold text-white max-w-xs">
+                Nenhuma foto inicial cadastrada
+              </p>
+              <p className="text-[11px] text-purple-300 max-w-xs mt-1 mb-4">
+                Arraste uma foto do paciente aqui ou faça upload do seu aparelho
+              </p>
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                <button
+                  onClick={() => slotAFileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-purple-700 to-fuchsia-700 hover:from-purple-600 text-white rounded-xl text-xs font-bold shadow-md transition-all"
+                >
+                  <FolderUp className="w-4 h-4" />
+                  <span>+ Upload Foto 1</span>
+                </button>
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#250849] hover:bg-[#340b67] text-fuchsia-200 border border-purple-700/60 rounded-xl text-xs font-bold"
+                >
+                  <Smartphone className="w-4 h-4" />
+                  <span>Câmera</span>
+                </button>
+              </div>
+            </div>
+          )}
 
-            {/* Foto 2 (Depois) */}
+          {/* Quadro 2: Foto 2 (Depois / Atual) */}
+          {selectedPhotoB ? (
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -986,15 +1049,28 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                   </span>
                   <p className="text-xs text-white font-bold mt-1">{selectedPhotoB?.date}</p>
                 </div>
-                <div className="text-right">
-                  <span className="text-sm font-black text-fuchsia-300 block">{selectedPhotoB?.weightKg} kg</span>
-                  <span className="text-[10px] text-emerald-300 font-bold">{selectedPhotoB?.bodyFatPercentage}% Gordura</span>
+                <div className="text-right flex items-center gap-2">
+                  <div>
+                    {selectedPhotoB?.weightKg ? (
+                      <span className="text-sm font-black text-fuchsia-300 block">{selectedPhotoB.weightKg} kg</span>
+                    ) : null}
+                    {selectedPhotoB?.bodyFatPercentage ? (
+                      <span className="text-[10px] text-emerald-300 font-bold">{selectedPhotoB.bodyFatPercentage}% Gordura</span>
+                    ) : null}
+                  </div>
+                  <button
+                    onClick={() => handleDeletePhoto(selectedPhotoB.id)}
+                    className="p-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/50 transition-colors"
+                    title="Excluir esta foto"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
 
               <div className="h-80 sm:h-96 w-full relative bg-purple-950/40 flex items-center justify-center overflow-hidden">
                 <img
-                  src={selectedPhotoB?.photoUrl}
+                  src={selectedPhotoB.photoUrl}
                   alt="Foto Depois"
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -1003,7 +1079,7 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                 {/* Botão Flutuante de Upload para Foto 2 */}
                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-[#150328]/85 backdrop-blur-md p-2 rounded-2xl border border-fuchsia-500/60">
                   <span className="text-[11px] text-fuchsia-200 font-semibold pl-1">
-                    Arraste ou envie do aparelho:
+                    Arraste ou envie foto:
                   </span>
                   <button
                     onClick={() => slotBFileInputRef.current?.click()}
@@ -1015,38 +1091,108 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                 </div>
               </div>
 
-              {selectedPhotoB?.notes && (
+              {selectedPhotoB.notes && (
                 <div className="p-3 bg-[#1d0637] text-xs text-fuchsia-200 italic border-t border-fuchsia-800/40">
                   "{selectedPhotoB.notes}"
                 </div>
               )}
             </div>
-
-          </div>
-        ) : (
-          <div className="py-12 text-center text-purple-200 bg-[#1d0637]/40 rounded-2xl border border-purple-800/30 space-y-4">
-            <Camera className="w-8 h-8 text-fuchsia-400 mx-auto" />
-            <div>
-              <h4 className="font-bold text-white text-sm">Adicione pelo menos 2 fotos para ativar a comparação lado a lado</h4>
-              <p className="text-xs text-purple-300 max-w-sm mx-auto mt-1">
-                Com duas ou mais fotos de datas distintas, você poderá apresentar o antes e depois diretamente na tela.
+          ) : (
+            /* Slot 2 Vazio / Dropzone */
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragOverB(true);
+              }}
+              onDragLeave={() => setIsDragOverB(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragOverB(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) handleDirectSlotUpload(file, 'slotB');
+              }}
+              className={`bg-[#120326]/70 rounded-3xl border-2 border-dashed p-8 h-80 sm:h-96 flex flex-col items-center justify-center text-center transition-all ${
+                isDragOverB ? 'border-emerald-400 bg-emerald-950/20' : 'border-fuchsia-500/40 hover:border-fuchsia-400'
+              }`}
+            >
+              <div className="w-14 h-14 rounded-2xl bg-fuchsia-950/80 border border-fuchsia-700/60 text-fuchsia-300 flex items-center justify-center mb-3">
+                <Sparkles className="w-7 h-7" />
+              </div>
+              <span className="text-[11px] px-3 py-1 rounded-full font-bold uppercase bg-fuchsia-950 text-fuchsia-300 border border-fuchsia-700/60 mb-2">
+                Foto 2 (Atual / Depois)
+              </span>
+              <p className="text-xs font-bold text-white max-w-xs">
+                Aguardando foto de evolução / retorno
               </p>
+              <p className="text-[11px] text-purple-300 max-w-xs mt-1 mb-4">
+                Envie a foto de reavaliação para ativar o comparador lado a lado instantâneo
+              </p>
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                <button
+                  onClick={() => slotBFileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md transition-all"
+                >
+                  <FolderUp className="w-4 h-4" />
+                  <span>+ Upload Foto 2</span>
+                </button>
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#250849] hover:bg-[#340b67] text-fuchsia-200 border border-fuchsia-500/40 rounded-xl text-xs font-bold"
+                >
+                  <Smartphone className="w-4 h-4" />
+                  <span>Câmera</span>
+                </button>
+              </div>
             </div>
-            <div className="flex items-center justify-center gap-2 flex-wrap">
+          )}
+
+        </div>
+
+        {/* Galeria de Todas as Fotos Registradas do Paciente */}
+        {photosList.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-purple-900/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-purple-200 flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4 text-fuchsia-400" />
+                Todas as Fotos Salvas no Prontuário ({photosList.length})
+              </span>
               <button
-                onClick={() => generalFileInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white rounded-xl text-xs font-bold shadow-md"
+                onClick={() => {
+                  setTargetSlot('gallery');
+                  setIsAddingPhoto(true);
+                }}
+                className="text-xs text-fuchsia-300 hover:text-fuchsia-200 font-bold"
               >
-                <FolderUp className="w-4 h-4" />
-                <span>Upload de Foto do Aparelho</span>
+                + Adicionar Outra Foto
               </button>
-              <button
-                onClick={() => cameraInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#250849] text-fuchsia-200 border border-fuchsia-500/40 rounded-xl text-xs font-bold"
-              >
-                <Smartphone className="w-4 h-4" />
-                <span>Tirar com a Câmera</span>
-              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {photosList.map((p) => (
+                <div
+                  key={p.id}
+                  className="group relative bg-[#120326] rounded-xl overflow-hidden border border-purple-800/50 hover:border-fuchsia-500/60 transition-all shadow-sm"
+                >
+                  <div className="h-24 w-full bg-purple-950 flex items-center justify-center overflow-hidden">
+                    <img src={p.photoUrl} alt={p.pose} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  </div>
+                  <div className="p-1.5 bg-[#1d0637] text-[10px] space-y-0.5">
+                    <div className="flex items-center justify-between font-bold text-white">
+                      <span>{p.date}</span>
+                      <span className="text-fuchsia-300 uppercase text-[9px]">{p.pose}</span>
+                    </div>
+                    {p.weightKg ? (
+                      <p className="text-purple-300">{p.weightKg} kg {p.bodyFatPercentage ? `• ${p.bodyFatPercentage}% BF` : ''}</p>
+                    ) : null}
+                  </div>
+                  <button
+                    onClick={() => handleDeletePhoto(p.id)}
+                    className="absolute top-1 right-1 p-1 bg-rose-950/80 hover:bg-rose-900 text-rose-300 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Excluir foto"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         )}
