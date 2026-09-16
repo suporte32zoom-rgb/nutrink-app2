@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { Patient, AnthropometricRecord, PatientEvolutionPhoto } from '../../types';
 import { calculateBMI, calculateMifflinTMB, calculateGET } from '../../utils/nutritionCalculations';
+import { LiveCameraModal } from '../LiveCameraModal';
 
 interface PatientAestheticsSubcategoryProps {
   patient: Patient;
@@ -71,11 +72,21 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
   const [targetSlot, setTargetSlot] = useState<'gallery' | 'slotA' | 'slotB'>('gallery');
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
 
+  // Live Camera Modal State
+  const [isLiveCameraOpen, setIsLiveCameraOpen] = useState(false);
+  const [cameraCaptureTarget, setCameraCaptureTarget] = useState<'gallery' | 'slotA' | 'slotB'>('gallery');
+
   // Hidden File Inputs Refs
   const generalFileInputRef = useRef<HTMLInputElement>(null);
   const slotAFileInputRef = useRef<HTMLInputElement>(null);
   const slotBFileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // Abertura da câmera ao vivo com autorização do usuário
+  const openLiveCamera = (target: 'gallery' | 'slotA' | 'slotB') => {
+    setCameraCaptureTarget(target);
+    setIsLiveCameraOpen(true);
+  };
 
   // Estados do Comparador Lado a Lado
   const [photoAId, setPhotoAId] = useState<string>(cleanPatientPhotos[0]?.id || '');
@@ -138,42 +149,59 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
     reader.readAsDataURL(file);
   };
 
-  // Upload direto para Foto 1 (Antes) ou Foto 2 (Depois)
+  // Inserção direta de foto (por dataUrl) no Slot A (Antes), Slot B (Depois) ou Galeria
+  const handleDirectSlotDataUrl = (dataUrl: string, slot: 'slotA' | 'slotB') => {
+    const newPhotoId = `photo-${Date.now()}`;
+    const newPhoto: PatientEvolutionPhoto = {
+      id: newPhotoId,
+      date: new Date().toISOString().split('T')[0],
+      pose: 'frente',
+      photoUrl: dataUrl,
+      weightKg: slot === 'slotA' ? (patient.initialWeightKg || patient.currentWeightKg || 0) : (patient.currentWeightKg || patient.initialWeightKg || 0),
+      bodyFatPercentage: patient.bodyFatPercentage || 0,
+      notes: slot === 'slotA' ? 'Foto de Antes tirada com a câmera' : 'Foto de Depois tirada com a câmera'
+    };
+
+    const updatedPhotos = [newPhoto, ...photosList];
+    setPhotosList(updatedPhotos);
+
+    if (slot === 'slotA') {
+      setPhotoAId(newPhotoId);
+      if (!photoBId && updatedPhotos.length > 1) {
+        const other = updatedPhotos.find(p => p.id !== newPhotoId);
+        if (other) setPhotoBId(other.id);
+      }
+    } else {
+      setPhotoBId(newPhotoId);
+      if (!photoAId && updatedPhotos.length > 1) {
+        const other = updatedPhotos.find(p => p.id !== newPhotoId);
+        if (other) setPhotoAId(other.id);
+      }
+    }
+
+    onUpdatePatient({
+      ...patient,
+      evolutionPhotos: updatedPhotos
+    });
+  };
+
+  // Upload direto de arquivo para Foto 1 (Antes) ou Foto 2 (Depois)
   const handleDirectSlotUpload = (file: File, slot: 'slotA' | 'slotB') => {
     processImageFile(file, (dataUrl) => {
-      const newPhotoId = `photo-${Date.now()}`;
-      const newPhoto: PatientEvolutionPhoto = {
-        id: newPhotoId,
-        date: new Date().toISOString().split('T')[0],
-        pose: 'frente',
-        photoUrl: dataUrl,
-        weightKg: slot === 'slotA' ? (patient.initialWeightKg || patient.currentWeightKg || 0) : (patient.currentWeightKg || patient.initialWeightKg || 0),
-        bodyFatPercentage: patient.bodyFatPercentage || 0,
-        notes: slot === 'slotA' ? 'Foto de Antes enviada pelo profissional' : 'Foto de Depois enviada pelo profissional'
-      };
-
-      const updatedPhotos = [newPhoto, ...photosList];
-      setPhotosList(updatedPhotos);
-
-      if (slot === 'slotA') {
-        setPhotoAId(newPhotoId);
-        if (!photoBId && updatedPhotos.length > 1) {
-          const other = updatedPhotos.find(p => p.id !== newPhotoId);
-          if (other) setPhotoBId(other.id);
-        }
-      } else {
-        setPhotoBId(newPhotoId);
-        if (!photoAId && updatedPhotos.length > 1) {
-          const other = updatedPhotos.find(p => p.id !== newPhotoId);
-          if (other) setPhotoAId(other.id);
-        }
-      }
-
-      onUpdatePatient({
-        ...patient,
-        evolutionPhotos: updatedPhotos
-      });
+      handleDirectSlotDataUrl(dataUrl, slot);
     });
+  };
+
+  // Recebe captura da câmera ao vivo
+  const handleLiveCameraCapture = (dataUrl: string) => {
+    if (cameraCaptureTarget === 'slotA') {
+      handleDirectSlotDataUrl(dataUrl, 'slotA');
+    } else if (cameraCaptureTarget === 'slotB') {
+      handleDirectSlotDataUrl(dataUrl, 'slotB');
+    } else {
+      setNewPhotoUrl(dataUrl);
+      setIsAddingPhoto(true);
+    }
   };
 
   // Cálculo da variação do comparador
@@ -377,6 +405,16 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
             </button>
 
             <button
+              onClick={() => openLiveCamera('gallery')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md border border-fuchsia-400/40"
+              id="btn-open-native-camera-top"
+              title="Abrir câmera nativa do aparelho para tirar foto na hora"
+            >
+              <Camera className="w-3.5 h-3.5 text-white" />
+              <span>Tirar Foto (Câmera)</span>
+            </button>
+
+            <button
               onClick={() => {
                 setTargetSlot('gallery');
                 setIsAddingPhoto(!isAddingPhoto);
@@ -384,8 +422,8 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-purple-100 border border-purple-700/60 rounded-xl text-xs font-bold"
               id="btn-upload-patient-photo"
             >
-              <Camera className="w-3.5 h-3.5 text-fuchsia-300" />
-              <span>+ Adicionar Foto</span>
+              <Plus className="w-3.5 h-3.5 text-fuchsia-300" />
+              <span>+ Adicionar com Detalhes</span>
             </button>
 
             <button
@@ -678,10 +716,10 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                     </button>
                     <button
                       type="button"
-                      onClick={() => cameraInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#250849] hover:bg-[#340b67] text-fuchsia-200 border border-fuchsia-500/40 rounded-xl text-xs font-bold"
+                      onClick={() => openLiveCamera('gallery')}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-fuchsia-700 to-purple-700 hover:from-fuchsia-600 text-white border border-fuchsia-400/50 rounded-xl text-xs font-bold shadow-md transition-all"
                     >
-                      <Smartphone className="w-4 h-4" />
+                      <Camera className="w-4 h-4 text-fuchsia-200" />
                       <span>Tirar Foto com a Câmera</span>
                     </button>
                   </div>
@@ -821,12 +859,22 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
             )}
 
             <button
-              onClick={() => generalFileInputRef.current?.click()}
+              onClick={() => openLiveCamera('gallery')}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-sm transition-all border border-fuchsia-400/40"
+              id="btn-comparator-camera-open"
+              title="Abrir câmera do dispositivo para tirar foto na hora"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>+ Tirar Foto (Câmera)</span>
+            </button>
+
+            <button
+              onClick={() => generalFileInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#250849] hover:bg-[#340b67] text-purple-100 rounded-xl text-xs font-bold shadow-sm transition-all border border-purple-700/60"
               id="btn-comparator-upload-device"
               title="Fazer upload de foto direto do dispositivo"
             >
-              <UploadCloud className="w-3.5 h-3.5" />
+              <UploadCloud className="w-3.5 h-3.5 text-emerald-400" />
               <span>+ Upload do Aparelho</span>
             </button>
           </div>
@@ -839,7 +887,7 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
               <div className="flex items-center gap-2">
                 <span className="text-xs text-purple-200 font-bold">Foto 1 (Inicial / Antes):</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {photosList.length > 0 ? (
                   <select
                     value={photoAId}
@@ -856,8 +904,16 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                   <span className="text-xs text-purple-300 italic">Nenhuma foto</span>
                 )}
                 <button
+                  onClick={() => openLiveCamera('slotA')}
+                  className="p-1.5 px-2 rounded-xl bg-gradient-to-r from-fuchsia-700 to-purple-700 hover:from-fuchsia-600 text-white border border-fuchsia-400/40 text-xs font-bold flex items-center gap-1 shrink-0"
+                  title="Tirar foto com a câmera do aparelho para o Antes"
+                >
+                  <Camera className="w-3.5 h-3.5 text-fuchsia-200" />
+                  <span className="hidden sm:inline">Câmera</span>
+                </button>
+                <button
                   onClick={() => slotAFileInputRef.current?.click()}
-                  className="p-1.5 rounded-xl bg-[#250849] hover:bg-[#340b67] text-fuchsia-300 border border-purple-700/60 text-xs font-bold flex items-center gap-1 shrink-0"
+                  className="p-1.5 px-2 rounded-xl bg-[#250849] hover:bg-[#340b67] text-fuchsia-300 border border-purple-700/60 text-xs font-bold flex items-center gap-1 shrink-0"
                   title="Fazer upload direto do aparelho para a Foto 1"
                 >
                   <Upload className="w-3.5 h-3.5" />
@@ -870,7 +926,7 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
               <div className="flex items-center gap-2">
                 <span className="text-xs text-fuchsia-300 font-bold">Foto 2 (Atual / Depois):</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {photosList.length > 1 ? (
                   <select
                     value={photoBId}
@@ -887,8 +943,16 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                   <span className="text-xs text-fuchsia-300 italic">Aguardando 2ª foto</span>
                 )}
                 <button
+                  onClick={() => openLiveCamera('slotB')}
+                  className="p-1.5 px-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white border border-fuchsia-400/40 text-xs font-bold flex items-center gap-1 shrink-0"
+                  title="Tirar foto com a câmera do aparelho para o Depois"
+                >
+                  <Camera className="w-3.5 h-3.5 text-fuchsia-200" />
+                  <span className="hidden sm:inline">Câmera</span>
+                </button>
+                <button
                   onClick={() => slotBFileInputRef.current?.click()}
-                  className="p-1.5 rounded-xl bg-fuchsia-950 hover:bg-fuchsia-900 text-fuchsia-300 border border-fuchsia-600/60 text-xs font-bold flex items-center gap-1 shrink-0"
+                  className="p-1.5 px-2 rounded-xl bg-fuchsia-950 hover:bg-fuchsia-900 text-fuchsia-300 border border-fuchsia-600/60 text-xs font-bold flex items-center gap-1 shrink-0"
                   title="Fazer upload direto do aparelho para a Foto 2"
                 >
                   <Upload className="w-3.5 h-3.5" />
@@ -954,18 +1018,28 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
 
-                {/* Botão Flutuante de Upload para Foto 1 */}
-                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-[#150328]/85 backdrop-blur-md p-2 rounded-2xl border border-purple-700/60">
-                  <span className="text-[11px] text-purple-200 font-semibold pl-1">
-                    Arraste ou envie foto:
+                {/* Botão Flutuante de Upload e Câmera para Foto 1 */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-[#150328]/90 backdrop-blur-md p-2 rounded-2xl border border-purple-700/60 gap-2">
+                  <span className="text-[11px] text-purple-200 font-semibold pl-1 hidden sm:inline">
+                    Alterar Foto 1:
                   </span>
-                  <button
-                    onClick={() => slotAFileInputRef.current?.click()}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-purple-700 to-fuchsia-700 hover:from-purple-600 hover:to-fuchsia-600 text-white rounded-xl text-xs font-bold shadow-md"
-                  >
-                    <FolderUp className="w-3.5 h-3.5" />
-                    <span>Trocar Foto 1</span>
-                  </button>
+                  <div className="flex items-center gap-2 ml-auto">
+                    <button
+                      onClick={() => openLiveCamera('slotA')}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md"
+                      title="Abrir câmera para tirar nova Foto 1"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Câmera</span>
+                    </button>
+                    <button
+                      onClick={() => slotAFileInputRef.current?.click()}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-900 hover:bg-purple-800 text-white rounded-xl text-xs font-bold border border-purple-700"
+                    >
+                      <FolderUp className="w-3.5 h-3.5" />
+                      <span>Upload</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1003,22 +1077,23 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                 Nenhuma foto inicial cadastrada
               </p>
               <p className="text-[11px] text-purple-300 max-w-xs mt-1 mb-4">
-                Arraste uma foto do paciente aqui ou faça upload do seu aparelho
+                Arraste uma foto do paciente aqui, faça upload ou abra a câmera ao vivo
               </p>
               <div className="flex items-center gap-2 flex-wrap justify-center">
                 <button
-                  onClick={() => slotAFileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-purple-700 to-fuchsia-700 hover:from-purple-600 text-white rounded-xl text-xs font-bold shadow-md transition-all"
+                  onClick={() => openLiveCamera('slotA')}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md transition-all border border-fuchsia-400/40"
+                  id="btn-open-camera-slot-a"
                 >
-                  <FolderUp className="w-4 h-4" />
-                  <span>+ Upload Foto 1</span>
+                  <Camera className="w-4 h-4" />
+                  <span>Tirar com Câmera</span>
                 </button>
                 <button
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#250849] hover:bg-[#340b67] text-fuchsia-200 border border-purple-700/60 rounded-xl text-xs font-bold"
+                  onClick={() => slotAFileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#250849] hover:bg-[#340b67] text-purple-200 border border-purple-700/60 rounded-xl text-xs font-bold"
                 >
-                  <Smartphone className="w-4 h-4" />
-                  <span>Câmera</span>
+                  <FolderUp className="w-4 h-4" />
+                  <span>Upload Arquivo</span>
                 </button>
               </div>
             </div>
@@ -1076,18 +1151,28 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
 
-                {/* Botão Flutuante de Upload para Foto 2 */}
-                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-[#150328]/85 backdrop-blur-md p-2 rounded-2xl border border-fuchsia-500/60">
-                  <span className="text-[11px] text-fuchsia-200 font-semibold pl-1">
-                    Arraste ou envie foto:
+                {/* Botão Flutuante de Upload e Câmera para Foto 2 */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-[#150328]/90 backdrop-blur-md p-2 rounded-2xl border border-fuchsia-500/60 gap-2">
+                  <span className="text-[11px] text-fuchsia-200 font-semibold pl-1 hidden sm:inline">
+                    Alterar Foto 2:
                   </span>
-                  <button
-                    onClick={() => slotBFileInputRef.current?.click()}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-md"
-                  >
-                    <FolderUp className="w-3.5 h-3.5" />
-                    <span>Trocar Foto 2</span>
-                  </button>
+                  <div className="flex items-center gap-2 ml-auto">
+                    <button
+                      onClick={() => openLiveCamera('slotB')}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md"
+                      title="Abrir câmera para tirar nova Foto 2"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Câmera</span>
+                    </button>
+                    <button
+                      onClick={() => slotBFileInputRef.current?.click()}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-900 hover:bg-purple-800 text-white rounded-xl text-xs font-bold border border-purple-700"
+                    >
+                      <FolderUp className="w-3.5 h-3.5" />
+                      <span>Upload</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1129,18 +1214,19 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
               </p>
               <div className="flex items-center gap-2 flex-wrap justify-center">
                 <button
-                  onClick={() => slotBFileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md transition-all"
+                  onClick={() => openLiveCamera('slotB')}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md transition-all border border-fuchsia-400/40"
+                  id="btn-open-camera-slot-b"
                 >
-                  <FolderUp className="w-4 h-4" />
-                  <span>+ Upload Foto 2</span>
+                  <Camera className="w-4 h-4" />
+                  <span>Tirar com Câmera</span>
                 </button>
                 <button
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#250849] hover:bg-[#340b67] text-fuchsia-200 border border-fuchsia-500/40 rounded-xl text-xs font-bold"
+                  onClick={() => slotBFileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#250849] hover:bg-[#340b67] text-purple-200 border border-purple-700/60 rounded-xl text-xs font-bold"
                 >
-                  <Smartphone className="w-4 h-4" />
-                  <span>Câmera</span>
+                  <FolderUp className="w-4 h-4" />
+                  <span>Upload Arquivo</span>
                 </button>
               </div>
             </div>
@@ -1238,6 +1324,20 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
           </table>
         </div>
       </div>
+      {/* Modal de Câmera ao Vivo com Permissão Nativa do Aparelho */}
+      <LiveCameraModal
+        isOpen={isLiveCameraOpen}
+        onClose={() => setIsLiveCameraOpen(false)}
+        onCapture={handleLiveCameraCapture}
+        title={
+          cameraCaptureTarget === 'slotA'
+            ? 'Câmera: Foto 1 (Inicial / Antes)'
+            : cameraCaptureTarget === 'slotB'
+            ? 'Câmera: Foto 2 (Atual / Depois)'
+            : 'Câmera: Nova Foto de Evolução'
+        }
+        subtitle="Autorize a câmera do aparelho para capturar a imagem do paciente em tempo real"
+      />
     </div>
   );
 };
