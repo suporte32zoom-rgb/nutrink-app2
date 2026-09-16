@@ -143,6 +143,51 @@ export interface Anamnese {
   emotionalRelationshipWithFood?: string;
 }
 
+export interface PatientTimelineItem {
+  id: string;
+  date: string;
+  time?: string;
+  type: 'consulta' | 'plano' | 'exame' | 'prescricao' | 'antropometria' | 'nota' | 'habito';
+  title: string;
+  description: string;
+  author?: string;
+  badge?: string;
+  categoryColor?: string;
+}
+
+export interface HabitItem {
+  id: string;
+  title: string;
+  category: 'agua' | 'sono' | 'treino' | 'passos' | 'mindfulness' | 'refeicoes' | 'personalizado';
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  frequency: 'diario' | 'semanal';
+  weeklyHistory?: number[]; // Últimos 7 dias
+  status: 'cumprido' | 'em_progresso' | 'alerta';
+  notes?: string;
+}
+
+export interface PatientHabits {
+  waterLitersTarget: number;
+  waterLitersCurrent: number;
+  sleepHoursTarget: number;
+  sleepHoursCurrent: number;
+  workoutsTargetPerWeek: number;
+  workoutsCurrentPerWeek: number;
+  habitsList?: HabitItem[];
+}
+
+export interface PatientEvolutionPhoto {
+  id: string;
+  date: string;
+  pose: 'frente' | 'costas' | 'perfil_direito' | 'perfil_esquerdo';
+  photoUrl: string;
+  weightKg?: number;
+  bodyFatPercentage?: number;
+  notes?: string;
+}
+
 export interface Patient {
   id: string;
   name: string;
@@ -168,6 +213,9 @@ export interface Patient {
   prescriptions?: ClinicalPrescription[];
   evolutionHistory: AnthropometricRecord[];
   labExams: LabExam[];
+  timeline?: PatientTimelineItem[];
+  habits?: PatientHabits;
+  evolutionPhotos?: PatientEvolutionPhoto[];
   notes: string;
   status: 'ativo' | 'em_espera' | 'inativo';
   createdAt: string;

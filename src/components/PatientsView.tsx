@@ -33,7 +33,11 @@ import {
   AlertCircle,
   AlertTriangle,
   User,
-  CalendarPlus
+  CalendarPlus,
+  History,
+  Target,
+  Camera,
+  SplitSquareHorizontal
 } from 'lucide-react';
 import { 
   Patient, 
@@ -49,6 +53,11 @@ import {
   Appointment
 } from '../types';
 import { MealPlanEditor } from './MealPlanEditor';
+import { PatientTimelineSubcategory } from './patient-subcategories/PatientTimelineSubcategory';
+import { PatientHabitsSubcategory } from './patient-subcategories/PatientHabitsSubcategory';
+import { PatientAestheticsSubcategory } from './patient-subcategories/PatientAestheticsSubcategory';
+import { PatientBiomarkersSubcategory } from './patient-subcategories/PatientBiomarkersSubcategory';
+import { PatientPrescriptionsSubcategory } from './patient-subcategories/PatientPrescriptionsSubcategory';
 import { 
   printMealPlanPdf, 
   sendMealPlanViaWhatsApp, 
@@ -111,13 +120,16 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
     }
   }, [toastMessage]);
 
-  // 5 Abas Oficiais do Prontuário Clínico Integrado:
-  // 1: Resumo Clínico & Parâmetros
-  // 2: Plano Alimentar
-  // 3: Suplementação & Prescrições
-  // 4: Evolução & Consultas
-  // 5: Exames Laboratoriais
-  const [activeTab, setActiveTab] = useState<'resumo' | 'plano' | 'prescricoes' | 'evolucao' | 'exames'>('resumo');
+  // 5 Subcategorias Oficiais do Prontuário Integrado (Tela Única):
+  // 1: Histórico & Linha do Tempo (Timeline)
+  // 2: Metas & Hábitos Atuais
+  // 3: Evolução Estética & Antropometria
+  // 4: Central de Exames & Biomarcadores
+  // 5: Prescrições & Suplementação
+  // + Plano Alimentar & Dados Clínicos/Anamnese
+  const [activeTab, setActiveTab] = useState<
+    'timeline' | 'habitos' | 'evolucao_estetica' | 'exames_biomarcadores' | 'prescricoes_suplementacao' | 'plano_alimentar' | 'resumo' | 'plano' | 'prescricoes' | 'evolucao' | 'exames'
+  >('timeline');
   
   // Modal de Avaliação Antropométrica (Aba 4)
   const [isAddingAntro, setIsAddingAntro] = useState(false);
@@ -631,22 +643,31 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
             </div>
           </div>
 
-          {/* Navegação Oficial em 5 Abas do Prontuário Integrado */}
+          {/* Navegação Oficial em Subcategorias do Prontuário Integrado */}
           <div className="flex items-center gap-2 mt-6 border-b border-purple-900/40 overflow-x-auto scrollbar-none" id="tabs-patient-dossier">
             {[
-              { id: 'resumo', label: '1. Resumo Clínico & Parâmetros', icon: FileText },
-              { id: 'plano', label: '2. Plano Alimentar', icon: Award },
-              { id: 'prescricoes', label: `3. Suplementação & Prescrições (${selectedPatient.prescriptions?.length || 0})`, icon: Pill },
-              { id: 'evolucao', label: `4. Evolução & Consultas (${selectedPatient.evolutionHistory?.length || 0})`, icon: TrendingUp },
-              { id: 'exames', label: `5. Exames Laboratoriais (${selectedPatient.labExams?.length || 0})`, icon: Heart }
+              { id: 'timeline', label: '1. Histórico & Linha do Tempo', icon: History },
+              { id: 'habitos', label: '2. Metas & Hábitos Atuais', icon: Target },
+              { id: 'evolucao_estetica', label: `3. Evolução Estética & Antropometria`, icon: Camera },
+              { id: 'exames_biomarcadores', label: `4. Central de Exames & Biomarcadores`, icon: Heart },
+              { id: 'prescricoes_suplementacao', label: `5. Prescrições & Suplementação`, icon: Pill },
+              { id: 'plano_alimentar', label: 'Plano Alimentar & Refeições', icon: Award },
+              { id: 'resumo', label: 'Dados Clínicos & Anamnese', icon: FileText }
             ].map((tab) => {
               const IconComp = tab.icon;
+              const isActive = 
+                activeTab === tab.id ||
+                (tab.id === 'plano_alimentar' && activeTab === 'plano') ||
+                (tab.id === 'evolucao_estetica' && activeTab === 'evolucao') ||
+                (tab.id === 'exames_biomarcadores' && activeTab === 'exames') ||
+                (tab.id === 'prescricoes_suplementacao' && activeTab === 'prescricoes');
+
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 transition-all flex items-center gap-2 ${
-                    activeTab === tab.id
+                    isActive
                       ? 'border-fuchsia-400 text-fuchsia-300 bg-[#29094e] rounded-t-xl shadow-sm'
                       : 'border-transparent text-purple-200 hover:text-white'
                   }`}
@@ -659,6 +680,64 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
             })}
           </div>
         </div>
+
+        {/* ============================================================== */}
+        {/* SUBCATEGORIA 1: HISTÓRICO & LINHA DO TEMPO (TIMELINE)         */}
+        {/* ============================================================== */}
+        {activeTab === 'timeline' && (
+          <PatientTimelineSubcategory
+            patient={selectedPatient}
+            onUpdatePatient={onUpdatePatient}
+            appointments={appointments}
+            onOpenNutriaWithPrompt={onOpenNutriaWithPrompt}
+            onNavigateTab={(tab) => setActiveTab(tab as any)}
+          />
+        )}
+
+        {/* ============================================================== */}
+        {/* SUBCATEGORIA 2: METAS & HÁBITOS ATUAIS                         */}
+        {/* ============================================================== */}
+        {activeTab === 'habitos' && (
+          <PatientHabitsSubcategory
+            patient={selectedPatient}
+            onUpdatePatient={onUpdatePatient}
+            onOpenNutriaWithPrompt={onOpenNutriaWithPrompt}
+          />
+        )}
+
+        {/* ============================================================== */}
+        {/* SUBCATEGORIA 3: EVOLUÇÃO ESTÉTICA E ANTROPOMETRIA              */}
+        {/* ============================================================== */}
+        {(activeTab === 'evolucao_estetica' || activeTab === 'evolucao') && (
+          <PatientAestheticsSubcategory
+            patient={selectedPatient}
+            onUpdatePatient={onUpdatePatient}
+            onOpenNutriaWithPrompt={onOpenNutriaWithPrompt}
+          />
+        )}
+
+        {/* ============================================================== */}
+        {/* SUBCATEGORIA 4: CENTRAL DE EXAMES & BIOMARCADORES              */}
+        {/* ============================================================== */}
+        {(activeTab === 'exames_biomarcadores' || activeTab === 'exames') && (
+          <PatientBiomarkersSubcategory
+            patient={selectedPatient}
+            onUpdatePatient={onUpdatePatient}
+            onOpenNutriaWithPrompt={onOpenNutriaWithPrompt}
+          />
+        )}
+
+        {/* ============================================================== */}
+        {/* SUBCATEGORIA 5: PRESCRIÇÕES & SUPLEMENTAÇÃO                    */}
+        {/* ============================================================== */}
+        {(activeTab === 'prescricoes_suplementacao' || activeTab === 'prescricoes') && (
+          <PatientPrescriptionsSubcategory
+            patient={selectedPatient}
+            onUpdatePatient={onUpdatePatient}
+            userAccount={userAccount}
+            onOpenNutriaWithPrompt={onOpenNutriaWithPrompt}
+          />
+        )}
 
         {/* ============================================================== */}
         {/* ABA 1: RESUMO CLÍNICO & PARÂMETROS                            */}
@@ -841,439 +920,15 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
         )}
 
         {/* ============================================================== */}
-        {/* ABA 2: PLANO ALIMENTAR & MACROS                               */}
+        {/* ABA: PLANO ALIMENTAR & MACROS                                  */}
         {/* ============================================================== */}
-        {activeTab === 'plano' && (
+        {(activeTab === 'plano_alimentar' || activeTab === 'plano') && (
           <MealPlanEditor
             patient={selectedPatient}
             onUpdatePatient={onUpdatePatient}
             onOpenNutriaWithPrompt={onOpenNutriaWithPrompt}
             userAccount={userAccount}
           />
-        )}
-
-        {/* ============================================================== */}
-        {/* ABA 3: SUPLEMENTAÇÃO & PRESCRIÇÕES                            */}
-        {/* ============================================================== */}
-        {activeTab === 'prescricoes' && (
-          <div className="space-y-6">
-            <div className="bg-[#150328] border border-purple-900/50 rounded-3xl p-6 space-y-4 shadow-md">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-purple-900/40">
-                <div>
-                  <h3 className="font-bold text-white text-base flex items-center gap-2">
-                    <Pill className="w-5 h-5 text-fuchsia-400" />
-                    Prescrições, Manipulados & Suplementação
-                  </h3>
-                  <p className="text-xs text-purple-200 mt-0.5">
-                    Histórico de fórmulas manipuladas, fitoterápicos e suplementos gerados para este paciente
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setNewRxTitle('');
-                      setNewRxInstructions('');
-                      setNewRxItems([{ id: `it-${Date.now()}`, name: '', dosage: '', form: 'capsula', posology: '', indication: '' }]);
-                      setIsAddingPrescription(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md transition-all border border-fuchsia-400/40"
-                    id="btn-new-prescription"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>+ Nova Prescrição</span>
-                  </button>
-
-                  <button
-                    onClick={() => onOpenNutriaWithPrompt(`Nutria, elabore uma prescrição de manipulados e suplementos com base no perfil de ${selectedPatient.name} (Objetivo: ${selectedPatient.objective}, Alergias: ${selectedPatient.anamnese?.foodAllergiesAndIntolerances || 'Nenhuma'}). Forneça nomes dos ativos, dosagens exatas, forma farmacêutica e posologia.`)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-fuchsia-200 border border-fuchsia-500/40 rounded-xl text-xs font-bold"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-fuchsia-400" />
-                    <span>Sugerir com NUTRIA</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Lista de Prescrições Cadastradas */}
-              {selectedPatient.prescriptions && selectedPatient.prescriptions.length > 0 ? (
-                <div className="space-y-4">
-                  {selectedPatient.prescriptions.map((rx) => (
-                    <div key={rx.id} className="p-5 bg-[#1d0637] rounded-2xl border border-purple-800/40 space-y-4 shadow-sm">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-900/40 pb-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-950 text-fuchsia-300 border border-fuchsia-500/40">
-                              {rx.type.replace('_', ' ')}
-                            </span>
-                            <h4 className="font-black text-sm text-white">{rx.title}</h4>
-                          </div>
-                          <span className="text-[11px] text-purple-200 mt-1 block">Prescrito em: {rx.date}</span>
-                        </div>
-
-                        {/* Ações da Prescrição */}
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => printPrescriptionPdf(selectedPatient, rx, userAccount)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#250849] hover:bg-[#340b67] text-white rounded-xl text-xs font-bold border border-purple-700/60 shadow-sm"
-                            title="Imprimir Receituário em PDF com Timbre"
-                          >
-                            <Printer className="w-3.5 h-3.5 text-fuchsia-300" />
-                            <span>Imprimir / PDF</span>
-                          </button>
-
-                          <button
-                            onClick={() => sendPrescriptionViaWhatsApp(selectedPatient, rx, userAccount)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 rounded-xl text-xs font-bold border border-emerald-600/50 shadow-sm"
-                            title="Enviar via WhatsApp para o paciente ou farmácia"
-                          >
-                            <Send className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>WhatsApp</span>
-                          </button>
-
-                          <button
-                            onClick={() => handleDeletePrescription(rx.id)}
-                            className="p-1.5 text-purple-300 hover:text-rose-400 rounded-lg hover:bg-rose-950/30 transition-colors"
-                            title="Excluir Prescrição"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {rx.instructions && (
-                        <div className="p-3 bg-[#120326] rounded-xl border border-purple-800/40 text-xs text-purple-100">
-                          <strong className="text-fuchsia-300">Instruções:</strong> {rx.instructions}
-                        </div>
-                      )}
-
-                      {/* Itens e Compostos da Prescrição */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {rx.items.map((item, idx) => (
-                          <div key={item.id || idx} className="p-3.5 bg-[#120326] rounded-xl border border-purple-800/40 text-xs space-y-1">
-                            <div className="flex items-center justify-between font-bold">
-                              <span className="text-white">{idx + 1}. {item.name}</span>
-                              <span className="text-fuchsia-300 px-2 py-0.5 rounded-md bg-[#250849] border border-purple-700/50">{item.dosage}</span>
-                            </div>
-                            <div className="text-purple-200 text-[11px]">
-                              Forma: <strong className="text-white uppercase">{item.form}</strong> {item.indication ? `• ${item.indication}` : ''}
-                            </div>
-                            <div className="text-purple-100 font-medium pt-1">
-                              📌 <strong>Posologia:</strong> {item.posology}
-                            </div>
-                            {item.notes && <div className="text-purple-300 text-[10px] italic">Obs: {item.notes}</div>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-12 text-center text-purple-200 bg-[#1d0637]/40 rounded-2xl border border-purple-800/30 space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-950/80 border border-purple-700/60 text-fuchsia-400 flex items-center justify-center mx-auto">
-                    <Pill className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white text-sm">Nenhuma prescrição cadastrada</h4>
-                    <p className="text-xs text-purple-300 max-w-sm mx-auto mt-1">
-                      Crie prescrições personalizadas de manipulados, vitaminas ou fitoterápicos com exportação em PDF e envio via WhatsApp.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setNewRxTitle('');
-                      setNewRxInstructions('');
-                      setNewRxItems([{ id: `it-${Date.now()}`, name: '', dosage: '', form: 'capsula', posology: '', indication: '' }]);
-                      setIsAddingPrescription(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md transition-all"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Criar Primeira Prescrição</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================== */}
-        {/* ABA 4: EVOLUÇÃO & CONSULTAS                                   */}
-        {/* ============================================================== */}
-        {activeTab === 'evolucao' && (
-          <div className="space-y-6">
-            
-            {/* Card de Resumo e Comparação Antropométrica */}
-            <div className="bg-[#150328] border border-purple-900/50 rounded-3xl p-6 space-y-4 shadow-md">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-purple-900/40">
-                <div>
-                  <h3 className="font-bold text-white text-base flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-fuchsia-400" />
-                    Histórico de Avaliações Antropométricas & Retornos
-                  </h3>
-                  <p className="text-xs text-purple-200 mt-0.5">
-                    Comparação de evolução de peso, % de gordura, IMC e medidas corporais
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setIsAddingAntro(true)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm border border-fuchsia-400/40"
-                    id="btn-add-anthropometric-record"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Nova Avaliação Antropométrica</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Comparativo de Peso Inicial x Atual x Meta */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-4 bg-[#1d0637] rounded-2xl border border-purple-800/40 text-center">
-                  <span className="text-[11px] text-purple-200 font-bold block uppercase">Peso Inicial</span>
-                  <p className="text-xl font-black text-white mt-1">
-                    {selectedPatient.initialWeightKg > 0 ? `${selectedPatient.initialWeightKg} kg` : '-'}
-                  </p>
-                </div>
-
-                <div className="p-4 bg-[#1d0637] rounded-2xl border border-purple-800/40 text-center">
-                  <span className="text-[11px] text-purple-200 font-bold block uppercase">Peso Atual</span>
-                  <p className="text-xl font-black text-fuchsia-300 mt-1">
-                    {selectedPatient.currentWeightKg > 0 ? `${selectedPatient.currentWeightKg} kg` : '-'}
-                  </p>
-                  {selectedPatient.initialWeightKg > 0 && selectedPatient.currentWeightKg > 0 && (
-                    <span className="text-[11px] font-bold text-emerald-400">
-                      Delta: {selectedPatient.currentWeightKg - selectedPatient.initialWeightKg > 0 ? '+' : ''}
-                      {(selectedPatient.currentWeightKg - selectedPatient.initialWeightKg).toFixed(1)} kg
-                    </span>
-                  )}
-                </div>
-
-                <div className="p-4 bg-[#1d0637] rounded-2xl border border-purple-800/40 text-center">
-                  <span className="text-[11px] text-purple-200 font-bold block uppercase">Meta Alvo</span>
-                  <p className="text-xl font-black text-white mt-1">
-                    {selectedPatient.targetWeightKg > 0 ? `${selectedPatient.targetWeightKg} kg` : '-'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Tabela de Histórico Antropométrico */}
-              <div className="overflow-x-auto mt-4">
-                <table className="w-full text-left text-xs text-purple-100">
-                  <thead className="bg-[#1d0637] text-purple-200 uppercase font-bold border-b border-purple-900/40">
-                    <tr>
-                      <th className="p-3">Data</th>
-                      <th className="p-3">Peso (kg)</th>
-                      <th className="p-3">IMC</th>
-                      <th className="p-3">% Gordura</th>
-                      <th className="p-3">% Músculo</th>
-                      <th className="p-3">Cintura</th>
-                      <th className="p-3">Observações Clínicas</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-purple-900/30">
-                    {(selectedPatient.evolutionHistory || []).map((rec) => (
-                      <tr key={rec.id} className="hover:bg-[#1d0637]/60 transition-colors">
-                        <td className="p-3 font-bold text-white">{rec.date}</td>
-                        <td className="p-3 font-black text-fuchsia-300">{rec.weightKg} kg</td>
-                        <td className="p-3 font-semibold">{rec.bmi}</td>
-                        <td className="p-3 font-semibold">{rec.bodyFatPercentage ? `${rec.bodyFatPercentage}%` : '-'}</td>
-                        <td className="p-3 font-semibold">{rec.muscleMassPercentage ? `${rec.muscleMassPercentage}%` : '-'}</td>
-                        <td className="p-3 font-semibold">{rec.waistCircumferenceCm ? `${rec.waistCircumferenceCm} cm` : '-'}</td>
-                        <td className="p-3 text-purple-200 italic">{rec.notes || '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Consultas e Agendamentos vinculados ao Paciente */}
-            <div className="bg-[#150328] border border-purple-900/50 rounded-3xl p-6 space-y-4 shadow-md">
-              <div className="flex items-center justify-between pb-3 border-b border-purple-900/40">
-                <div>
-                  <h3 className="font-bold text-white text-base flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-purple-300" />
-                    Histórico de Consultas & Retornos
-                  </h3>
-                  <p className="text-xs text-purple-200 mt-0.5">Agendamentos vinculados a este paciente</p>
-                </div>
-                <button
-                  onClick={() => onOpenNewAppointmentWithPatient(selectedPatient)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-purple-100 border border-purple-700/60 rounded-xl text-xs font-bold"
-                >
-                  <CalendarPlus className="w-3.5 h-3.5 text-fuchsia-300" />
-                  <span>+ Agendar Nova Consulta</span>
-                </button>
-              </div>
-
-              {patientAppointments.length > 0 ? (
-                <div className="space-y-3">
-                  {patientAppointments.map((apt) => (
-                    <div key={apt.id} className="p-3.5 bg-[#1d0637] rounded-2xl border border-purple-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-purple-950 text-fuchsia-300 font-bold text-xs flex flex-col items-center justify-center border border-purple-700/50 shrink-0">
-                          <span>{apt.time}</span>
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-white">{apt.date}</span>
-                            <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-[#29094e] text-fuchsia-200 border border-purple-700/60">
-                              {apt.type.replace('_', ' ')}
-                            </span>
-                          </div>
-                          <p className="text-xs text-purple-200 mt-0.5">
-                            {apt.location === 'presencial_consultorio' ? 'Presencial no Consultório' : 'Telemedicina Online'} • R$ {apt.price}
-                          </p>
-                          {apt.notes && <p className="text-xs text-purple-300 italic mt-1">"{apt.notes}"</p>}
-                        </div>
-                      </div>
-
-                      {onUpdateAppointmentStatus && (
-                        <select
-                          value={apt.status}
-                          onChange={(e) => onUpdateAppointmentStatus(apt.id, e.target.value as Appointment['status'])}
-                          className="text-xs font-bold px-3 py-1.5 rounded-xl border bg-purple-950 text-purple-200 border-purple-700 focus:outline-none self-end sm:self-auto"
-                        >
-                          <option value="confirmada">Confirmada</option>
-                          <option value="realizada">Realizada</option>
-                          <option value="pendente">Pendente</option>
-                          <option value="cancelada">Cancelada</option>
-                        </select>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-6 text-center text-xs text-purple-200">
-                  Nenhuma consulta agendada ou realizada registrada no momento.
-                </div>
-              )}
-            </div>
-
-          </div>
-        )}
-
-        {/* ============================================================== */}
-        {/* ABA 5: EXAMES LABORATORIAIS                                   */}
-        {/* ============================================================== */}
-        {activeTab === 'exames' && (
-          <div className="space-y-6">
-            <div className="bg-[#150328] border border-purple-900/50 rounded-3xl p-6 space-y-4 shadow-md">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-purple-900/40">
-                <div>
-                  <h3 className="font-bold text-white text-base flex items-center gap-2">
-                    <Heart className="w-5 h-5 text-fuchsia-400" />
-                    Painel de Exames Bioquímicos & Hormonais
-                  </h3>
-                  <p className="text-xs text-purple-200 mt-0.5">
-                    Registro e acompanhamento de marcadores laboratoriais com parecer clínico da NÚTRIA
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setNewExamTitle('');
-                      setNewExamLab('');
-                      setNewExamReview('');
-                      setIsAddingExam(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md transition-all border border-fuchsia-400/40"
-                    id="btn-new-lab-exam"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>+ Novo Exame</span>
-                  </button>
-
-                  <button
-                    onClick={() => onOpenNutriaWithPrompt(`Nutria, quais exames complementares e marcadores laboratoriais você recomenda solicitar para o paciente ${selectedPatient.name} (Objetivo: ${selectedPatient.objective})?`)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-fuchsia-200 border border-fuchsia-500/40 rounded-xl text-xs font-bold"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Sugerir Painel com NUTRIA</span>
-                  </button>
-                </div>
-              </div>
-
-              {selectedPatient.labExams && selectedPatient.labExams.length > 0 ? (
-                selectedPatient.labExams.map((exam) => (
-                  <div key={exam.id} className="p-5 bg-[#1d0637] rounded-2xl border border-purple-800/40 space-y-4 shadow-sm">
-                    <div className="flex items-center justify-between border-b border-purple-900/40 pb-2">
-                      <div>
-                        <h4 className="font-black text-sm text-white">{exam.title}</h4>
-                        <span className="text-xs text-purple-200">{exam.date} • {exam.laboratory}</span>
-                      </div>
-                      <button
-                        onClick={() => onOpenNutriaWithPrompt(`Nutria, interprete detalhadamente os seguintes marcadores do exame de ${selectedPatient.name}: ${exam.markers.map(m => `${m.marker}: ${m.value} ${m.unit} (Ref: ${m.referenceRange})`).join(', ')}.`)}
-                        className="text-xs font-bold text-fuchsia-300 hover:text-white flex items-center gap-1"
-                      >
-                        <Bot className="w-3.5 h-3.5" />
-                        <span>Reavaliar com NUTRIA</span>
-                      </button>
-                    </div>
-
-                    {exam.nutriaClinicalReview && (
-                      <div className="p-3.5 bg-[#120326] rounded-2xl border border-purple-800/60 text-xs text-purple-100 leading-relaxed font-medium">
-                        <span className="font-bold text-fuchsia-300 block mb-1 flex items-center gap-1">
-                          <Bot className="w-3.5 h-3.5 text-fuchsia-400" />
-                          Parecer Clínico da NUTRIA:
-                        </span>
-                        {exam.nutriaClinicalReview}
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {exam.markers.map((m) => (
-                        <div key={m.id} className="p-3.5 bg-[#120326] rounded-xl border border-purple-800/40 flex items-center justify-between text-xs">
-                          <div>
-                            <span className="font-semibold text-white block">{m.marker}</span>
-                            <span className="text-[11px] text-purple-200">Ref: {m.referenceRange}</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-black text-sm text-white block">{m.value} {m.unit}</span>
-                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                              m.status === 'normal'
-                                ? 'bg-fuchsia-950 text-fuchsia-300 border border-fuchsia-600/40'
-                                : m.status === 'elevado'
-                                ? 'bg-amber-950 text-amber-300 border border-amber-600/40'
-                                : 'bg-rose-950 text-rose-300 border border-rose-600/40'
-                            }`}>
-                              {m.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-12 text-center text-purple-200 bg-[#1d0637]/40 rounded-2xl border border-purple-800/30 space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-950/80 border border-purple-700/60 text-fuchsia-400 flex items-center justify-center mx-auto">
-                    <Heart className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white text-sm">Nenhum exame cadastrado no prontuário</h4>
-                    <p className="text-xs text-purple-300 max-w-sm mx-auto mt-1">
-                      Adicione exames bioquímicos ou peça para a NÚTRIA sugerir o painel ideal para o paciente.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setNewExamTitle('');
-                      setNewExamLab('');
-                      setNewExamReview('');
-                      setIsAddingExam(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md transition-all"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Cadastrar Primeiro Exame</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
         )}
 
         {/* ============================================================== */}
