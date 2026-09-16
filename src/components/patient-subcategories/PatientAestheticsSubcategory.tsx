@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Camera, 
   TrendingUp, 
@@ -17,7 +17,14 @@ import {
   ArrowRight,
   Flame,
   User,
-  Maximize2
+  Maximize2,
+  Upload,
+  UploadCloud,
+  Image as ImageIcon,
+  FolderUp,
+  Smartphone,
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { Patient, AnthropometricRecord, PatientEvolutionPhoto } from '../../types';
 import { calculateBMI, calculateMifflinTMB, calculateGET } from '../../utils/nutritionCalculations';
@@ -78,6 +85,14 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
   const [newPhotoWeight, setNewPhotoWeight] = useState(String(patient.currentWeightKg || ''));
   const [newPhotoBf, setNewPhotoBf] = useState(String(patient.bodyFatPercentage || ''));
   const [newPhotoNotes, setNewPhotoNotes] = useState('');
+  const [targetSlot, setTargetSlot] = useState<'gallery' | 'slotA' | 'slotB'>('gallery');
+  const [isProcessingUpload, setIsProcessingUpload] = useState(false);
+
+  // Hidden File Inputs Refs
+  const generalFileInputRef = useRef<HTMLInputElement>(null);
+  const slotAFileInputRef = useRef<HTMLInputElement>(null);
+  const slotBFileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Estados do Comparador Lado a Lado
   const [photoAId, setPhotoAId] = useState<string>(defaultPhotos[0]?.id || '');
@@ -86,6 +101,89 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
 
   const selectedPhotoA = photosList.find(p => p.id === photoAId) || photosList[0];
   const selectedPhotoB = photosList.find(p => p.id === photoBId) || photosList[photosList.length - 1];
+
+  // Drag over states for dropzones
+  const [isDragOverA, setIsDragOverA] = useState(false);
+  const [isDragOverB, setIsDragOverB] = useState(false);
+  const [isDragOverGeneral, setIsDragOverGeneral] = useState(false);
+
+  // Helper para comprimir e converter imagem do aparelho para DataURL leve e de alta qualidade
+  const processImageFile = (file: File, onComplete: (dataUrl: string) => void) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setIsProcessingUpload(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDimension = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDimension) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          onComplete(compressedDataUrl);
+        } else {
+          onComplete(event.target?.result as string);
+        }
+        setIsProcessingUpload(false);
+      };
+      img.onerror = () => {
+        setIsProcessingUpload(false);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => {
+      setIsProcessingUpload(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Upload direto para Foto 1 (Antes) ou Foto 2 (Depois)
+  const handleDirectSlotUpload = (file: File, slot: 'slotA' | 'slotB') => {
+    processImageFile(file, (dataUrl) => {
+      const newPhotoId = `photo-${Date.now()}`;
+      const newPhoto: PatientEvolutionPhoto = {
+        id: newPhotoId,
+        date: new Date().toISOString().split('T')[0],
+        pose: 'frente',
+        photoUrl: dataUrl,
+        weightKg: slot === 'slotA' ? (patient.initialWeightKg || patient.currentWeightKg) : (patient.currentWeightKg || patient.initialWeightKg),
+        bodyFatPercentage: patient.bodyFatPercentage || 20,
+        notes: slot === 'slotA' ? 'Foto de Antes enviada do aparelho' : 'Foto de Depois enviada do aparelho'
+      };
+
+      const updatedPhotos = [newPhoto, ...photosList];
+      setPhotosList(updatedPhotos);
+
+      if (slot === 'slotA') {
+        setPhotoAId(newPhotoId);
+      } else {
+        setPhotoBId(newPhotoId);
+      }
+
+      onUpdatePatient({
+        ...patient,
+        evolutionPhotos: updatedPhotos
+      });
+    });
+  };
 
   // Cálculo da variação do comparador
   const weightDelta = (selectedPhotoB?.weightKg && selectedPhotoA?.weightKg)
@@ -155,8 +253,9 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
   const handleAddPhoto = () => {
     if (!newPhotoUrl.trim()) return;
 
+    const newPhotoId = `photo-${Date.now()}`;
     const newPhoto: PatientEvolutionPhoto = {
-      id: `photo-${Date.now()}`,
+      id: newPhotoId,
       date: newPhotoDate,
       pose: newPhotoPose,
       photoUrl: newPhotoUrl.trim(),
@@ -168,6 +267,12 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
     const updatedPhotos = [newPhoto, ...photosList];
     setPhotosList(updatedPhotos);
 
+    if (targetSlot === 'slotA') {
+      setPhotoAId(newPhotoId);
+    } else if (targetSlot === 'slotB') {
+      setPhotoBId(newPhotoId);
+    }
+
     onUpdatePatient({
       ...patient,
       evolutionPhotos: updatedPhotos
@@ -175,6 +280,7 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
 
     setNewPhotoUrl('');
     setNewPhotoNotes('');
+    setTargetSlot('gallery');
     setIsAddingPhoto(false);
   };
 
@@ -183,12 +289,73 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
     setPhotosList(updated);
     onUpdatePatient({
       ...patient,
-      evolutionPhotos: updatedPhotos
+      evolutionPhotos: updated
     });
   };
 
   return (
     <div className="space-y-6">
+      {/* Hidden File Inputs for Device Uploads */}
+      <input
+        type="file"
+        ref={generalFileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            processImageFile(file, (dataUrl) => {
+              setNewPhotoUrl(dataUrl);
+              setIsAddingPhoto(true);
+            });
+          }
+          e.target.value = '';
+        }}
+      />
+      <input
+        type="file"
+        ref={cameraInputRef}
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            processImageFile(file, (dataUrl) => {
+              setNewPhotoUrl(dataUrl);
+              setIsAddingPhoto(true);
+            });
+          }
+          e.target.value = '';
+        }}
+      />
+      <input
+        type="file"
+        ref={slotAFileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            handleDirectSlotUpload(file, 'slotA');
+          }
+          e.target.value = '';
+        }}
+      />
+      <input
+        type="file"
+        ref={slotBFileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            handleDirectSlotUpload(file, 'slotB');
+          }
+          e.target.value = '';
+        }}
+      />
+
       {/* Cabeçalho do Bloco de Evolução Estética */}
       <div className="bg-[#150328] border border-purple-900/50 rounded-3xl p-6 shadow-md">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-purple-900/40">
@@ -219,12 +386,25 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
             </button>
 
             <button
-              onClick={() => setIsAddingPhoto(!isAddingPhoto)}
+              onClick={() => {
+                setTargetSlot('gallery');
+                setIsAddingPhoto(!isAddingPhoto);
+              }}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-purple-100 border border-purple-700/60 rounded-xl text-xs font-bold"
               id="btn-upload-patient-photo"
             >
               <Camera className="w-3.5 h-3.5 text-fuchsia-300" />
               <span>+ Adicionar Foto</span>
+            </button>
+
+            <button
+              onClick={() => generalFileInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-purple-100 border border-purple-700/60 rounded-xl text-xs font-bold"
+              id="btn-quick-upload-device"
+              title="Fazer upload de foto direto do dispositivo"
+            >
+              <UploadCloud className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Upload do Aparelho</span>
             </button>
 
             <button
@@ -410,29 +590,139 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
           </div>
         )}
 
-        {/* Modal de Adicionar Foto de Evolução */}
+        {/* Modal de Adicionar Foto de Evolução com Upload do Aparelho */}
         {isAddingPhoto && (
-          <div className="mt-5 p-5 bg-[#1d0637] rounded-2xl border border-fuchsia-500/40 space-y-4 animate-fadeIn">
+          <div className="mt-5 p-5 bg-[#1d0637] rounded-2xl border-2 border-fuchsia-500/50 space-y-4 animate-fadeIn shadow-2xl">
             <div className="flex items-center justify-between border-b border-purple-900/40 pb-2">
-              <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                <Camera className="w-4 h-4 text-fuchsia-400" />
-                Adicionar Nova Foto de Antes / Depois
-              </h4>
-              <button onClick={() => setIsAddingPhoto(false)} className="text-xs text-purple-300 hover:text-white">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-fuchsia-600/30 text-fuchsia-300">
+                  <Camera className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-sm">
+                    Adicionar Nova Foto de Antes / Depois
+                  </h4>
+                  <p className="text-[11px] text-purple-200">
+                    Faça upload do seu computador, tablet ou smartphone (câmera ou galeria)
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setIsAddingPhoto(false)} className="text-xs text-purple-300 hover:text-white p-1">
                 ✕ Fechar
               </button>
             </div>
 
+            {/* Zona de Upload / Seleção de Arquivo */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragOverGeneral(true);
+              }}
+              onDragLeave={() => setIsDragOverGeneral(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragOverGeneral(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) {
+                  processImageFile(file, (dataUrl) => setNewPhotoUrl(dataUrl));
+                }
+              }}
+              className={`p-5 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center text-center gap-3 ${
+                isDragOverGeneral
+                  ? 'border-fuchsia-400 bg-fuchsia-950/40'
+                  : 'border-purple-700/60 bg-[#120326]/60 hover:bg-[#120326]'
+              }`}
+            >
+              {newPhotoUrl ? (
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
+                  <div className="w-24 h-24 rounded-xl overflow-hidden border border-fuchsia-500/50 shadow-md shrink-0 bg-purple-950">
+                    <img src={newPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="text-left space-y-1">
+                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" /> Foto carregada com sucesso do aparelho!
+                    </span>
+                    <p className="text-[11px] text-purple-200">
+                      A imagem foi otimizada para carregamento instantâneo no comparador.
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => generalFileInputRef.current?.click()}
+                        className="text-xs px-2.5 py-1 bg-purple-900/80 hover:bg-purple-800 text-purple-100 rounded-lg font-bold border border-purple-700"
+                      >
+                        Trocar Imagem
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewPhotoUrl('')}
+                        className="text-xs px-2 py-1 text-rose-300 hover:text-rose-200"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-2xl bg-purple-950/80 border border-purple-700/60 text-fuchsia-300 flex items-center justify-center">
+                    <UploadCloud className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white">
+                      Arraste e solte a foto aqui, ou escolha do seu aparelho
+                    </p>
+                    <p className="text-[11px] text-purple-300 mt-0.5">
+                      Suporta JPG, PNG, WEBP e fotos tiradas diretamente pelo celular
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap justify-center pt-1">
+                    <button
+                      type="button"
+                      onClick={() => generalFileInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md transition-all"
+                    >
+                      <FolderUp className="w-4 h-4" />
+                      <span>Selecionar do Aparelho (Arquivos / Fotos)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#250849] hover:bg-[#340b67] text-fuchsia-200 border border-fuchsia-500/40 rounded-xl text-xs font-bold"
+                    >
+                      <Smartphone className="w-4 h-4" />
+                      <span>Tirar Foto com a Câmera</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               <div className="sm:col-span-2">
-                <label className="text-purple-200 font-bold block mb-1">URL da Foto ou Upload:</label>
+                <label className="text-purple-200 font-bold block mb-1">
+                  Ou Cole a URL da Imagem (opcional):
+                </label>
                 <input
                   type="text"
                   value={newPhotoUrl}
                   onChange={(e) => setNewPhotoUrl(e.target.value)}
-                  placeholder="https://... ou cole a imagem"
+                  placeholder="https://... ou use o botão de upload acima"
                   className="w-full p-2.5 rounded-xl bg-[#120326] text-white border border-purple-800/60 focus:border-fuchsia-400 focus:outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="text-purple-200 font-bold block mb-1">Destino no Comparador:</label>
+                <select
+                  value={targetSlot}
+                  onChange={(e) => setTargetSlot(e.target.value as any)}
+                  className="w-full p-2.5 rounded-xl bg-[#120326] text-fuchsia-300 font-bold border border-fuchsia-500/50 focus:border-fuchsia-400 focus:outline-none"
+                >
+                  <option value="gallery">Apenas salvar na Galeria</option>
+                  <option value="slotA">Definir como Foto 1 (Antes / Inicial)</option>
+                  <option value="slotB">Definir como Foto 2 (Depois / Atual)</option>
+                </select>
               </div>
 
               <div>
@@ -470,7 +760,7 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                 />
               </div>
 
-              <div>
+              <div className="sm:col-span-1">
                 <label className="text-purple-200 font-bold block mb-1">% Gordura na Data:</label>
                 <input
                   type="number"
@@ -480,15 +770,27 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                   className="w-full p-2.5 rounded-xl bg-[#120326] text-white border border-purple-800/60 focus:border-fuchsia-400 focus:outline-none"
                 />
               </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-purple-200 font-bold block mb-1">Notas / Observações:</label>
+                <input
+                  type="text"
+                  value={newPhotoNotes}
+                  onChange={(e) => setNewPhotoNotes(e.target.value)}
+                  placeholder="Ex: Foto de retorno após 60 dias de dieta cetogênica..."
+                  className="w-full p-2.5 rounded-xl bg-[#120326] text-white border border-purple-800/60 focus:border-fuchsia-400 focus:outline-none text-xs"
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={handleAddPhoto}
                 disabled={!newPhotoUrl.trim()}
-                className="px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md transition-all"
+                className="px-5 py-2.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5"
               >
-                Salvar Foto na Galeria
+                <Check className="w-4 h-4" />
+                <span>Salvar Foto no Prontuário</span>
               </button>
             </div>
           </div>
@@ -510,13 +812,13 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                   Comparador Lado a Lado de Fotos (Antes vs Depois)
                 </h4>
                 <p className="text-xs text-purple-200 mt-0.5">
-                  Selecione duas avaliações de datas diferentes para comparar a transformação estética na mesma tela durante o atendimento
+                  Selecione duas avaliações ou envie fotos direto do seu aparelho (PC, tablet ou celular) para comparar o progresso
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
             {weightDelta !== null && (
               <div className="px-3.5 py-1.5 rounded-xl bg-emerald-950/90 border border-emerald-600/60 text-emerald-300 font-bold text-xs flex items-center gap-1.5 shadow-sm">
                 <span>Variação Total:</span>
@@ -526,52 +828,101 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                 )}
               </div>
             )}
+
+            <button
+              onClick={() => generalFileInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-sm transition-all border border-fuchsia-400/40"
+              id="btn-comparator-upload-device"
+              title="Fazer upload de foto direto do dispositivo"
+            >
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>+ Upload do Aparelho</span>
+            </button>
           </div>
         </div>
 
-        {/* Seletores das Fotos A e B */}
+        {/* Seletores das Fotos A e B com Ações Rápidas de Upload */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-3 bg-[#1d0637] rounded-2xl border border-purple-800/40 flex items-center justify-between">
-            <span className="text-xs text-purple-200 font-bold">Foto 1 (Inicial / Antes):</span>
-            <select
-              value={photoAId}
-              onChange={(e) => setPhotoAId(e.target.value)}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#120326] text-purple-200 border border-purple-700/60 focus:outline-none"
-            >
-              {photosList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.date} • {p.pose.toUpperCase()} ({p.weightKg} kg)
-                </option>
-              ))}
-            </select>
+          <div className="p-3 bg-[#1d0637] rounded-2xl border border-purple-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-purple-200 font-bold">Foto 1 (Inicial / Antes):</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={photoAId}
+                onChange={(e) => setPhotoAId(e.target.value)}
+                className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#120326] text-purple-200 border border-purple-700/60 focus:outline-none"
+              >
+                {photosList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.date} • {p.pose.toUpperCase()} ({p.weightKg} kg)
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => slotAFileInputRef.current?.click()}
+                className="p-1.5 rounded-xl bg-[#250849] hover:bg-[#340b67] text-fuchsia-300 border border-purple-700/60 text-xs font-bold flex items-center gap-1 shrink-0"
+                title="Fazer upload direto do aparelho para a Foto 1"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Upload</span>
+              </button>
+            </div>
           </div>
 
-          <div className="p-3 bg-[#1d0637] rounded-2xl border border-purple-800/40 flex items-center justify-between">
-            <span className="text-xs text-fuchsia-300 font-bold">Foto 2 (Atual / Depois):</span>
-            <select
-              value={photoBId}
-              onChange={(e) => setPhotoBId(e.target.value)}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#120326] text-purple-200 border border-purple-700/60 focus:outline-none"
-            >
-              {photosList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.date} • {p.pose.toUpperCase()} ({p.weightKg} kg)
-                </option>
-              ))}
-            </select>
+          <div className="p-3 bg-[#1d0637] rounded-2xl border border-purple-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-fuchsia-300 font-bold">Foto 2 (Atual / Depois):</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={photoBId}
+                onChange={(e) => setPhotoBId(e.target.value)}
+                className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#120326] text-purple-200 border border-purple-700/60 focus:outline-none"
+              >
+                {photosList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.date} • {p.pose.toUpperCase()} ({p.weightKg} kg)
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => slotBFileInputRef.current?.click()}
+                className="p-1.5 rounded-xl bg-fuchsia-950 hover:bg-fuchsia-900 text-fuchsia-300 border border-fuchsia-600/60 text-xs font-bold flex items-center gap-1 shrink-0"
+                title="Fazer upload direto do aparelho para a Foto 2"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Upload</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Visualizador Comparativo Lado a Lado */}
+        {/* Visualizador Comparativo Lado a Lado com Suporte a Drag & Drop e Upload Local */}
         {photosList.length >= 2 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
             
             {/* Foto 1 (Antes) */}
-            <div className="bg-[#120326] rounded-3xl border border-purple-800/60 overflow-hidden shadow-lg group relative">
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragOverA(true);
+              }}
+              onDragLeave={() => setIsDragOverA(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragOverA(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) handleDirectSlotUpload(file, 'slotA');
+              }}
+              className={`bg-[#120326] rounded-3xl border transition-all overflow-hidden shadow-lg group relative ${
+                isDragOverA ? 'border-fuchsia-400 ring-2 ring-fuchsia-400/50 scale-[1.01]' : 'border-purple-800/60'
+              }`}
+            >
               <div className="p-3.5 bg-[#1d0637] border-b border-purple-800/40 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase bg-purple-950 text-purple-300 border border-purple-700/60">
-                    Foto Inicial • {selectedPhotoA?.pose}
+                    Foto Inicial (Antes) • {selectedPhotoA?.pose}
                   </span>
                   <p className="text-xs text-white font-bold mt-1">{selectedPhotoA?.date}</p>
                 </div>
@@ -588,6 +939,20 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
+
+                {/* Botão Flutuante de Upload para Foto 1 */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-[#150328]/85 backdrop-blur-md p-2 rounded-2xl border border-purple-700/60">
+                  <span className="text-[11px] text-purple-200 font-semibold pl-1">
+                    Arraste ou envie do aparelho:
+                  </span>
+                  <button
+                    onClick={() => slotAFileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-purple-700 to-fuchsia-700 hover:from-purple-600 hover:to-fuchsia-600 text-white rounded-xl text-xs font-bold shadow-md"
+                  >
+                    <FolderUp className="w-3.5 h-3.5" />
+                    <span>Trocar Foto 1</span>
+                  </button>
+                </div>
               </div>
 
               {selectedPhotoA?.notes && (
@@ -598,11 +963,26 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
             </div>
 
             {/* Foto 2 (Depois) */}
-            <div className="bg-[#120326] rounded-3xl border-2 border-fuchsia-500/60 overflow-hidden shadow-xl shadow-fuchsia-950/40 group relative">
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragOverB(true);
+              }}
+              onDragLeave={() => setIsDragOverB(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragOverB(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) handleDirectSlotUpload(file, 'slotB');
+              }}
+              className={`bg-[#120326] rounded-3xl border-2 transition-all overflow-hidden shadow-xl shadow-fuchsia-950/40 group relative ${
+                isDragOverB ? 'border-emerald-400 ring-2 ring-emerald-400/50 scale-[1.01]' : 'border-fuchsia-500/60'
+              }`}
+            >
               <div className="p-3.5 bg-gradient-to-r from-purple-900 to-[#1d0637] border-b border-fuchsia-500/40 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] px-2.5 py-0.5 rounded-full font-black uppercase bg-fuchsia-950 text-fuchsia-300 border border-fuchsia-500/60">
-                    Foto Atual • {selectedPhotoB?.pose}
+                    Foto Atual (Depois) • {selectedPhotoB?.pose}
                   </span>
                   <p className="text-xs text-white font-bold mt-1">{selectedPhotoB?.date}</p>
                 </div>
@@ -619,6 +999,20 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
+
+                {/* Botão Flutuante de Upload para Foto 2 */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-[#150328]/85 backdrop-blur-md p-2 rounded-2xl border border-fuchsia-500/60">
+                  <span className="text-[11px] text-fuchsia-200 font-semibold pl-1">
+                    Arraste ou envie do aparelho:
+                  </span>
+                  <button
+                    onClick={() => slotBFileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-md"
+                  >
+                    <FolderUp className="w-3.5 h-3.5" />
+                    <span>Trocar Foto 2</span>
+                  </button>
+                </div>
               </div>
 
               {selectedPhotoB?.notes && (
@@ -630,12 +1024,30 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
 
           </div>
         ) : (
-          <div className="py-12 text-center text-purple-200 bg-[#1d0637]/40 rounded-2xl border border-purple-800/30 space-y-3">
+          <div className="py-12 text-center text-purple-200 bg-[#1d0637]/40 rounded-2xl border border-purple-800/30 space-y-4">
             <Camera className="w-8 h-8 text-fuchsia-400 mx-auto" />
-            <h4 className="font-bold text-white text-sm">Adicione pelo menos 2 fotos para ativar a comparação lado a lado</h4>
-            <p className="text-xs text-purple-300 max-w-sm mx-auto">
-              Com duas ou mais fotos de datas distintas, você poderá apresentar o antes e depois diretamente na tela.
-            </p>
+            <div>
+              <h4 className="font-bold text-white text-sm">Adicione pelo menos 2 fotos para ativar a comparação lado a lado</h4>
+              <p className="text-xs text-purple-300 max-w-sm mx-auto mt-1">
+                Com duas ou mais fotos de datas distintas, você poderá apresentar o antes e depois diretamente na tela.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <button
+                onClick={() => generalFileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white rounded-xl text-xs font-bold shadow-md"
+              >
+                <FolderUp className="w-4 h-4" />
+                <span>Upload de Foto do Aparelho</span>
+              </button>
+              <button
+                onClick={() => cameraInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#250849] text-fuchsia-200 border border-fuchsia-500/40 rounded-xl text-xs font-bold"
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>Tirar com a Câmera</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

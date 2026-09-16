@@ -722,6 +722,9 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
     };
 
     setNutriaMessages(prev => [...prev, userMsg]);
+    if (effectiveUserAccount.email) {
+      saveNutriaMessage(effectiveUserAccount.email, userMsg).catch(err => console.warn('Erro ao salvar mensagem no banco:', err));
+    }
     setIsNutriaLoading(true);
 
     // Increment message count for free users (both authenticated and guest)

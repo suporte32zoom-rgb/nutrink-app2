@@ -47,6 +47,29 @@ googleProvider.addScope('profile');
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 /**
+ * Recursively removes `undefined` properties and replaces undefined elements in arrays
+ * to ensure Firestore setDoc/updateDoc never fails with 'Unsupported field value: undefined'.
+ */
+export function sanitizeForFirestore<T>(data: T): any {
+  if (data === undefined) {
+    return null;
+  }
+  if (data === null || typeof data !== 'object') {
+    return data;
+  }
+  if (Array.isArray(data)) {
+    return data.map(item => (item === undefined ? null : sanitizeForFirestore(item)));
+  }
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      clean[key] = sanitizeForFirestore(value);
+    }
+  }
+  return clean;
+}
+
+/**
  * PROFILES SERVICE
  * Maps to 'profiles' collection
  */
@@ -70,11 +93,12 @@ export async function saveProfile(profile: Partial<UserAccount> & { email: strin
   const cleanEmail = profile.email.trim().toLowerCase();
   try {
     const docRef = doc(db, 'profiles', cleanEmail);
-    await setDoc(docRef, {
+    const cleanData = sanitizeForFirestore({
       ...profile,
       email: cleanEmail,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    });
+    await setDoc(docRef, cleanData, { merge: true });
   } catch (err) {
     console.error('[DB Error saveProfile]:', err);
   }
@@ -109,11 +133,12 @@ export async function savePatient(patient: Patient, userEmail: string): Promise<
   const cleanEmail = userEmail.trim().toLowerCase();
   try {
     const docRef = doc(db, 'patients', patient.id);
-    await setDoc(docRef, {
+    const cleanData = sanitizeForFirestore({
       ...patient,
       userEmail: cleanEmail,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    });
+    await setDoc(docRef, cleanData, { merge: true });
   } catch (err) {
     console.error('[DB Error savePatient]:', err);
   }
@@ -158,11 +183,12 @@ export async function saveAppointment(appointment: Appointment, userEmail: strin
   const cleanEmail = userEmail.trim().toLowerCase();
   try {
     const docRef = doc(db, 'appointments', appointment.id);
-    await setDoc(docRef, {
+    const cleanData = sanitizeForFirestore({
       ...appointment,
       userEmail: cleanEmail,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    });
+    await setDoc(docRef, cleanData, { merge: true });
   } catch (err) {
     console.error('[DB Error saveAppointment]:', err);
   }
@@ -206,11 +232,12 @@ export async function saveTransaction(transaction: FinancialTransaction, userEma
   const cleanEmail = userEmail.trim().toLowerCase();
   try {
     const docRef = doc(db, 'transactions', transaction.id);
-    await setDoc(docRef, {
+    const cleanData = sanitizeForFirestore({
       ...transaction,
       userEmail: cleanEmail,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    });
+    await setDoc(docRef, cleanData, { merge: true });
   } catch (err) {
     console.error('[DB Error saveTransaction]:', err);
   }
@@ -234,10 +261,11 @@ export async function saveDietOrCalc(record: DietAndCalcRecord): Promise<void> {
   if (!record.id || !record.userEmail) return;
   try {
     const docRef = doc(db, 'diets_and_calc', record.id);
-    await setDoc(docRef, {
+    const cleanData = sanitizeForFirestore({
       ...record,
       updatedAt: new Date().toISOString()
-    }, { merge: true });
+    });
+    await setDoc(docRef, cleanData, { merge: true });
   } catch (err) {
     console.error('[DB Error saveDietOrCalc]:', err);
   }
@@ -272,11 +300,13 @@ export async function saveNutriaSession(userEmail: string, messages: NutriaMessa
   const cleanEmail = userEmail.trim().toLowerCase();
   try {
     const docRef = doc(db, 'nutria_sessions', cleanEmail);
-    await setDoc(docRef, {
+    const cleanMessages = messages.slice(-50).map(m => sanitizeForFirestore(m));
+    const cleanPayload = sanitizeForFirestore({
       userEmail: cleanEmail,
-      messages: messages.slice(-50), // keep latest 50 messages
+      messages: cleanMessages,
       lastUpdated: new Date().toISOString()
-    }, { merge: true });
+    });
+    await setDoc(docRef, cleanPayload, { merge: true });
   } catch (err) {
     console.error('[DB Error saveNutriaSession]:', err);
   }
