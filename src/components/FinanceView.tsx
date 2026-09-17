@@ -14,12 +14,13 @@ import {
   ArrowUpRight,
   ArrowDownLeft
 } from 'lucide-react';
-import { FinancialTransaction, Patient } from '../types';
+import { FinancialTransaction, Patient, Appointment } from '../types';
 import { NutrinKLogo } from './NutrinKLogo';
 
 interface FinanceViewProps {
   transactions: FinancialTransaction[];
   patients: Patient[];
+  appointments?: Appointment[];
   onOpenNewTransaction: () => void;
   onOpenNutriaWithPrompt: (prompt: string) => void;
 }
@@ -27,6 +28,7 @@ interface FinanceViewProps {
 export const FinanceView: React.FC<FinanceViewProps> = ({
   transactions,
   patients,
+  appointments = [],
   onOpenNewTransaction,
   onOpenNutriaWithPrompt
 }) => {
@@ -34,10 +36,22 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
   const [typeFilter, setTypeFilter] = useState<'todos' | 'receita' | 'despesa'>('todos');
   const [selectedReceiptTx, setSelectedReceiptTx] = useState<FinancialTransaction | null>(null);
 
-  // Financial calculations
-  const totalRevenue = transactions
-    .filter(t => t.type === 'receita' && t.status === 'concluido')
+  // Financial calculations with Appointments synchronization
+  const paidAppointments = appointments.filter(a => 
+    a.paymentStatus === 'pago' || (a.status === 'realizada' && a.paymentStatus !== 'cancelado')
+  );
+  const appointmentsRevenue = paidAppointments.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
+
+  const pendingAppointments = appointments.filter(a => 
+    a.paymentStatus === 'pendente' && (Number(a.price) || 0) > 0
+  );
+  const pendingAppointmentsRevenue = pendingAppointments.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
+
+  const transactionsRevenue = transactions
+    .filter(t => t.type === 'receita' && t.status === 'concluido' && !paidAppointments.some(a => a.id === t.id))
     .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const totalRevenue = appointmentsRevenue + transactionsRevenue;
 
   const totalExpenses = transactions
     .filter(t => t.type === 'despesa' && t.status === 'concluido')
@@ -45,12 +59,32 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
 
   const netBalance = totalRevenue - totalExpenses;
 
-  const pendingRevenue = transactions
-    .filter(t => t.type === 'receita' && t.status === 'pendente')
+  const pendingTransactionsRevenue = transactions
+    .filter(t => t.type === 'receita' && t.status === 'pendente' && !pendingAppointments.some(a => a.id === t.id))
     .reduce((acc, curr) => acc + curr.amount, 0);
 
+  const pendingRevenue = pendingAppointmentsRevenue + pendingTransactionsRevenue;
+
+  // Synthesize appointment items for the transaction history list if not already present
+  const synthesizedTransactions: FinancialTransaction[] = appointments
+    .filter(a => (Number(a.price) || 0) > 0 && !transactions.some(t => t.id === a.id))
+    .map(a => ({
+      id: a.id,
+      patientId: a.patientId,
+      patientName: a.patientName,
+      type: 'receita',
+      category: a.type === 'primeira_consulta' ? 'Consulta Avulsa' : a.type === 'retorno' ? 'Consulta de Retorno' : 'Avaliação',
+      amount: Number(a.price) || 0,
+      date: a.date,
+      status: (a.paymentStatus === 'pago' || a.status === 'realizada') ? 'concluido' : 'pendente',
+      paymentMethod: a.paymentMethod || 'pix',
+      description: `Consulta Nutricional (${a.type === 'primeira_consulta' ? '1ª Consulta' : a.type === 'retorno' ? 'Retorno' : 'Avaliação'})`
+    }));
+
+  const combinedTransactions = [...transactions, ...synthesizedTransactions];
+
   // Filtered transactions
-  const filteredTransactions = transactions.filter(t => {
+  const filteredTransactions = combinedTransactions.filter(t => {
     const matchesSearch = 
       t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (t.patientName && t.patientName.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -60,9 +94,15 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
   }).sort((a, b) => b.date.localeCompare(a.date));
 
   // Payment Method Aggregation
-  const pixRevenue = transactions.filter(t => t.type === 'receita' && t.paymentMethod === 'pix').reduce((a, c) => a + c.amount, 0);
-  const cardRevenue = transactions.filter(t => t.type === 'receita' && (t.paymentMethod === 'cartao_credito' || t.paymentMethod === 'cartao_debito')).reduce((a, c) => a + c.amount, 0);
-  const otherRevenue = totalRevenue - (pixRevenue + cardRevenue);
+  const aptPix = paidAppointments.filter(a => a.paymentMethod === 'pix').reduce((a, c) => a + (Number(c.price) || 0), 0);
+  const aptCard = paidAppointments.filter(a => a.paymentMethod === 'cartao_credito' || a.paymentMethod === 'cartao_debito').reduce((a, c) => a + (Number(c.price) || 0), 0);
+  
+  const txPix = transactions.filter(t => t.type === 'receita' && t.status === 'concluido' && t.paymentMethod === 'pix' && !paidAppointments.some(a => a.id === t.id)).reduce((a, c) => a + c.amount, 0);
+  const txCard = transactions.filter(t => t.type === 'receita' && t.status === 'concluido' && (t.paymentMethod === 'cartao_credito' || t.paymentMethod === 'cartao_debito') && !paidAppointments.some(a => a.id === t.id)).reduce((a, c) => a + c.amount, 0);
+
+  const pixRevenue = aptPix + txPix;
+  const cardRevenue = aptCard + txCard;
+  const otherRevenue = Math.max(0, totalRevenue - (pixRevenue + cardRevenue));
 
   return (
     <div className="space-y-6 pb-12">

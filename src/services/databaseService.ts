@@ -489,3 +489,96 @@ export const saveNutriaMessage = async (userEmail: string, message: NutriaMessag
   const current = await getNutriaSession(userEmail) || [];
   return saveNutriaSession(userEmail, [...current, message]);
 };
+
+/**
+ * Real-time Firebase Firestore Subscription for Appointments
+ */
+export function subscribeToAppointments(
+  callback: (appointments: Appointment[]) => void,
+  userEmail?: string
+): () => void {
+  try {
+    const q = userEmail
+      ? query(collection(db, 'appointments'), where('userEmail', '==', userEmail.trim().toLowerCase()))
+      : collection(db, 'appointments');
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const list: Appointment[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as Appointment);
+        });
+        callback(list);
+      },
+      (error) => {
+        console.warn('[Firestore onSnapshot Appointments warning]:', error);
+      }
+    );
+  } catch (err) {
+    console.warn('[Firestore subscribeToAppointments error]:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Real-time Firebase Firestore Subscription for Financial Transactions
+ */
+export function subscribeToTransactions(
+  callback: (transactions: FinancialTransaction[]) => void,
+  userEmail?: string
+): () => void {
+  try {
+    const q = userEmail
+      ? query(collection(db, 'transactions'), where('userEmail', '==', userEmail.trim().toLowerCase()))
+      : collection(db, 'transactions');
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const list: FinancialTransaction[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as FinancialTransaction);
+        });
+        callback(list);
+      },
+      (error) => {
+        console.warn('[Firestore onSnapshot Transactions warning]:', error);
+      }
+    );
+  } catch (err) {
+    console.warn('[Firestore subscribeToTransactions error]:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Real-time Firebase Firestore Subscription for Patients
+ */
+export function subscribeToPatients(
+  callback: (patients: Patient[]) => void,
+  userEmail?: string
+): () => void {
+  try {
+    const q = userEmail
+      ? query(collection(db, 'patients'), where('userEmail', '==', userEmail.trim().toLowerCase()))
+      : collection(db, 'patients');
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const list: Patient[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as Patient);
+        });
+        callback(list);
+      },
+      (error) => {
+        console.warn('[Firestore onSnapshot Patients warning]:', error);
+      }
+    );
+  } catch (err) {
+    console.warn('[Firestore subscribeToPatients error]:', err);
+    return () => {};
+  }
+}

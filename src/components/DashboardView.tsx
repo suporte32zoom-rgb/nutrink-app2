@@ -76,19 +76,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     ? 'Nutrólogo(a)' 
     : 'Nutricionista Clínico(a)';
 
-  // Calculations
+  // Calculations (Automated Billing based on Paid Appointments and Financial Transactions)
   const todayAppointments = appointments.filter(a => a.date === currentDateStr);
-  const totalRevenue = transactions
-    .filter(t => t.type === 'receita' && t.status === 'concluido')
+  
+  // Paid appointments: sum all appointments marked as "(Pago)" or completed
+  const paidAppointments = appointments.filter(a => 
+    a.paymentStatus === 'pago' || (a.status === 'realizada' && a.paymentStatus !== 'cancelado')
+  );
+  const appointmentsRevenue = paidAppointments.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
+
+  // Standalone revenue transactions (excluding duplicates)
+  const transactionsRevenue = transactions
+    .filter(t => t.type === 'receita' && t.status === 'concluido' && !paidAppointments.some(a => a.id === t.id))
     .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const totalRevenue = appointmentsRevenue + transactionsRevenue;
+
   const totalExpenses = transactions
     .filter(t => t.type === 'despesa' && t.status === 'concluido')
     .reduce((acc, curr) => acc + curr.amount, 0);
+
   const netIncome = totalRevenue - totalExpenses;
   
-  const completedAppointmentsCount = appointments.filter(a => a.status === 'realizada').length;
-  const averageTicket = totalRevenue > 0 && completedAppointmentsCount > 0 
-    ? Math.round(totalRevenue / completedAppointmentsCount) 
+  // Number of paid appointments / services in the period
+  const totalPaidCount = paidAppointments.length + transactions
+    .filter(t => t.type === 'receita' && t.status === 'concluido' && !paidAppointments.some(a => a.id === t.id)).length;
+
+  const averageTicket = totalRevenue > 0 && totalPaidCount > 0 
+    ? totalRevenue / totalPaidCount 
     : 0;
 
   return (
@@ -309,7 +324,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="text-xs text-purple-200">por atendimento</span>
           </div>
           <p className="text-xs text-purple-200/90 mt-1">
-            {completedAppointmentsCount > 0 ? `${completedAppointmentsCount} atendimentos realizados` : 'Sem atendimentos no período'}
+            {totalPaidCount > 0 
+              ? `${totalPaidCount} atendimento${totalPaidCount > 1 ? 's' : ''} pago${totalPaidCount > 1 ? 's' : ''} no período` 
+              : appointments.length > 0 
+              ? `${appointments.length} consulta${appointments.length > 1 ? 's' : ''} agendada${appointments.length > 1 ? 's' : ''}`
+              : 'Sem atendimentos no período'}
           </p>
         </div>
 

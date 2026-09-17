@@ -50,7 +50,10 @@ import {
   getProfileByEmail,
   saveProfile,
   getNutriaMessages,
-  saveNutriaMessage
+  saveNutriaMessage,
+  subscribeToAppointments,
+  subscribeToTransactions,
+  subscribeToPatients
 } from './services/databaseService';
 
 export function App() {
@@ -484,28 +487,31 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
 
   const [isNutriaLoading, setIsNutriaLoading] = useState(false);
 
-  // Initial load and sync with Cloud Database (placed safely after all state initializations)
+  // Initial load and real-time live sync with Cloud Database (Firestore onSnapshot)
   useEffect(() => {
-    const loadCloudData = async () => {
+    const email = userAccount?.email ? userAccount.email.trim().toLowerCase() : undefined;
+
+    // One-time load for initial state
+    const loadInitialCloudData = async () => {
       try {
-        const cloudPatients = await getPatients();
+        const cloudPatients = await getPatients(email);
         if (cloudPatients && cloudPatients.length > 0) {
           setPatients(cloudPatients);
         }
-        const cloudApts = await getAppointments();
+        const cloudApts = await getAppointments(email);
         if (cloudApts && cloudApts.length > 0) {
           setAppointments(cloudApts);
         }
-        const cloudTx = await getTransactions();
+        const cloudTx = await getTransactions(email);
         if (cloudTx && cloudTx.length > 0) {
           setTransactions(cloudTx);
         }
-        if (userAccount?.email) {
-          const profile = await getProfileByEmail(userAccount.email);
+        if (email) {
+          const profile = await getProfileByEmail(email);
           if (profile) {
             setUserAccount(prev => ({ ...prev, ...profile }));
           }
-          const cloudMsgs = await getNutriaMessages(userAccount.email);
+          const cloudMsgs = await getNutriaMessages(email);
           if (cloudMsgs && cloudMsgs.length > 0) {
             setNutriaMessages(cloudMsgs);
           }
@@ -514,16 +520,51 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
         console.warn('Syncing local data with cloud store...', err);
       }
     };
-    loadCloudData();
+    loadInitialCloudData();
+
+    // Live Real-Time Subscriptions for instant synchronization without page reload
+    const unsubApts = subscribeToAppointments((cloudApts) => {
+      if (cloudApts && cloudApts.length > 0) {
+        setAppointments(cloudApts);
+        try { localStorage.setItem('nutrink_appointments', JSON.stringify(cloudApts)); } catch {}
+      }
+    }, email);
+
+    const unsubTx = subscribeToTransactions((cloudTx) => {
+      if (cloudTx && cloudTx.length > 0) {
+        setTransactions(cloudTx);
+        try { localStorage.setItem('nutrink_transactions', JSON.stringify(cloudTx)); } catch {}
+      }
+    }, email);
+
+    const unsubPatients = subscribeToPatients((cloudPatients) => {
+      if (cloudPatients && cloudPatients.length > 0) {
+        setPatients(cloudPatients);
+        try { localStorage.setItem('nutrink_patients', JSON.stringify(cloudPatients)); } catch {}
+      }
+    }, email);
+
+    return () => {
+      unsubApts();
+      unsubTx();
+      unsubPatients();
+    };
   }, [userAccount?.email]);
 
   // Selected Patient object
   const activePatient = patients.find(p => p.id === selectedPatientId) || null;
 
-  // Revenue computations
-  const totalRevenue = transactions
-    .filter(t => t.type === 'receita' && t.status === 'concluido')
+  // Automated Revenue computations (All appointments marked as "(Pago)" + standalone completed transactions)
+  const paidAppointments = appointments.filter(a => 
+    a.paymentStatus === 'pago' || (a.status === 'realizada' && a.paymentStatus !== 'cancelado')
+  );
+  const appointmentsRevenue = paidAppointments.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
+
+  const transactionsRevenue = transactions
+    .filter(t => t.type === 'receita' && t.status === 'concluido' && !paidAppointments.some(a => a.id === t.id))
     .reduce((acc, curr) => acc + curr.amount, 0);
+
+  const totalRevenue = appointmentsRevenue + transactionsRevenue;
 
   const totalExpenses = transactions
     .filter(t => t.type === 'despesa' && t.status === 'concluido')
@@ -563,14 +604,24 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     await deleteAppointmentFromDb(appointmentId).catch(err => console.warn('Erro ao deletar agendamento do Firestore:', err));
   };
 
-  // Update appointment status
+  // Update appointment status with reactive payment calculation
   const handleUpdateAppointmentStatus = (aptId: string, newStatus: Appointment['status']) => {
     setAppointments(prev => {
-      const updated = prev.map(a => a.id === aptId ? { ...a, status: newStatus } : a);
+      const updated = prev.map(a => {
+        if (a.id === aptId) {
+          return {
+            ...a,
+            status: newStatus,
+            paymentStatus: newStatus === 'realizada' ? 'pago' : a.paymentStatus
+          };
+        }
+        return a;
+      });
       const targetApt = updated.find(a => a.id === aptId);
       if (targetApt) {
         saveAppointmentToDb(targetApt, userAccount?.email).catch(err => console.warn('Erro ao atualizar agendamento:', err));
       }
+      try { localStorage.setItem('nutrink_appointments', JSON.stringify(updated)); } catch {}
       return updated;
     });
   };
@@ -1257,6 +1308,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
           <FinanceView
             transactions={transactions}
             patients={patients}
+            appointments={appointments}
             onOpenNewTransaction={() => setIsNewTransactionOpen(true)}
             onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
           />
