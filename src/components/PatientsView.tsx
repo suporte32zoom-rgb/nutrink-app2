@@ -85,6 +85,7 @@ interface PatientsViewProps {
   foodDatabase: FoodItem[];
   userAccount?: UserAccount;
   onStartTelemedicine?: (patientId: string) => void;
+  onNavigateToNutriCalc?: (patientId: string) => void;
   appointments?: Appointment[];
   onUpdateAppointmentStatus?: (aptId: string, newStatus: Appointment['status']) => void;
 }
@@ -101,6 +102,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
   foodDatabase,
   userAccount,
   onStartTelemedicine,
+  onNavigateToNutriCalc,
   appointments = [],
   onUpdateAppointmentStatus
 }) => {
@@ -550,7 +552,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
               {onStartTelemedicine && (
                 <button
                   onClick={() => onStartTelemedicine(selectedPatient.id)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-rose-600 to-fuchsia-600 hover:from-rose-500 hover:to-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md shadow-fuchsia-950/60 transition-all border border-rose-400/40"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-rose-600 to-fuchsia-600 hover:from-rose-500 hover:to-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md shadow-fuchsia-950/60 transition-all border border-rose-400/40 cursor-pointer"
                   id="btn-patient-start-telemedicine"
                 >
                   <Video className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
@@ -558,9 +560,20 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 </button>
               )}
 
+              {onNavigateToNutriCalc && (
+                <button
+                  onClick={() => onNavigateToNutriCalc(selectedPatient.id)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-purple-100 border border-purple-700/60 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                  id="btn-patient-open-nutricalc"
+                >
+                  <Flame className="w-3.5 h-3.5 text-fuchsia-400" />
+                  <span>NutriCalc & Macros</span>
+                </button>
+              )}
+
               <button
                 onClick={() => onOpenNewAppointmentWithPatient(selectedPatient)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-purple-100 border border-purple-700/60 rounded-xl text-xs font-bold transition-all shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-purple-100 border border-purple-700/60 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
                 id="btn-patient-schedule-appointment"
               >
                 <Calendar className="w-3.5 h-3.5 text-purple-300" />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calculator, 
   Flame, 
@@ -10,9 +10,24 @@ import {
   Check, 
   Layers, 
   Apple,
-  RotateCcw
+  RotateCcw,
+  UserCheck,
+  Users,
+  Save,
+  ChevronDown,
+  X,
+  Sparkles,
+  CheckCircle2,
+  Calendar,
+  AlertCircle,
+  FileText,
+  Clock,
+  ArrowRight,
+  TrendingUp,
+  ShieldCheck,
+  Copy
 } from 'lucide-react';
-import { Gender, ClinicalProtocol } from '../types';
+import { Gender, ClinicalProtocol, Patient, PatientObjective, UserAccount, PatientTimelineItem } from '../types';
 import { 
   calculateMetabolicRates, 
   calculatePollock3Folds, 
@@ -22,15 +37,42 @@ import {
   normalizeHeightToMeters 
 } from '../utils/nutritionCalculations';
 import { CLINICAL_PROTOCOLS, INITIAL_FOOD_DATABASE } from '../data/initialData';
+import { saveDietOrCalc, savePatient, DietAndCalcRecord } from '../services/databaseService';
 
 interface NutriCalcViewProps {
+  patients?: Patient[];
+  selectedPatientId?: string | null;
+  onSelectPatient?: (patientId: string | null) => void;
+  onUpdatePatient?: (updatedPatient: Patient) => void;
+  userAccount?: UserAccount | null;
   onOpenNutriaWithPrompt: (prompt: string) => void;
 }
 
-export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPrompt }) => {
+export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ 
+  patients = [],
+  selectedPatientId = null,
+  onSelectPatient,
+  onUpdatePatient,
+  userAccount,
+  onOpenNutriaWithPrompt 
+}) => {
   const [calcSubTab, setCalcSubTab] = useState<'tmb_get' | 'pollock' | 'protocolos' | 'tabela_alimentos'>('tmb_get');
 
-  // TMB & GET Calculator State - Iniciam Zerados / Vazios
+  // Paciente Ativo no Contexto do NutriCalc
+  const [activePatientId, setActivePatientId] = useState<string | null>(selectedPatientId);
+  const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
+  const [patientSearchTerm, setPatientSearchTerm] = useState('');
+
+  // Sincronizar com prop externa caso mude
+  useEffect(() => {
+    if (selectedPatientId !== undefined) {
+      setActivePatientId(selectedPatientId);
+    }
+  }, [selectedPatientId]);
+
+  const activePatient = patients.find(p => p.id === activePatientId) || null;
+
+  // TMB & GET Calculator State
   const [formula, setFormula] = useState<'mifflin' | 'harris_benedict' | 'cunningham' | 'dri'>('mifflin');
   const [gender, setGender] = useState<Gender>('masculino');
   const [weightInput, setWeightInput] = useState<string>('');
@@ -40,7 +82,7 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
   const [activityFactor, setActivityFactor] = useState<number>(1.2);
   const [customProteinGPerKg, setCustomProteinGPerKg] = useState<number>(2.0);
 
-  // Pollock 3 folds state - Iniciam Zerados / Vazios
+  // Pollock 3 folds state
   const [fold1Input, setFold1Input] = useState<string>('');
   const [fold2Input, setFold2Input] = useState<string>('');
   const [fold3Input, setFold3Input] = useState<string>('');
@@ -51,6 +93,62 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
   // Food search
   const [foodSearch, setFoodSearch] = useState('');
   const [foodCategory, setFoodCategory] = useState('Todas');
+
+  // Feedback states
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [copiedSummary, setCopiedSummary] = useState(false);
+
+  // EFEITO: Pré-preenchimento Automático quando um Paciente é Selecionado
+  useEffect(() => {
+    if (activePatient) {
+      // 1. Dados Básicos
+      setWeightInput(activePatient.currentWeightKg > 0 ? String(activePatient.currentWeightKg) : '');
+      setHeightInput(activePatient.heightCm > 0 ? String(activePatient.heightCm) : '');
+      setAgeInput(activePatient.age > 0 ? String(activePatient.age) : '');
+      setGender(activePatient.gender || 'masculino');
+      setBodyFatInput(activePatient.bodyFatPercentage > 0 ? String(activePatient.bodyFatPercentage) : '');
+      setActivityFactor(activePatient.activityFactor || 1.2);
+
+      // 2. Dobras cutâneas do último registro antropométrico (se existirem)
+      const latestAntro = activePatient.evolutionHistory?.[0];
+      if (latestAntro) {
+        if (activePatient.gender === 'masculino') {
+          if (latestAntro.abdominalFoldMm) setFold2Input(String(latestAntro.abdominalFoldMm));
+          if (latestAntro.thighCircumferenceCm) setFold3Input(String(latestAntro.thighCircumferenceCm));
+        } else {
+          if (latestAntro.tricepsFoldMm) setFold1Input(String(latestAntro.tricepsFoldMm));
+          if (latestAntro.suprailiacFoldMm) setFold2Input(String(latestAntro.suprailiacFoldMm));
+        }
+      }
+
+      // 3. Ajuste inteligente da meta proteica de acordo com o objetivo clínico
+      if (activePatient.objective === 'hipertrofia') {
+        setCustomProteinGPerKg(2.2);
+      } else if (activePatient.objective === 'emagrecimento') {
+        setCustomProteinGPerKg(2.0);
+      } else if (activePatient.objective === 'performance_esportiva') {
+        setCustomProteinGPerKg(2.2);
+      } else if (activePatient.objective === 'manejo_diabetes') {
+        setCustomProteinGPerKg(1.8);
+      } else if (activePatient.objective === 'saude_longevidade') {
+        setCustomProteinGPerKg(1.6);
+      }
+
+      // 4. Selecionar protocolo clínico pertinente ao objetivo
+      const matchedProtocol = CLINICAL_PROTOCOLS.find(proto => {
+        if (activePatient.objective === 'emagrecimento' && proto.id.includes('deficit')) return true;
+        if (activePatient.objective === 'hipertrofia' && proto.id.includes('hipertrofia')) return true;
+        if (activePatient.objective === 'manejo_diabetes' && proto.id.includes('low_carb')) return true;
+        if (activePatient.objective === 'saude_intestinal' && proto.id.includes('fodmap')) return true;
+        return false;
+      });
+
+      if (matchedProtocol) {
+        setSelectedProtocol(matchedProtocol);
+      }
+    }
+  }, [activePatientId, activePatient]);
 
   // Conversões e normalizações dinâmicas
   const weightKg = parseFloat(weightInput) || 0;
@@ -82,8 +180,7 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
   const adjustedWeight = calculateAdjustedWeight(weightKg, rawHeight);
   const isObese = metabolicResults.bmi >= 30;
 
-  // Custom Macro Calculations (Zero-safe)
-  // Em obesidade, a base proteica clínica recomendada utiliza o Peso Ajustado
+  // Custom Macro Calculations
   const effectiveWeightForProtein = (isObese && adjustedWeight > 0) ? adjustedWeight : weightKg;
   const calculatedProteinGrams = effectiveWeightForProtein > 0 ? Math.round(effectiveWeightForProtein * customProteinGPerKg) : 0;
   const proteinCalories = calculatedProteinGrams * 4;
@@ -96,6 +193,7 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
   const carbsPct = metabolicResults.get > 0 ? Math.min(100, Math.round((carbsCalories / metabolicResults.get) * 100)) : 0;
   const fatPct = metabolicResults.get > 0 ? 25 : 0;
 
+  // Handler: Limpar Dados (Modo Avulso)
   const handleResetCalculations = () => {
     setWeightInput('');
     setHeightInput('');
@@ -105,6 +203,147 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
     setFold1Input('');
     setFold2Input('');
     setFold3Input('');
+    setCustomProteinGPerKg(2.0);
+    setSaveFeedback(null);
+  };
+
+  // Handler: Trocar ou Desvincular Paciente
+  const handleSelectPatientContext = (patientId: string | null) => {
+    setActivePatientId(patientId);
+    if (onSelectPatient) {
+      onSelectPatient(patientId);
+    }
+    setIsPatientDropdownOpen(false);
+    setSaveFeedback(null);
+    if (!patientId) {
+      handleResetCalculations();
+    }
+  };
+
+  // Handler: Salvar Cálculo no Banco de Dados (Firestore) e no Prontuário do Paciente
+  const handleSaveCalculation = async () => {
+    if (metabolicResults.get === 0 && pollockResults.bodyFatPercentage === 0) {
+      setSaveFeedback({
+        type: 'error',
+        message: 'Preencha os dados de peso, altura e idade antes de salvar o cálculo.'
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveFeedback(null);
+
+    const userEmail = userAccount?.email || 'consultorio@nutrink.com.br';
+
+    try {
+      // 1. Salvar no histórico de cálculos (Coleção diets_and_calc)
+      const calcRecord: DietAndCalcRecord = {
+        id: `calc-${Date.now()}`,
+        userEmail: userEmail,
+        patientId: activePatient?.id || undefined,
+        patientName: activePatient?.name || 'Cálculo Avulso',
+        type: calcSubTab === 'pollock' ? 'pollock' : 'tmb_get',
+        data: {
+          formula,
+          gender,
+          weightKg,
+          heightCm,
+          heightM,
+          ageYears,
+          bodyFat: bodyFat || pollockResults.bodyFatPercentage,
+          activityFactor,
+          tmb: metabolicResults.tmb,
+          get: metabolicResults.get,
+          bmi: metabolicResults.bmi,
+          bmiClassification: metabolicResults.bmiClassification,
+          waterRecommendationLiters: metabolicResults.waterRecommendationLiters,
+          customProteinGPerKg,
+          proteinGrams: calculatedProteinGrams,
+          carbsGrams,
+          fatGrams,
+          idealWeight,
+          adjustedWeight,
+          isObese,
+          pollockResult: calcSubTab === 'pollock' ? pollockResults : undefined,
+          savedAt: new Date().toISOString()
+        },
+        createdAt: new Date().toISOString()
+      };
+
+      await saveDietOrCalc(calcRecord);
+
+      // 2. Se houver paciente ativo vinculado, atualizar o prontuário no Firebase
+      if (activePatient && onUpdatePatient) {
+        const newTimelineEntry: PatientTimelineItem = {
+          id: `tl-${Date.now()}`,
+          date: new Date().toLocaleDateString('pt-BR'),
+          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          type: 'antropometria',
+          title: `Cálculo NutriCalc Salvo (GET: ${metabolicResults.get} kcal)`,
+          description: `TMB: ${metabolicResults.tmb} kcal (${formula}) • GET: ${metabolicResults.get} kcal (NAF ${activityFactor}) • IMC: ${metabolicResults.bmi} • Meta Proteica: ${calculatedProteinGrams}g (${customProteinGPerKg} g/kg) • Água: ${metabolicResults.waterRecommendationLiters}L.`,
+          badge: 'NutriCalc',
+          categoryColor: 'text-fuchsia-400'
+        };
+
+        const updatedPatient: Patient = {
+          ...activePatient,
+          tmb: metabolicResults.tmb > 0 ? metabolicResults.tmb : activePatient.tmb,
+          get: metabolicResults.get > 0 ? metabolicResults.get : activePatient.get,
+          bmi: metabolicResults.bmi > 0 ? metabolicResults.bmi : activePatient.bmi,
+          currentWeightKg: weightKg > 0 ? weightKg : activePatient.currentWeightKg,
+          heightCm: heightCm > 0 ? heightCm : activePatient.heightCm,
+          activityFactor: activityFactor || activePatient.activityFactor,
+          bodyFatPercentage: bodyFat > 0 ? bodyFat : (pollockResults.bodyFatPercentage > 0 ? pollockResults.bodyFatPercentage : activePatient.bodyFatPercentage),
+          timeline: [newTimelineEntry, ...(activePatient.timeline || [])]
+        };
+
+        // Salvar no Firebase Firestore
+        await savePatient(updatedPatient, userEmail);
+        onUpdatePatient(updatedPatient);
+      }
+
+      setIsSaving(false);
+      setSaveFeedback({
+        type: 'success',
+        message: activePatient 
+          ? `Cálculo metabólico salvo com sucesso no prontuário de ${activePatient.name}!` 
+          : 'Cálculo avulso salvo com sucesso no histórico do seu consultório!'
+      });
+
+      // Limpar feedback após 5 segundos
+      setTimeout(() => {
+        setSaveFeedback(null);
+      }, 5000);
+
+    } catch (err) {
+      console.error('Erro ao salvar cálculo:', err);
+      setIsSaving(false);
+      setSaveFeedback({
+        type: 'error',
+        message: 'Ocorreu um erro ao salvar o cálculo no banco de dados. Tente novamente.'
+      });
+    }
+  };
+
+  // Copiar Resumo dos Cálculos
+  const handleCopySummary = () => {
+    const summary = `=== RELATÓRIO NUTRICALC NUTRINK ===
+${activePatient ? `Paciente: ${activePatient.name}` : 'Cálculo Avulso'}
+Gênero: ${gender === 'masculino' ? 'Masculino' : 'Feminino'} | Idade: ${ageYears} anos
+Peso Atual: ${weightKg} kg | Altura: ${heightCm} cm | IMC: ${metabolicResults.bmi} (${metabolicResults.bmiClassification})
+TMB (Mifflin): ${metabolicResults.tmb} kcal/dia
+GET (NAF ${activityFactor}): ${metabolicResults.get} kcal/dia
+Necessidade Hídrica: ${metabolicResults.waterRecommendationLiters} Litros/dia
+Distribuição de Macronutrientes:
+- Proteínas: ${calculatedProteinGrams}g (${proteinCalories} kcal - ${proteinPct}%) - ${customProteinGPerKg} g/kg
+- Carboidratos: ${carbsGrams}g (${carbsCalories} kcal - ${carbsPct}%)
+- Gorduras: ${fatGrams}g (${fatCalories} kcal - ${fatPct}%)
+${isObese ? `Obs Obesidade: Peso Ideal = ${idealWeight}kg | Peso Ajustado = ${adjustedWeight}kg` : ''}
+Data: ${new Date().toLocaleDateString('pt-BR')}`;
+
+    navigator.clipboard.writeText(summary);
+    setCopiedSummary(true);
+    setTimeout(() => setCopiedSummary(false), 3000);
   };
 
   // Filtered Food Table
@@ -116,14 +355,34 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
 
   const foodCategories = ['Todas', ...Array.from(new Set(INITIAL_FOOD_DATABASE.map(f => f.category)))];
 
+  const filteredPatientsList = patients.filter(p => 
+    p.name.toLowerCase().includes(patientSearchTerm.toLowerCase()) ||
+    p.email.toLowerCase().includes(patientSearchTerm.toLowerCase()) ||
+    (p.cpf && p.cpf.includes(patientSearchTerm))
+  );
+
+  const formatObjective = (obj?: PatientObjective) => {
+    switch (obj) {
+      case 'emagrecimento': return 'Emagrecimento & Definição';
+      case 'hipertrofia': return 'Hipertrofia Muscular';
+      case 'performance_esportiva': return 'Performance Esportiva';
+      case 'manejo_diabetes': return 'Manejo Glicêmico / Diabetes';
+      case 'saude_intestinal': return 'Saúde Intestinal & Microbiota';
+      case 'saude_longevidade': return 'Saúde & Longevidade';
+      case 'reeducacao_alimentar': return 'Reeducação Alimentar';
+      case 'vegetariano_vegano': return 'Plant-Based / Vegano';
+      default: return 'Geral / Manutenção';
+    }
+  };
+
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12 animate-fadeIn font-sans">
       
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-fuchsia-400" />
+            <Calculator className="w-6 h-6 text-fuchsia-400" />
             NutriCalc & Protocolos Clínicos
           </h1>
           <p className="text-xs sm:text-sm text-purple-200 mt-1">
@@ -131,10 +390,19 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleCopySummary}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#220743] hover:bg-[#2d0959] text-purple-200 hover:text-white rounded-xl text-xs font-bold border border-purple-700/60 transition-all cursor-pointer"
+            title="Copiar resumo do cálculo para área de transferência"
+          >
+            {copiedSummary ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-fuchsia-400" />}
+            <span>{copiedSummary ? 'Copiado!' : 'Copiar Resumo'}</span>
+          </button>
+
           <button
             onClick={handleResetCalculations}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#220743] hover:bg-[#2d0959] text-purple-200 hover:text-white rounded-xl text-xs font-bold border border-purple-700/60 transition-all"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#220743] hover:bg-[#2d0959] text-purple-200 hover:text-white rounded-xl text-xs font-bold border border-purple-700/60 transition-all cursor-pointer"
             title="Zerar todos os campos para nova avaliação"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -142,14 +410,234 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
           </button>
 
           <button
-            onClick={() => onOpenNutriaWithPrompt(`Nutria, faça uma revisão dietoterápica detalhada para um paciente ${gender}, ${ageYears > 0 ? `${ageYears} anos` : 'idade a definir'}, ${weightKg > 0 ? `${weightKg}kg` : 'peso a definir'}, ${heightCm > 0 ? `${heightCm}cm` : 'altura a definir'} com GET de ${metabolicResults.get > 0 ? `${metabolicResults.get} kcal` : 'a calcular'}.`)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-fuchsia-950/50 self-start sm:self-auto border border-fuchsia-400/40 transition-all hover:scale-105"
+            onClick={handleSaveCalculation}
+            disabled={isSaving}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-emerald-950/50 border border-emerald-400/40 transition-all hover:scale-105 cursor-pointer disabled:opacity-50"
+            id="btn-save-calculation"
+          >
+            <Save className="w-4 h-4 text-emerald-100" />
+            <span>{isSaving ? 'Salvando...' : 'Salvar Cálculo no Prontuário'}</span>
+          </button>
+
+          <button
+            onClick={() => onOpenNutriaWithPrompt(`Nutria, faça uma revisão dietoterápica detalhada para ${activePatient ? `o paciente ${activePatient.name}` : 'um paciente'} ${gender}, ${ageYears > 0 ? `${ageYears} anos` : 'idade a definir'}, ${weightKg > 0 ? `${weightKg}kg` : 'peso a definir'}, ${heightCm > 0 ? `${heightCm}cm` : 'altura a definir'} com GET de ${metabolicResults.get > 0 ? `${metabolicResults.get} kcal` : 'a calcular'} e meta proteica de ${calculatedProteinGrams}g (${customProteinGPerKg} g/kg).`)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-fuchsia-950/50 border border-fuchsia-400/40 transition-all hover:scale-105 cursor-pointer"
           >
             <Bot className="w-4 h-4 text-fuchsia-200" />
-            <span>Consultar NUTRIA sobre este Cálculo</span>
+            <span>Consultar NUTRIA</span>
           </button>
         </div>
       </div>
+
+      {/* 1. SEÇÃO DE CONTEXTO DO PACIENTE & BUSCA RÁPIDA */}
+      <div className="relative z-20">
+        {activePatient ? (
+          /* BADGE / BANNER DE PACIENTE ATIVO VINCULADO */
+          <div className="p-4 rounded-3xl bg-gradient-to-r from-purple-950/95 via-fuchsia-950/70 to-purple-950/95 border border-fuchsia-500/50 shadow-xl shadow-fuchsia-950/50 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fadeIn">
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-fuchsia-600 to-purple-800 text-white flex items-center justify-center font-bold shadow-md shadow-purple-950/80 shrink-0 mt-0.5">
+                <UserCheck className="w-6 h-6 text-fuchsia-200" />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-extrabold uppercase tracking-wide flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-emerald-400" />
+                    Dados importados automaticamente do paciente
+                  </span>
+                  <span className="text-[11px] font-semibold text-purple-200">
+                    ID: {activePatient.id}
+                  </span>
+                </div>
+
+                <h2 className="text-base sm:text-lg font-black text-white">
+                  {activePatient.name}
+                </h2>
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-purple-200">
+                  <span><strong>Idade:</strong> {activePatient.age} anos</span>
+                  <span>•</span>
+                  <span><strong>Sexo:</strong> {activePatient.gender === 'masculino' ? 'Masculino' : 'Feminino'}</span>
+                  <span>•</span>
+                  <span><strong>Peso:</strong> {activePatient.currentWeightKg} kg</span>
+                  <span>•</span>
+                  <span><strong>Altura:</strong> {activePatient.heightCm} cm</span>
+                  <span>•</span>
+                  <span><strong>Objetivo:</strong> <span className="text-fuchsia-300 font-bold">{formatObjective(activePatient.objective)}</span></span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+              <button
+                type="button"
+                onClick={() => setIsPatientDropdownOpen(!isPatientDropdownOpen)}
+                className="px-3.5 py-2 rounded-xl bg-[#220743] hover:bg-[#2d0959] border border-purple-700/60 text-purple-200 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                id="btn-switch-patient"
+              >
+                <Users className="w-3.5 h-3.5 text-fuchsia-400" />
+                <span>Trocar Paciente</span>
+                <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectPatientContext(null)}
+                className="px-3 py-2 rounded-xl bg-purple-950/80 hover:bg-rose-950/80 border border-purple-800/60 hover:border-rose-700/60 text-purple-300 hover:text-rose-200 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                title="Desvincular paciente e calcular em modo avulso"
+                id="btn-unlink-patient"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Modo Avulso</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* MODO AVULSO: SELETOR RÁPIDO DE PACIENTE NO TOPO */
+          <div className="p-4 rounded-3xl bg-[#150328] border border-purple-900/60 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-purple-950/80 border border-purple-800/60 text-purple-300 flex items-center justify-center shrink-0">
+                <Calculator className="w-5 h-5 text-purple-300" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white">Modo Avulso (Cálculo Manual)</span>
+                  <span className="px-2 py-0.5 rounded-md bg-purple-900/60 text-purple-200 text-[10px] font-semibold">Sem paciente vinculado</span>
+                </div>
+                <p className="text-[11px] text-purple-300">
+                  Preencha os campos livremente ou selecione um paciente cadastrado para auto-preencher os dados.
+                </p>
+              </div>
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsPatientDropdownOpen(!isPatientDropdownOpen)}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-900/80 to-fuchsia-900/60 hover:from-purple-800 hover:to-fuchsia-800 border border-fuchsia-500/40 text-white text-xs font-bold flex items-center justify-between gap-2 shadow-md transition-all cursor-pointer"
+                id="btn-open-patient-selector"
+              >
+                <Users className="w-4 h-4 text-fuchsia-400" />
+                <span>Vincular Paciente Cadastrado</span>
+                <ChevronDown className="w-3.5 h-3.5 text-purple-300 ml-1" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* DROPDOWN FLUTUANTE DE SELEÇÃO RÁPIDA DE PACIENTE */}
+        {isPatientDropdownOpen && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-[#170530] border border-purple-700/80 rounded-3xl p-4 shadow-2xl shadow-purple-950/90 z-30 space-y-3 animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-purple-800/50 pb-2">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-fuchsia-400" />
+                <span className="text-xs font-black text-white uppercase tracking-wider">Selecionar Paciente para NutriCalc</span>
+              </div>
+              <button
+                onClick={() => setIsPatientDropdownOpen(false)}
+                className="text-purple-400 hover:text-white text-xs font-bold p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="relative">
+              <Search className="w-4 h-4 text-purple-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={patientSearchTerm}
+                onChange={(e) => setPatientSearchTerm(e.target.value)}
+                placeholder="Buscar por nome, e-mail ou CPF..."
+                className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-purple-400/50 focus:outline-none"
+                autoFocus
+              />
+            </div>
+
+            <div className="max-h-60 overflow-y-auto space-y-1.5 scrollbar-thin pr-1">
+              {filteredPatientsList.length === 0 ? (
+                <div className="p-4 text-center text-xs text-purple-300">
+                  Nenhum paciente encontrado com esse termo.
+                </div>
+              ) : (
+                filteredPatientsList.map((p) => {
+                  const isCurrent = p.id === activePatientId;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleSelectPatientContext(p.id)}
+                      className={`w-full p-2.5 rounded-2xl text-left flex items-center justify-between transition-all cursor-pointer ${
+                        isCurrent 
+                          ? 'bg-fuchsia-950/90 border border-fuchsia-500 text-white' 
+                          : 'bg-[#120326]/60 hover:bg-[#20063d] border border-purple-800/40 text-purple-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-purple-900/80 border border-purple-700/50 flex items-center justify-center text-xs font-bold text-fuchsia-300 shrink-0">
+                          {p.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white">{p.name}</div>
+                          <div className="text-[10px] text-purple-300">
+                            {p.age} anos • {p.currentWeightKg} kg • {p.heightCm} cm • {formatObjective(p.objective)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {isCurrent ? (
+                        <span className="px-2 py-0.5 rounded-md bg-fuchsia-600 text-white text-[10px] font-bold">
+                          Ativo
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-purple-300 hover:text-fuchsia-300 font-semibold flex items-center gap-1">
+                          Selecionar <ArrowRight className="w-3 h-3" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-purple-800/40 flex justify-between items-center text-xs">
+              <span className="text-[11px] text-purple-300">
+                {patients.length} paciente(s) cadastrados no consultório
+              </span>
+              <button
+                type="button"
+                onClick={() => handleSelectPatientContext(null)}
+                className="text-[11px] text-purple-400 hover:text-rose-300 underline font-semibold"
+              >
+                Limpar seleção (Modo Avulso)
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* FEEDBACK TOAST / ALERT */}
+      {saveFeedback && (
+        <div className={`p-4 rounded-2xl flex items-center justify-between gap-3 animate-fadeIn ${
+          saveFeedback.type === 'success' 
+            ? 'bg-emerald-950/90 border border-emerald-500/80 text-emerald-200' 
+            : 'bg-rose-950/90 border border-rose-600/80 text-rose-200'
+        }`}>
+          <div className="flex items-center gap-2.5 text-xs font-bold">
+            {saveFeedback.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            )}
+            <span>{saveFeedback.message}</span>
+          </div>
+          <button 
+            onClick={() => setSaveFeedback(null)}
+            className="text-xs hover:opacity-80 p-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Sub-tab Navigation */}
       <div className="bg-[#150328] border border-purple-900/50 rounded-3xl p-1.5 flex space-x-1 overflow-x-auto scrollbar-none shadow-md">
@@ -165,7 +653,7 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
             <button
               key={tab.id}
               onClick={() => setCalcSubTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 isActive
                   ? 'bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white shadow-md'
                   : 'text-purple-200 hover:text-white hover:bg-[#220743]'
@@ -184,10 +672,17 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
           
           {/* Left Column: Input Form */}
           <div className="lg:col-span-5 bg-[#150328] border border-purple-900/50 rounded-3xl p-5 sm:p-6 space-y-4 shadow-md">
-            <h3 className="text-sm font-bold text-white border-b border-purple-900/40 pb-3 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-fuchsia-400" />
-              Parâmetros do Paciente
-            </h3>
+            <div className="flex items-center justify-between border-b border-purple-900/40 pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Activity className="w-4 h-4 text-fuchsia-400" />
+                Parâmetros Clínicos de Entrada
+              </h3>
+              {activePatient && (
+                <span className="px-2 py-0.5 rounded-full bg-fuchsia-950 text-fuchsia-300 border border-fuchsia-600/40 text-[10px] font-bold">
+                  Sincronizado
+                </span>
+              )}
+            </div>
 
             {/* Formula Selector */}
             <div>
@@ -211,7 +706,7 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
                 <div className="grid grid-cols-2 gap-1.5 mt-1">
                   <button
                     onClick={() => setGender('masculino')}
-                    className={`py-2 text-xs font-bold rounded-xl border transition-all ${
+                    className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                       gender === 'masculino'
                         ? 'bg-fuchsia-950 text-fuchsia-200 border-fuchsia-500 shadow-sm'
                         : 'bg-[#1e073c] text-purple-200 border-purple-800'
@@ -221,7 +716,7 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
                   </button>
                   <button
                     onClick={() => setGender('feminino')}
-                    className={`py-2 text-xs font-bold rounded-xl border transition-all ${
+                    className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                       gender === 'feminino'
                         ? 'bg-fuchsia-950 text-fuchsia-200 border-fuchsia-500 shadow-sm'
                         : 'bg-[#1e073c] text-purple-200 border-purple-800'
@@ -329,6 +824,19 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
               </div>
             </div>
 
+            {/* Salvar button on form */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleSaveCalculation}
+                disabled={isSaving}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+              >
+                <Save className="w-4 h-4 text-emerald-200" />
+                <span>{isSaving ? 'Salvando no Prontuário...' : (activePatient ? `Salvar no Prontuário de ${activePatient.name}` : 'Salvar Cálculo')}</span>
+              </button>
+            </div>
+
           </div>
 
           {/* Right Column: Calculations Breakdown & Results */}
@@ -338,16 +846,16 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
             <div className="bg-[#150328] border border-purple-900/50 rounded-3xl p-5 sm:p-6 shadow-md">
               <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
                 <Flame className="w-4 h-4 text-fuchsia-400" />
-                Resultados Energéticos do Paciente
+                Resultados Energéticos {activePatient ? `de ${activePatient.name}` : ''}
               </h3>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3.5 bg-[#1d0637] rounded-2xl border border-purple-800/40 text-center">
-                  <span className="text-[11px] text-purple-200 block uppercase font-bold">Taxa Metabólica Basal</span>
+                  <span className="text-[11px] text-purple-200 block uppercase font-bold">Taxa Basal (TMB)</span>
                   <span className="text-xl font-black text-white mt-1 block">
                     {metabolicResults.tmb > 0 ? metabolicResults.tmb : '-'}
                   </span>
-                  <span className="text-[10px] text-purple-200">kcal/dia (Mifflin)</span>
+                  <span className="text-[10px] text-purple-200">kcal/dia ({formula})</span>
                 </div>
 
                 <div className="p-3.5 bg-[#1d0637] rounded-2xl border border-fuchsia-500/60 text-center bg-purple-950/40">
@@ -501,14 +1009,26 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
       {/* Subtab 2: Pollock 3 Dobras */}
       {calcSubTab === 'pollock' && (
         <div className="bg-[#150328] border border-purple-900/50 rounded-3xl p-5 sm:p-6 space-y-6 shadow-md">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Scale className="w-4 h-4 text-fuchsia-400" />
-              Protocolo Jackson & Pollock (3 Dobras Cutâneas)
-            </h3>
-            <p className="text-xs text-purple-200 mt-1 font-medium">
-              Cálculo de Densidade Corporal (DC) e Equação de Siri para estimativa de Percentual de Gordura (%BF).
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Scale className="w-4 h-4 text-fuchsia-400" />
+                Protocolo Jackson & Pollock (3 Dobras Cutâneas) {activePatient ? `• ${activePatient.name}` : ''}
+              </h3>
+              <p className="text-xs text-purple-200 mt-1 font-medium">
+                Cálculo de Densidade Corporal (DC) e Equação de Siri para estimativa de Percentual de Gordura (%BF).
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSaveCalculation}
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all self-start sm:self-auto"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Salvar Dobras no Prontuário</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -592,7 +1112,7 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
               <button
                 key={proto.id}
                 onClick={() => setSelectedProtocol(proto)}
-                className={`w-full text-left p-3.5 rounded-2xl border transition-all ${
+                className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer ${
                   selectedProtocol.id === proto.id
                     ? 'bg-fuchsia-950/80 border-fuchsia-500 text-white shadow-md'
                     : 'bg-[#1d0637] border-purple-900/40 text-purple-100 hover:bg-[#250847]'
@@ -617,8 +1137,8 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
                 <h2 className="text-lg font-black text-white mt-0.5">{selectedProtocol.name}</h2>
               </div>
               <button
-                onClick={() => onOpenNutriaWithPrompt(`Nutria, elabore uma conduta clínica baseada no protocolo de "${selectedProtocol.name}" incluindo exemplos práticos de cardápio.`)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md"
+                onClick={() => onOpenNutriaWithPrompt(`Nutria, elabore uma conduta clínica baseada no protocolo de "${selectedProtocol.name}" ${activePatient ? `para o paciente ${activePatient.name} (GET: ${metabolicResults.get || activePatient.get} kcal)` : ''} incluindo exemplos práticos de cardápio.`)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer"
               >
                 <Bot className="w-3.5 h-3.5" />
                 <span>Aplicar com NUTRIA</span>
@@ -711,7 +1231,7 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
               <button
                 key={cat}
                 onClick={() => setFoodCategory(cat)}
-                className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   foodCategory === cat
                     ? 'bg-fuchsia-950 text-fuchsia-200 border border-fuchsia-500/60 shadow-sm'
                     : 'bg-[#220743] text-purple-200 hover:text-white border border-purple-800/40'
@@ -760,3 +1280,5 @@ export const NutriCalcView: React.FC<NutriCalcViewProps> = ({ onOpenNutriaWithPr
     </div>
   );
 };
+
+export default NutriCalcView;

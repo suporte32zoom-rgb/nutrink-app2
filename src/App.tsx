@@ -1110,7 +1110,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         currentTab={currentTab}
         onChangeTab={(tab) => {
           setCurrentTab(tab);
-          if (tab !== 'patients') {
+          if (tab !== 'patients' && tab !== 'nutricalc' && tab !== 'telemedicine') {
             setSelectedPatientId(null);
           }
         }}
@@ -1182,6 +1182,10 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
               setSelectedPatientId(patientId);
               setCurrentTab('telemedicine');
             }}
+            onNavigateToNutriCalc={(patientId) => {
+              setSelectedPatientId(patientId);
+              setCurrentTab('nutricalc');
+            }}
             appointments={appointments}
             onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
           />
@@ -1219,6 +1223,11 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
 
         {currentTab === 'nutricalc' && (
           <NutriCalcView
+            patients={patients}
+            selectedPatientId={selectedPatientId}
+            onSelectPatient={setSelectedPatientId}
+            onUpdatePatient={handleUpdatePatient}
+            userAccount={effectiveUserAccount}
             onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
           />
         )}
