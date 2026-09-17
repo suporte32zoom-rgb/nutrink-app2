@@ -422,8 +422,7 @@ ORIENTAÇÃO: Se o usuário expressou novos dados na mensagem, priorize-os. Caso
     const u = params.userAccount;
     fullPrompt += `\n\n[PROFISSIONAL DE SAÚDE RESPONSÁVEL]:
 - Nome: ${u.name || 'Profissional'} | Registro: ${u.crn || 'CRN/CRM Ativo'}
-- Especialidade: ${u.specialty || 'Nutrição Clínica & Funcional'}
-- Plano NutrinK: ${u.plan.toUpperCase()}`;
+- Especialidade: ${u.specialty || 'Nutrição Clínica & Funcional'}`;
   }
 
   // Injeção dos Dados da Plataforma (Agenda, Financeiro, Prontuários)

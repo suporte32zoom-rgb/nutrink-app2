@@ -211,7 +211,7 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 onClick={onOpenProfileModal}
                 className="flex items-center gap-1 sm:gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-lg sm:rounded-xl bg-[#220743] hover:bg-[#2e0b59] border border-purple-700/60 text-purple-200 hover:text-white transition-all shadow-sm group shrink-0 flex-shrink-0"
-                title={`Profissional: ${userAccount.name} • ${userAccount.crn} • ${userAccount.specialty} • Plano: ${planLabel}`}
+                title={`Profissional: ${userAccount.name} • ${userAccount.crn} • ${userAccount.specialty}`}
                 id="btn-header-user-profile"
               >
                 {userAccount.avatarUrl ? (
