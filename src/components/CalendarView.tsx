@@ -10,7 +10,9 @@ import {
   ChevronLeft, 
   ChevronRight,
   Filter,
-  Bot
+  Bot,
+  ExternalLink,
+  Edit3
 } from 'lucide-react';
 import { Appointment, Patient } from '../types';
 import { getBrasiliaTodayISODate } from '../utils/dateUtils';
@@ -23,6 +25,7 @@ interface CalendarViewProps {
   onSelectPatient: (patientId: string) => void;
   onOpenNutriaWithPrompt: (prompt: string) => void;
   onStartTelemedicine?: (patientId: string) => void;
+  onOpenAppointmentDetails?: (appointment: Appointment) => void;
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
@@ -32,7 +35,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onUpdateAppointmentStatus,
   onSelectPatient,
   onOpenNutriaWithPrompt,
-  onStartTelemedicine
+  onStartTelemedicine,
+  onOpenAppointmentDetails
 }) => {
   const [selectedDate, setSelectedDate] = useState(getBrasiliaTodayISODate());
   const [viewMode, setViewMode] = useState<'dia' | 'semana' | 'mes'>('dia');
@@ -289,6 +293,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <option value="pendente">Pendente</option>
                     <option value="cancelada">Cancelada</option>
                   </select>
+
+                  {/* Ver detalhes Button */}
+                  {onOpenAppointmentDetails && (
+                    <button
+                      onClick={() => onOpenAppointmentDetails(apt)}
+                      className="px-3 py-2 bg-gradient-to-r from-fuchsia-600/90 to-purple-600/90 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1 shadow-sm transition-all border border-fuchsia-400/30"
+                      title="Gerenciar e editar detalhes da consulta"
+                      id={`btn-details-apt-${apt.id}`}
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Ver detalhes &gt;</span>
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

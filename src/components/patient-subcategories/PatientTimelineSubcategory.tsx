@@ -29,6 +29,7 @@ interface PatientTimelineSubcategoryProps {
   appointments?: Appointment[];
   onOpenNutriaWithPrompt: (prompt: string) => void;
   onNavigateTab?: (tab: string) => void;
+  onOpenAppointmentDetails?: (appointment: Appointment) => void;
 }
 
 export const PatientTimelineSubcategory: React.FC<PatientTimelineSubcategoryProps> = ({
@@ -36,7 +37,8 @@ export const PatientTimelineSubcategory: React.FC<PatientTimelineSubcategoryProp
   onUpdatePatient,
   appointments = [],
   onOpenNutriaWithPrompt,
-  onNavigateTab
+  onNavigateTab,
+  onOpenAppointmentDetails
 }) => {
   const [filterType, setFilterType] = useState<string>('todos');
   const [newNoteText, setNewNoteText] = useState('');
@@ -391,21 +393,46 @@ export const PatientTimelineSubcategory: React.FC<PatientTimelineSubcategoryProp
                       )}
                     </div>
 
-                    {onNavigateTab && (
-                      <button
-                        onClick={() => {
+                    <button
+                      onClick={() => {
+                        if (item.type === 'consulta') {
+                          const aptId = item.id.replace('apt-', '');
+                          const foundApt = appointments.find(a => a.id === aptId) || 
+                            appointments.find(a => a.patientId === patient.id && a.date === item.date);
+                          if (foundApt && onOpenAppointmentDetails) {
+                            onOpenAppointmentDetails(foundApt);
+                          } else if (onOpenAppointmentDetails) {
+                            // Fallback if appointment object wasn't in array
+                            onOpenAppointmentDetails({
+                              id: aptId,
+                              patientId: patient.id,
+                              patientName: patient.name,
+                              patientPhone: patient.phone,
+                              patientEmail: patient.email,
+                              date: item.date,
+                              time: item.time || '14:00',
+                              durationMinutes: 50,
+                              type: 'retorno',
+                              status: 'confirmada',
+                              price: 350,
+                              paymentStatus: 'pendente',
+                              location: 'presencial_consultorio'
+                            });
+                          }
+                        } else if (onNavigateTab) {
                           if (item.type === 'plano') onNavigateTab('plano_alimentar');
                           else if (item.type === 'exame') onNavigateTab('exames_biomarcadores');
                           else if (item.type === 'prescricao') onNavigateTab('prescricoes_suplementacao');
                           else if (item.type === 'antropometria') onNavigateTab('evolucao_estetica');
                           else if (item.type === 'habito') onNavigateTab('habitos');
-                        }}
-                        className="text-fuchsia-300 hover:text-white font-bold inline-flex items-center gap-1 transition-colors"
-                      >
-                        <span>Ver detalhes</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </button>
-                    )}
+                        }
+                      }}
+                      className="text-fuchsia-300 hover:text-white font-bold inline-flex items-center gap-1 transition-colors"
+                      id={`btn-timeline-details-${item.id}`}
+                    >
+                      <span>Ver detalhes</span>
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
                   </div>
                 </div>
               </div>

@@ -45,6 +45,7 @@ interface DashboardViewProps {
   onOpenNutriaWithPrompt: (prompt: string) => void;
   onUpdateAppointmentStatus: (aptId: string, newStatus: Appointment['status']) => void;
   onOpenProfileModal?: () => void;
+  onOpenAppointmentDetails?: (appointment: Appointment) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -58,7 +59,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenNewTransaction,
   onOpenNutriaWithPrompt,
   onUpdateAppointmentStatus,
-  onOpenProfileModal
+  onOpenProfileModal,
+  onOpenAppointmentDetails
 }) => {
   const [isBannerDismissed, setIsBannerDismissed] = React.useState(false);
   const currentDateStr = getBrasiliaTodayISODate();
@@ -393,7 +395,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </div>
 
                       {/* Status Actions */}
-                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
                         <select
                           value={apt.status}
                           onChange={(e) => onUpdateAppointmentStatus(apt.id, e.target.value as Appointment['status'])}
@@ -412,6 +414,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           <option value="pendente">Pendente</option>
                           <option value="cancelada">Cancelada</option>
                         </select>
+
+                        {onOpenAppointmentDetails && (
+                          <button
+                            onClick={() => onOpenAppointmentDetails(apt)}
+                            className="px-2.5 py-1.5 bg-gradient-to-r from-fuchsia-600/90 to-purple-600/90 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1 shadow-sm transition-all border border-fuchsia-400/30"
+                            title="Ver detalhes da consulta"
+                            id={`btn-dash-details-apt-${apt.id}`}
+                          >
+                            <span>Ver detalhes &gt;</span>
+                          </button>
+                        )}
 
                         <button
                           onClick={() => apt.patientId ? onSelectPatient(apt.patientId) : null}

@@ -88,6 +88,7 @@ interface PatientsViewProps {
   onNavigateToNutriCalc?: (patientId: string) => void;
   appointments?: Appointment[];
   onUpdateAppointmentStatus?: (aptId: string, newStatus: Appointment['status']) => void;
+  onOpenAppointmentDetails?: (appointment: Appointment) => void;
 }
 
 export const PatientsView: React.FC<PatientsViewProps> = ({
@@ -104,7 +105,8 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
   onStartTelemedicine,
   onNavigateToNutriCalc,
   appointments = [],
-  onUpdateAppointmentStatus
+  onUpdateAppointmentStatus,
+  onOpenAppointmentDetails
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [objectiveFilter, setObjectiveFilter] = useState<string>('todos');
@@ -704,6 +706,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
             appointments={appointments}
             onOpenNutriaWithPrompt={onOpenNutriaWithPrompt}
             onNavigateTab={(tab) => setActiveTab(tab as any)}
+            onOpenAppointmentDetails={onOpenAppointmentDetails}
           />
         )}
 

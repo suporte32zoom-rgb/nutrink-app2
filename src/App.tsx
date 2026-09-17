@@ -10,6 +10,7 @@ import { NutriCalcView } from './components/NutriCalcView';
 import { NutriaCopilot } from './components/NutriaCopilot';
 import { NewPatientModal } from './components/NewPatientModal';
 import { NewAppointmentModal } from './components/NewAppointmentModal';
+import { AppointmentDetailsModal } from './components/AppointmentDetailsModal';
 import { NewTransactionModal } from './components/NewTransactionModal';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { UserProfileModal } from './components/UserProfileModal';
@@ -43,6 +44,7 @@ import {
   deletePatientFromDb,
   getAppointments,
   saveAppointmentToDb,
+  deleteAppointmentFromDb,
   getTransactions,
   saveTransactionToDb,
   getProfileByEmail,
@@ -194,6 +196,8 @@ export function App() {
   // Modals
   const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
+  const [selectedAppointmentForDetails, setSelectedAppointmentForDetails] = useState<Appointment | null>(null);
+  const [isAppointmentDetailsOpen, setIsAppointmentDetailsOpen] = useState(false);
   const [isNewTransactionOpen, setIsNewTransactionOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -524,6 +528,40 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
   const totalExpenses = transactions
     .filter(t => t.type === 'despesa' && t.status === 'concluido')
     .reduce((acc, curr) => acc + curr.amount, 0);
+
+  // Open and manage appointment details
+  const handleOpenAppointmentDetails = (apt: Appointment) => {
+    setSelectedAppointmentForDetails(apt);
+    setIsAppointmentDetailsOpen(true);
+  };
+
+  // Save / Update appointment (Local + Firestore)
+  const handleSaveAppointmentDetails = async (updated: Appointment) => {
+    setAppointments(prev => {
+      const exists = prev.some(a => a.id === updated.id);
+      const updatedList = exists 
+        ? prev.map(a => a.id === updated.id ? updated : a)
+        : [updated, ...prev];
+      try { localStorage.setItem('nutrink_appointments', JSON.stringify(updatedList)); } catch {}
+      return updatedList;
+    });
+    setSelectedAppointmentForDetails(updated);
+    await saveAppointmentToDb(updated, userAccount?.email).catch(err => console.warn('Erro ao persistir agendamento no Firestore:', err));
+  };
+
+  // Delete appointment (Local + Firestore)
+  const handleDeleteAppointment = async (appointmentId: string) => {
+    setAppointments(prev => {
+      const updatedList = prev.filter(a => a.id !== appointmentId);
+      try { localStorage.setItem('nutrink_appointments', JSON.stringify(updatedList)); } catch {}
+      return updatedList;
+    });
+    if (selectedAppointmentForDetails?.id === appointmentId) {
+      setSelectedAppointmentForDetails(null);
+      setIsAppointmentDetailsOpen(false);
+    }
+    await deleteAppointmentFromDb(appointmentId).catch(err => console.warn('Erro ao deletar agendamento do Firestore:', err));
+  };
 
   // Update appointment status
   const handleUpdateAppointmentStatus = (aptId: string, newStatus: Appointment['status']) => {
@@ -1163,6 +1201,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
             onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
             onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
             onOpenProfileModal={() => setIsProfileModalOpen(true)}
+            onOpenAppointmentDetails={handleOpenAppointmentDetails}
           />
         )}
 
@@ -1188,6 +1227,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
             }}
             appointments={appointments}
             onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
+            onOpenAppointmentDetails={handleOpenAppointmentDetails}
           />
         )}
 
@@ -1209,6 +1249,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
               setSelectedPatientId(patientId);
               setCurrentTab('telemedicine');
             }}
+            onOpenAppointmentDetails={handleOpenAppointmentDetails}
           />
         )}
 
@@ -1429,6 +1470,18 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
           setAppointments(prev => [...prev, newApt]);
           saveAppointmentToDb(newApt, userAccount?.email).catch(err => console.warn('Erro ao persistir novo agendamento:', err));
         }}
+      />
+
+      <AppointmentDetailsModal
+        isOpen={isAppointmentDetailsOpen}
+        onClose={() => {
+          setIsAppointmentDetailsOpen(false);
+          setSelectedAppointmentForDetails(null);
+        }}
+        appointment={selectedAppointmentForDetails}
+        patients={patients}
+        onSaveAppointment={handleSaveAppointmentDetails}
+        onDeleteAppointment={handleDeleteAppointment}
       />
 
       <NewTransactionModal
