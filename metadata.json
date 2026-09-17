@@ -1,6 +1,6 @@
 {
-  "name": "NutrinK | Software para Nutricionistas e Nutrólogos com IA Clínica",
-  "description": "Software de nutrição e nutrologia com IA clínica (Nutria AI), cálculos metabólicos (TMB/GET), prontuário eletrônico, telemedicina nativa com vídeo e o melhor custo-benefício para consultórios e clínicas.",
+  "name": "NutrinK — Sistema de Gestão e Inteligência Clínica Digital",
+  "description": "NutrinK — Sistema de Gestão e Inteligência Clínica Digital para nutricionistas e nutrólogos com IA clínica (NÚTRIA), cálculos metabólicos (TMB/GET), prontuário eletrônico, telemedicina e controle financeiro.",
   "requestFramePermissions": [
     "camera",
     "microphone"
