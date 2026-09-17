@@ -31,6 +31,7 @@ import { NutriaMessage, Patient, Appointment, UserAccount } from '../types';
 import { speakText, stopSpeech } from '../utils/voiceUtils';
 import { callNutriaDirect } from '../services/nutriaGeminiDirect';
 import { cleanMathAndLatex } from '../utils/cleanMarkdown';
+import { trackNutriaInteraction } from '../services/analytics';
 
 interface NutriaCopilotProps {
   messages?: NutriaMessage[];
@@ -257,6 +258,8 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
   const handleSendMessage = async (rawInput: string) => {
     const input = rawInput.trim();
     if (!input || isLoading) return;
+
+    trackNutriaInteraction('send_message', { length: input.length });
 
     // Se o componente pai fornecer callback onSendMessage, delega para a gestão central
     if (onSendMessage) {

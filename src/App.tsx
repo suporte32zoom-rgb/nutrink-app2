@@ -55,6 +55,7 @@ import {
   subscribeToTransactions,
   subscribeToPatients
 } from './services/databaseService';
+import { trackPageView, trackAppointmentEvent, trackEvent } from './services/analytics';
 
 export function App() {
   // Check URL parameters for direct deep-linking (e.g. /telemedicina?room=xyz, ?tab=telemedicine)
@@ -110,6 +111,21 @@ export function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Track page views in Google Analytics whenever the active tab/screen changes
+  useEffect(() => {
+    const tabTitles: Record<string, string> = {
+      dashboard: 'Painel Principal | NutrinK',
+      patients: 'Prontuários de Pacientes | NutrinK',
+      calendar: 'Agenda de Consultas | NutrinK',
+      finance: 'Controle Financeiro | NutrinK',
+      nutricalc: 'NutriCalc & Protocolos | NutrinK',
+      telemedicine: 'Teleconsulta HD | NutrinK',
+      nutria_hub: 'Copiloto NÚTRIA AI | NutrinK',
+      plans: 'Planos e Assinaturas | NutrinK'
+    };
+    trackPageView(tabTitles[currentTab] || `NutrinK - ${currentTab}`, `/${currentTab}`);
+  }, [currentTab]);
 
   // Application Data States (persistent in localStorage with initial empty/clean state)
   const [patients, setPatients] = useState<Patient[]>(() => {

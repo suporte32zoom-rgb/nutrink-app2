@@ -2,6 +2,10 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { initGoogleAnalytics } from './services/analytics';
+
+// Inicialização do Google Analytics 4
+initGoogleAnalytics();
 
 // Register PWA Service Worker if supported
 if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {

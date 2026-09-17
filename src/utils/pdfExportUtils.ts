@@ -7,11 +7,13 @@ import {
   calculateGET, 
   calculateWaterRecommendation 
 } from './nutritionCalculations';
+import { trackDocumentExport } from '../services/analytics';
 
 /**
  * Generates an official, beautifully styled print window with clinic letterhead (NutrinK + Professional CRN)
  */
 export function printMealPlanPdf(patient: Patient, userAccount?: UserAccount): void {
+  trackDocumentExport('plano_alimentar', 'pdf');
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     alert('Por favor, permita janelas pop-up para gerar a impressão do plano alimentar.');
@@ -387,6 +389,7 @@ export function printMealPlanPdf(patient: Patient, userAccount?: UserAccount): v
  * Builds formatted WhatsApp message text and opens WhatsApp Web/App directly
  */
 export function sendMealPlanViaWhatsApp(patient: Patient, userAccount?: UserAccount): void {
+  trackDocumentExport('plano_alimentar', 'whatsapp');
   const phoneDigits = (patient.phone || '').replace(/\D/g, '');
   const doctorName = userAccount?.name || 'Dr(a). Nutricionista';
   const mealPlan = patient.mealPlan;
@@ -491,6 +494,7 @@ export function generateShoppingListFromMealPlan(patient: Patient): GroceryCateg
  * Generates an official, beautifully formatted medical/nutrition prescription letterhead for printing or PDF export
  */
 export function printPrescriptionPdf(patient: Patient, prescription: ClinicalPrescription, userAccount?: UserAccount): void {
+  trackDocumentExport('prescricao_magistral', 'pdf');
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     alert('Por favor, permita janelas pop-up para gerar a impressão da prescrição.');
@@ -651,6 +655,7 @@ export function printPrescriptionPdf(patient: Patient, prescription: ClinicalPre
  * Builds formatted WhatsApp message text for prescriptions and opens WhatsApp directly
  */
 export function sendPrescriptionViaWhatsApp(patient: Patient, prescription: ClinicalPrescription, userAccount?: UserAccount): void {
+  trackDocumentExport('prescricao_magistral', 'whatsapp');
   const phoneDigits = (patient.phone || '').replace(/\D/g, '');
   const doctorName = userAccount?.name || 'Dr(a). Nutricionista';
 
