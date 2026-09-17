@@ -47,6 +47,110 @@ googleProvider.addScope('profile');
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 /**
+ * Handle Google Profile Authentication (from Firebase Auth or Google Identity Services)
+ * Automatically checks and registers account in database if first access, merges profile data,
+ * and persists to Firestore.
+ */
+export async function handleGoogleProfileAuth(profile: {
+  email: string;
+  name?: string;
+  picture?: string;
+  sub?: string;
+  uid?: string;
+}): Promise<UserAccount> {
+  const cleanEmail = (profile.email || '').trim().toLowerCase();
+  if (!cleanEmail) {
+    throw new Error('E-mail não fornecido pelo Google.');
+  }
+  const name = (profile.name || 'Profissional de Saúde').trim();
+  const avatarUrl = profile.picture || undefined;
+  const googleId = profile.sub || profile.uid || '';
+
+  // Check if existing profile in Firestore
+  let existing = await getProfileByEmail(cleanEmail);
+  if (!existing) {
+    try {
+      const raw = localStorage.getItem('nutrink_registered_users');
+      if (raw) {
+        const list = JSON.parse(raw);
+        existing = list.find((u: any) => u.email?.trim().toLowerCase() === cleanEmail) || null;
+      }
+    } catch {}
+  }
+
+  let finalUser: UserAccount;
+  if (existing) {
+    finalUser = {
+      ...existing,
+      name: existing.name || name,
+      avatarUrl: avatarUrl || existing.avatarUrl,
+      authProvider: 'google',
+      googleId: googleId || existing.googleId
+    };
+  } else {
+    // Automatically create account on first access
+    finalUser = {
+      id: `usr-g-${Date.now()}`,
+      name: name,
+      email: cleanEmail,
+      crn: 'CRN Ativo',
+      specialty: 'Nutrição Clínica & Funcional',
+      plan: 'free',
+      isSubscribed: false,
+      dailyMessageCount: 0,
+      dailyMessageLimit: 30,
+      monthlyMessageCount: 0,
+      monthlyMessageLimit: 50,
+      activeSince: new Date().getFullYear().toString(),
+      avatarUrl: avatarUrl,
+      authProvider: 'google',
+      googleId: googleId
+    };
+  }
+
+  // Save to Firestore
+  await saveProfile(finalUser);
+
+  // Sync to local registered users list
+  try {
+    const raw = localStorage.getItem('nutrink_registered_users');
+    const list = raw ? JSON.parse(raw) : [];
+    const idx = list.findIndex((u: any) => u.email?.trim().toLowerCase() === cleanEmail);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...finalUser };
+    } else {
+      list.push(finalUser);
+    }
+    localStorage.setItem('nutrink_registered_users', JSON.stringify(list));
+    localStorage.setItem('nutrink_last_email', cleanEmail);
+  } catch (err) {
+    console.warn('Local storage sync warn:', err);
+  }
+
+  return finalUser;
+}
+
+/**
+ * Sign in with Firebase Auth Google Popup
+ */
+export async function signInWithGoogleFirebase(): Promise<UserAccount> {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const fbUser = result.user;
+    return await handleGoogleProfileAuth({
+      email: fbUser.email || '',
+      name: fbUser.displayName || undefined,
+      picture: fbUser.photoURL || undefined,
+      uid: fbUser.uid
+    });
+  } catch (error: any) {
+    console.warn('[Firebase Auth Google error]:', error);
+    throw error;
+  }
+}
+
+
+/**
  * Recursively removes `undefined` properties and replaces undefined elements in arrays
  * to ensure Firestore setDoc/updateDoc never fails with 'Unsupported field value: undefined'.
  */

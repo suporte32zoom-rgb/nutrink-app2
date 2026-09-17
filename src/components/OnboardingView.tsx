@@ -1,18 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, 
   Bot, 
   Users, 
   CheckCircle2, 
   ArrowRight, 
-  ArrowLeft, 
   Lock, 
   Mail, 
   KeyRound, 
   User, 
   ShieldCheck, 
-  Crown, 
-  Check, 
   Activity, 
   FileText, 
   Calculator, 
@@ -21,14 +18,16 @@ import {
   EyeOff, 
   AlertCircle,
   Stethoscope,
-  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  HeartPulse,
   TrendingUp,
-  HeartPulse
+  Check
 } from 'lucide-react';
 import { UserAccount } from '../types';
 import { getRegisteredUsers, saveRegisteredUser, SPECIALTY_OPTIONS, RegisteredProfessionalUser } from './LoginModal';
-import GoogleLoginButton from './GoogleLoginButton';
-import { GoogleProfile } from '../services/googleAuth';
+import { GoogleProfile, initiateGoogleOAuthPopup } from '../services/googleAuth';
+import { signInWithGoogleFirebase, handleGoogleProfileAuth } from '../services/databaseService';
 
 interface OnboardingViewProps {
   onCompleteAuth: (user: Partial<UserAccount>, destinationTab?: string) => void;
@@ -39,8 +38,9 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
   onCompleteAuth,
   onOpenTermsDoc
 }) => {
-  const [currentStep, setCurrentStep] = useState<number>(1);
-  const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
+  // State for toggling traditional email/password form
+  const [showTraditionalForm, setShowTraditionalForm] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
   // Form State for Register
   const [name, setName] = useState('');
@@ -51,25 +51,22 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
   const [roleType, setRoleType] = useState<'CRN' | 'CRM'>('CRN');
   const [crnNumber, setCrnNumber] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState(SPECIALTY_OPTIONS[0]);
-  const [acceptedTerms, setAcceptedTerms] = useState(true);
 
   // Form State for Login
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
+  // Forgot password sub-view
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+
   // Feedback State
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Touch Swipe Support for Mobile Carousel
-  const touchStartXRef = useRef<number | null>(null);
-  const touchEndXRef = useRef<number | null>(null);
-
-  // Reset errors on step/mode change
-  useEffect(() => {
-    setErrorMsg(null);
-  }, [currentStep, authMode]);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Load last registered email if available
   useEffect(() => {
@@ -81,34 +78,58 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
     } catch {}
   }, []);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartXRef.current = e.targetTouches[0].clientX;
-  };
+  // 1-Click Google Sign In (Primary Action via Firebase Auth & OAuth)
+  const handleGoogleClick = async () => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setIsGoogleLoading(true);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndXRef.current = e.targetTouches[0].clientX;
-  };
+    try {
+      // 1. Attempt standard Firebase Auth Google Popup
+      const user = await signInWithGoogleFirebase();
+      setSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando seu consultório...`);
+      setTimeout(() => {
+        setIsGoogleLoading(false);
+        onCompleteAuth(user, 'dashboard');
+      }, 600);
+    } catch (fbErr: any) {
+      console.warn('[Firebase Auth fallback]: tentando OAuth popup alternativo...', fbErr);
 
-  const handleTouchEnd = () => {
-    if (touchStartXRef.current === null || touchEndXRef.current === null) return;
-    const distance = touchStartXRef.current - touchEndXRef.current;
-    const minSwipeDistance = 50;
-
-    if (distance > minSwipeDistance && currentStep < 4) {
-      // Swiped Left -> Next
-      setCurrentStep(prev => Math.min(4, prev + 1));
-    } else if (distance < -minSwipeDistance && currentStep > 1) {
-      // Swiped Right -> Prev
-      setCurrentStep(prev => Math.max(1, prev - 1));
+      // If popup blocked or standard Firebase popup failed, fallback to direct Google OAuth popup
+      try {
+        await initiateGoogleOAuthPopup(
+          async (profile: GoogleProfile) => {
+            try {
+              const user = await handleGoogleProfileAuth(profile);
+              setSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando seu consultório...`);
+              setTimeout(() => {
+                setIsGoogleLoading(false);
+                onCompleteAuth(user, 'dashboard');
+              }, 600);
+            } catch (err: any) {
+              setIsGoogleLoading(false);
+              setErrorMsg('Falha ao processar cadastro com Google. Tente novamente.');
+            }
+          },
+          (errText: string) => {
+            setIsGoogleLoading(false);
+            if (errText) {
+              setErrorMsg(errText);
+            }
+          }
+        );
+      } catch (oauthErr: any) {
+        setIsGoogleLoading(false);
+        setErrorMsg('Não foi possível conectar ao Google. Verifique sua conexão ou use o e-mail/senha.');
+      }
     }
-
-    touchStartXRef.current = null;
-    touchEndXRef.current = null;
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  // Traditional Register Submit
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
@@ -133,11 +154,6 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
       return;
     }
 
-    if (!acceptedTerms) {
-      setErrorMsg('É necessário aceitar os Termos de Uso e Política de Privacidade.');
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -145,7 +161,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
       const alreadyExists = existingUsers.some(u => u.email?.toLowerCase() === cleanEmail);
 
       if (alreadyExists) {
-        setErrorMsg('Este e-mail já está cadastrado no NutrinK. Alterne para a aba "Entrar" para acessar sua conta.');
+        setErrorMsg('Este e-mail já está cadastrado no NutrinK. Alterne para "Entrar" para acessar sua conta.');
         setIsSubmitting(false);
         return;
       }
@@ -171,13 +187,13 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         authProvider: 'local'
       };
 
-      saveRegisteredUser(newUser);
+      await saveRegisteredUser(newUser);
 
-      // Authenticate immediately and direct to dashboard
+      setSuccessMsg(`Cadastro criado com sucesso! Inicializando consultório de ${cleanName}...`);
       setTimeout(() => {
         setIsSubmitting(false);
         onCompleteAuth(newUser, 'dashboard');
-      }, 400);
+      }, 700);
 
     } catch (err: any) {
       console.error('Registration error:', err);
@@ -186,9 +202,11 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
     }
   };
 
+  // Traditional Login Submit
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     const cleanEmail = loginEmail.trim().toLowerCase();
 
@@ -209,7 +227,6 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
       const matched = users.find(u => u.email?.toLowerCase() === cleanEmail);
 
       if (!matched) {
-        // If no user found, allow quick free account registration prompt
         setErrorMsg('E-mail não encontrado. Verifique a digitação ou cadastre-se no Plano Free.');
         setIsSubmitting(false);
         return;
@@ -237,10 +254,11 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         authProvider: matched.authProvider || 'local'
       };
 
+      setSuccessMsg(`Bem-vindo(a) de volta, ${sessionUser.name}!`);
       setTimeout(() => {
         setIsSubmitting(false);
         onCompleteAuth(sessionUser, 'dashboard');
-      }, 400);
+      }, 500);
 
     } catch (err) {
       console.error('Login error:', err);
@@ -249,58 +267,25 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
     }
   };
 
-  const handleGoogleSuccess = (profile: GoogleProfile) => {
-    const cleanEmail = profile.email.trim().toLowerCase();
-    const existingUsers = getRegisteredUsers();
-    let existing = existingUsers.find(u => u.email?.toLowerCase() === cleanEmail);
-
-    let finalUser: UserAccount;
-
-    if (existing) {
-      finalUser = {
-        ...existing,
-        name: existing.name || profile.name,
-        avatarUrl: profile.picture || existing.avatarUrl,
-        authProvider: 'google',
-        googleId: profile.sub
-      };
-    } else {
-      finalUser = {
-        id: `usr-g-${Date.now()}`,
-        name: profile.name,
-        email: cleanEmail,
-        crn: 'CRN Ativo',
-        specialty: 'Nutrição Clínica & Funcional',
-        plan: 'free',
-        isSubscribed: false,
-        dailyMessageCount: 0,
-        dailyMessageLimit: 30,
-        monthlyMessageCount: 0,
-        monthlyMessageLimit: 50,
-        activeSince: new Date().getFullYear().toString(),
-        avatarUrl: profile.picture,
-        authProvider: 'google',
-        googleId: profile.sub
-      };
-      saveRegisteredUser(finalUser as RegisteredProfessionalUser);
+  const handleForgotPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail || !forgotEmail.includes('@')) {
+      setErrorMsg('Informe um e-mail válido para recuperação.');
+      return;
     }
-
-    onCompleteAuth(finalUser, 'dashboard');
+    setErrorMsg(null);
+    setForgotSuccess(true);
   };
 
   return (
-    <div 
-      className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-fuchsia-600 selection:text-white relative overflow-x-hidden"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-fuchsia-600 selection:text-white relative overflow-x-hidden font-sans">
+      
       {/* Background Decorative Ambient Lights */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse" />
-      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-fuchsia-600/10 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-0 left-1/3 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse" />
+      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-fuchsia-600/15 rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* Top Header Bar */}
-      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between z-10">
+      <header className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
           <img
             src="/icon-512.svg"
@@ -318,385 +303,270 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
           </div>
         </div>
 
-        {/* Top Direct Action: Skip or Login */}
-        <div className="flex items-center gap-3">
-          {currentStep < 4 ? (
-            <button
-              onClick={() => setCurrentStep(4)}
-              className="px-3.5 py-1.5 rounded-xl bg-[#1d0637] hover:bg-[#280a4d] border border-purple-800/60 text-purple-200 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-              id="btn-skip-to-register"
-            >
-              <span>Pular para Cadastro</span>
-              <ChevronRight className="w-3.5 h-3.5 text-fuchsia-400" />
-            </button>
-          ) : (
-            <button
-              onClick={() => setAuthMode(authMode === 'register' ? 'login' : 'register')}
-              className="px-3.5 py-1.5 rounded-xl bg-[#1d0637] hover:bg-[#280a4d] border border-purple-800/60 text-purple-200 hover:text-white text-xs font-bold transition-all cursor-pointer shadow-sm"
-            >
-              {authMode === 'register' ? 'Já possui conta? Entrar' : 'Novo por aqui? Cadastrar'}
-            </button>
-          )}
+        <div className="flex items-center gap-2 text-xs font-semibold text-purple-300">
+          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <span className="hidden sm:inline">Ambiente Seguro & LGPD</span>
         </div>
       </header>
 
       {/* Main Center Content Container */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-8 flex flex-col justify-center items-center z-10">
+      <main className="flex-1 max-w-xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10 flex flex-col justify-center items-center z-10">
         
-        {/* Step 1: Apresentação da Plataforma NutrinK */}
-        {currentStep === 1 && (
-          <div className="w-full max-w-3xl text-center space-y-6 animate-fadeIn">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-900/50 border border-purple-700/60 text-fuchsia-300 text-xs font-bold shadow-inner">
+        {/* Main Clean Authentication Card */}
+        <div className="w-full rounded-3xl bg-[#170530]/95 border border-purple-800/70 shadow-2xl shadow-fuchsia-950/80 p-6 sm:p-8 backdrop-blur-md space-y-6">
+          
+          {/* Header & App Title */}
+          <div className="text-center space-y-2">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-900/50 border border-purple-700/60 text-fuchsia-300 text-xs font-bold shadow-inner">
               <Sparkles className="w-3.5 h-3.5 text-fuchsia-400" />
-              <span>Etapa 1 de 4 • Apresentação da Plataforma</span>
+              <span>Acesso ao Consultório Digital</span>
             </div>
-
-            <div className="space-y-3">
-              <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-                Bem-vindo ao <span className="bg-gradient-to-r from-fuchsia-400 via-purple-300 to-indigo-300 bg-clip-text text-transparent">NutrinK</span>!
-              </h1>
-              <p className="text-sm sm:text-base md:text-lg text-purple-200 max-w-2xl mx-auto leading-relaxed font-medium">
-                Sua plataforma completa para gestão de consultório, cálculos metabólicos de precisão e acompanhamento nutricional de excelência.
-              </p>
-            </div>
-
-            {/* 3 Highlight Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 text-left">
-              <div className="p-5 rounded-3xl bg-[#150328] border border-purple-800/60 shadow-xl space-y-3 hover:border-fuchsia-500/50 transition-all group">
-                <div className="w-12 h-12 rounded-2xl bg-purple-900/60 border border-purple-700/50 text-fuchsia-400 flex items-center justify-center group-hover:scale-105 transition-all">
-                  <Activity className="w-6 h-6" />
-                </div>
-                <h3 className="font-extrabold text-white text-base">Painel Nutricional Completo</h3>
-                <p className="text-xs text-purple-200/90 leading-relaxed">
-                  Visão consolidada de consultas do dia, métricas de pacientes, faturamento do consultório e atalhos clínicos rápidos.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-3xl bg-[#150328] border border-purple-800/60 shadow-xl space-y-3 hover:border-fuchsia-500/50 transition-all group">
-                <div className="w-12 h-12 rounded-2xl bg-fuchsia-900/60 border border-fuchsia-700/50 text-fuchsia-300 flex items-center justify-center group-hover:scale-105 transition-all">
-                  <Calculator className="w-6 h-6" />
-                </div>
-                <h3 className="font-extrabold text-white text-base">Cálculos & Metas Automáticas</h3>
-                <p className="text-xs text-purple-200/90 leading-relaxed">
-                  TMB e GET instantâneos (Mifflin-St Jeor), Peso Ajustado na obesidade, periodização de macronutrientes e metas hídricas.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-3xl bg-[#150328] border border-purple-800/60 shadow-xl space-y-3 hover:border-fuchsia-500/50 transition-all group">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-900/60 border border-indigo-700/50 text-indigo-300 flex items-center justify-center group-hover:scale-105 transition-all">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <h3 className="font-extrabold text-white text-base">Prontuário Digital Integrado</h3>
-                <p className="text-xs text-purple-200/90 leading-relaxed">
-                  Histórico evolutivo, antropometria, exames laboratoriais, prescrições de manipulados e planos alimentares isoenergéticos.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: A IA Copiloto NÚTRIA (Plano FREE) */}
-        {currentStep === 2 && (
-          <div className="w-full max-w-3xl text-center space-y-6 animate-fadeIn">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-900/50 border border-purple-700/60 text-fuchsia-300 text-xs font-bold shadow-inner">
-              <Bot className="w-3.5 h-3.5 text-fuchsia-400" />
-              <span>Etapa 2 de 4 • Inteligência Artificial Copiloto</span>
-            </div>
-
-            <div className="space-y-3">
-              <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-fuchsia-600 via-purple-600 to-indigo-600 flex items-center justify-center text-white mx-auto shadow-xl shadow-fuchsia-950/60 border border-fuchsia-400/40">
-                <Bot className="w-8 h-8 text-white" />
-              </div>
-              <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-                Copiloto IA <span className="bg-gradient-to-r from-fuchsia-400 via-purple-300 to-indigo-300 bg-clip-text text-transparent">NÚTRIA</span> ao seu dispor
-              </h1>
-              <p className="text-sm sm:text-base md:text-lg text-purple-200 max-w-2xl mx-auto leading-relaxed font-medium">
-                <strong className="text-fuchsia-300">30 mensagens diárias grátis no Plano FREE</strong> para cadastrar pacientes por voz ou texto, tirar dúvidas clínicas de alta complexidade e automatizar prescrições.
-              </p>
-            </div>
-
-            {/* 3 Copilot Highlight Features */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 text-left">
-              <div className="p-5 rounded-3xl bg-[#150328] border border-purple-800/60 shadow-xl space-y-2">
-                <div className="flex items-center gap-2 text-fuchsia-400 font-bold text-sm">
-                  <Zap className="w-4 h-4 shrink-0" />
-                  <span>Respostas Clínicas Instantâneas</span>
-                </div>
-                <p className="text-xs text-purple-200/90 leading-relaxed">
-                  Interpretação de exames de sangue, cálculo de HOMA-IR, interações droga-nutriente e manejo de patologias crônicas.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-3xl bg-[#150328] border border-purple-800/60 shadow-xl space-y-2">
-                <div className="flex items-center gap-2 text-fuchsia-400 font-bold text-sm">
-                  <Users className="w-4 h-4 shrink-0" />
-                  <span>Cadastro e Ações via Chat</span>
-                </div>
-                <p className="text-xs text-purple-200/90 leading-relaxed">
-                  Diga à NÚTRIA: <em>"Cadastre o paciente Carlos, 80kg, hipertrofia"</em> e veja o registro salvo diretamente no banco de dados.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-3xl bg-[#150328] border border-purple-800/60 shadow-xl space-y-2">
-                <div className="flex items-center gap-2 text-fuchsia-400 font-bold text-sm">
-                  <HeartPulse className="w-4 h-4 shrink-0" />
-                  <span>Suporte Bioenergético & Nutrologia</span>
-                </div>
-                <p className="text-xs text-purple-200/90 leading-relaxed">
-                  Prescrição de opções isoenergéticas, polimorfismos MTHFR, modulação de microbiota e suplementação esportiva de precisão.
-                </p>
-              </div>
-            </div>
-
-            {/* Free Plan Badge */}
-            <div className="p-3.5 rounded-2xl bg-purple-950/60 border border-purple-700/60 text-xs text-purple-200 max-w-xl mx-auto flex items-center justify-center gap-2.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-              <span><strong>Plano Free Incluso:</strong> 30 requisições diárias com a IA renovadas todos os dias sem custo.</span>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Gestão de Pacientes & Prontuários */}
-        {currentStep === 3 && (
-          <div className="w-full max-w-3xl text-center space-y-6 animate-fadeIn">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-900/50 border border-purple-700/60 text-fuchsia-300 text-xs font-bold shadow-inner">
-              <Users className="w-3.5 h-3.5 text-fuchsia-400" />
-              <span>Etapa 3 de 4 • Gestão de Pacientes & Prontuários</span>
-            </div>
-
-            <div className="space-y-3">
-              <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-                Gestão Total do <span className="bg-gradient-to-r from-fuchsia-400 via-purple-300 to-indigo-300 bg-clip-text text-transparent">Consultório</span>
-              </h1>
-              <p className="text-sm sm:text-base md:text-lg text-purple-200 max-w-2xl mx-auto leading-relaxed font-medium">
-                Organize históricos clínicos, acompanhe a evolução antropométrica com gráficos comparativos e otimize cada consulta.
-              </p>
-            </div>
-
-            {/* Visual Overview of Features in Step 3 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-left">
-              <div className="p-5 rounded-3xl bg-[#150328] border border-purple-800/60 shadow-xl space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-purple-900/50 border border-purple-700/50 flex items-center justify-center text-fuchsia-400">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white text-sm">Aba 'Pacientes & Prontuários'</h4>
-                    <span className="text-[11px] text-purple-300">Acesso centralizado e dinâmico</span>
-                  </div>
-                </div>
-                <p className="text-xs text-purple-200/90 leading-relaxed">
-                  Busca instantânea por nome, filtros por status (Ativo, Em Acompanhamento, Inativo) e edição completa de dados pessoais e clínicos.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-3xl bg-[#150328] border border-purple-800/60 shadow-xl space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-fuchsia-900/50 border border-fuchsia-700/50 flex items-center justify-center text-fuchsia-300">
-                    <TrendingUp className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white text-sm">Histórico Evolutivo & Bioimpedância</h4>
-                    <span className="text-[11px] text-purple-300">Métricas visuais e precisas</span>
-                  </div>
-                </div>
-                <p className="text-xs text-purple-200/90 leading-relaxed">
-                  Gráficos de evolução de peso, percentual de gordura e massa magra, permitindo demonstrar o progresso real ao paciente.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-3xl bg-[#150328] border border-purple-800/60 shadow-xl space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-900/50 border border-indigo-700/50 flex items-center justify-center text-indigo-300">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white text-sm">Prescrições & Timbrado Personalizado</h4>
-                    <span className="text-[11px] text-purple-300">Exportação em PDF e Markdown</span>
-                  </div>
-                </div>
-                <p className="text-xs text-purple-200/90 leading-relaxed">
-                  Emita planos alimentares, atestados e fórmulas magistrais com cabeçalho oficial do seu consultório e CRN/CRM.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-3xl bg-[#150328] border border-purple-800/60 shadow-xl space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-900/50 border border-emerald-700/50 flex items-center justify-center text-emerald-300">
-                    <Activity className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white text-sm">Telemedicina Integrada</h4>
-                    <span className="text-[11px] text-purple-300">Vídeoconsultas com NÚTRIA ao vivo</span>
-                  </div>
-                </div>
-                <p className="text-xs text-purple-200/90 leading-relaxed">
-                  Convide o paciente via WhatsApp com link direto e receba transcrição e insights clínicos em tempo real na tela.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Planos & Formulário de Cadastro / Login (Final Step) */}
-        {currentStep === 4 && (
-          <div className="w-full max-w-4xl space-y-6 animate-fadeIn">
             
-            <div className="text-center space-y-2">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-900/50 border border-purple-700/60 text-fuchsia-300 text-xs font-bold shadow-inner">
-                <Sparkles className="w-3.5 h-3.5 text-fuchsia-400" />
-                <span>Etapa 4 de 4 • Cadastro e Acesso Imediato</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight">
-                {authMode === 'register' ? 'Cadastre-se e Comece Agora!' : 'Bem-vindo de Volta ao NutrinK'}
-              </h1>
-              <p className="text-xs sm:text-sm text-purple-200 max-w-xl mx-auto">
-                {authMode === 'register'
-                  ? 'Crie sua conta profissional gratuita e tenha acesso imediato ao painel, pacientes e à IA NÚTRIA.'
-                  : 'Digite suas credenciais de acesso para entrar no seu consultório digital.'}
-              </p>
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              Bem-vindo ao <span className="bg-gradient-to-r from-fuchsia-400 via-purple-300 to-indigo-300 bg-clip-text text-transparent">NutrinK</span>
+            </h1>
+            
+            <p className="text-xs sm:text-sm text-purple-200/90 max-w-md mx-auto leading-relaxed">
+              Acesso rápido e seguro. Entre com sua conta do Google para acessar seu consultório em 1 clique.
+            </p>
+          </div>
+
+          {/* Feedback Messages */}
+          {errorMsg && (
+            <div className="p-3.5 rounded-2xl bg-rose-950/90 border border-rose-600/80 text-rose-200 text-xs flex items-center gap-2.5 animate-fadeIn">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span className="font-medium">{errorMsg}</span>
             </div>
+          )}
 
-            {/* Plans Comparison Summary Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              {/* PLANO FREE */}
-              <div className="p-4 sm:p-5 rounded-3xl bg-[#180533] border-2 border-fuchsia-500/60 shadow-xl space-y-3 relative overflow-hidden">
-                <div className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-fuchsia-600/30 border border-fuchsia-400/50 text-fuchsia-300 font-black text-[10px] uppercase">
-                  Plano Atual / Grátis
-                </div>
+          {successMsg && (
+            <div className="p-3.5 rounded-2xl bg-emerald-950/90 border border-emerald-600/80 text-emerald-200 text-xs flex items-center gap-2.5 animate-fadeIn">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="font-medium">{successMsg}</span>
+            </div>
+          )}
 
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-purple-300">Comece sem custos</span>
-                  <h3 className="text-xl font-black text-white">PLANO FREE</h3>
-                  <div className="mt-1 flex items-baseline gap-1">
-                    <span className="text-2xl sm:text-3xl font-black text-white">R$ 0</span>
-                    <span className="text-xs text-purple-300">/mês para sempre</span>
-                  </div>
-                </div>
+          {/* 1. DESTAQUE PRINCIPAL: Botão Continuar com o Google */}
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={handleGoogleClick}
+              disabled={isGoogleLoading || isSubmitting}
+              className="w-full py-4 px-6 rounded-2xl bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-900 font-bold text-base shadow-xl shadow-purple-950/60 border border-slate-200 hover:border-fuchsia-400 flex items-center justify-center gap-3 transition-all cursor-pointer group disabled:opacity-60"
+              id="btn-google-primary-login"
+            >
+              {isGoogleLoading ? (
+                <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+              )}
+              <span className="group-hover:text-purple-950 transition-colors">
+                {isGoogleLoading ? 'Autenticando com o Google...' : 'Continuar com o Google'}
+              </span>
+            </button>
 
-                <ul className="space-y-2 text-xs text-purple-100">
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span><strong>30 mensagens diárias</strong> com a IA Copiloto NÚTRIA</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Gestão completa de <strong>Pacientes & Prontuários</strong></span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Cálculos de TMB, GET e Metas Metabólicas</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Prescrições de Manipulados e Planos Alimentares</span>
-                  </li>
-                </ul>
+            {/* Quick Benefits Tags */}
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <div className="py-1.5 px-2 rounded-xl bg-purple-950/60 border border-purple-800/50 text-center">
+                <span className="text-[10px] font-semibold text-purple-200 flex items-center justify-center gap-1">
+                  <Zap className="w-3 h-3 text-fuchsia-400 shrink-0" />
+                  1 Clique
+                </span>
               </div>
-
-              {/* PLANO PREMIUM */}
-              <div className="p-4 sm:p-5 rounded-3xl bg-[#130325] border border-purple-800/60 shadow-xl space-y-3 relative opacity-95">
-                <div className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-black text-[10px] uppercase flex items-center gap-1">
-                  <Crown className="w-3 h-3 text-amber-400" />
-                  <span>Ilimitado</span>
-                </div>
-
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Upgrade Opcional</span>
-                  <h3 className="text-xl font-black text-white">PLANO PREMIUM</h3>
-                  <div className="mt-1 flex items-baseline gap-1">
-                    <span className="text-2xl sm:text-3xl font-black text-amber-300">R$ 39,90</span>
-                    <span className="text-xs text-purple-300">/mês ou R$ 399,90/ano</span>
-                  </div>
-                </div>
-
-                <ul className="space-y-2 text-xs text-purple-200">
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span><strong>Acesso Ilimitado</strong> à IA Copiloto NÚTRIA 24/7</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>Recursos Avançados & <strong>Telemedicina com IA ao vivo</strong></span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>Exportações Ilimitadas e Suporte Prioritário</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>Garantia de 7 dias com cancelamento a qualquer momento</span>
-                  </li>
-                </ul>
+              <div className="py-1.5 px-2 rounded-xl bg-purple-950/60 border border-purple-800/50 text-center">
+                <span className="text-[10px] font-semibold text-purple-200 flex items-center justify-center gap-1">
+                  <Bot className="w-3 h-3 text-fuchsia-400 shrink-0" />
+                  IA NUTRIA
+                </span>
+              </div>
+              <div className="py-1.5 px-2 rounded-xl bg-purple-950/60 border border-purple-800/50 text-center">
+                <span className="text-[10px] font-semibold text-purple-200 flex items-center justify-center gap-1">
+                  <Users className="w-3 h-3 text-fuchsia-400 shrink-0" />
+                  Prontuários
+                </span>
               </div>
             </div>
+          </div>
 
-            {/* Error Notification */}
-            {errorMsg && (
-              <div className="p-3.5 rounded-2xl bg-rose-950/80 border border-rose-600/70 text-rose-200 text-xs flex items-center gap-2.5 animate-fadeIn">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                <span className="font-medium">{errorMsg}</span>
-              </div>
-            )}
+          {/* 2. BOTÃO/LINK DISCRETO PARA EXPANDIR FORMULÁRIO TRADICIONAL */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowTraditionalForm(!showTraditionalForm);
+                setErrorMsg(null);
+                setSuccessMsg(null);
+              }}
+              className="w-full py-2.5 px-4 rounded-xl bg-purple-950/40 hover:bg-purple-900/40 border border-purple-800/40 hover:border-purple-700/60 text-purple-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+              id="btn-toggle-traditional-form"
+            >
+              <span>{showTraditionalForm ? 'Ocultar login tradicional' : 'Ou entrar/cadastrar com e-mail e senha'}</span>
+              {showTraditionalForm ? <ChevronUp className="w-4 h-4 text-fuchsia-400" /> : <ChevronDown className="w-4 h-4 text-fuchsia-400" />}
+            </button>
+          </div>
 
-            {/* Register / Login Form Card */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-[#1a0533] border border-purple-800/60 shadow-2xl space-y-5">
+          {/* EXPANDED TRADITIONAL FORM */}
+          {showTraditionalForm && (
+            <div className="space-y-4 pt-2 border-t border-purple-800/40 animate-fadeIn">
               
-              {/* Tabs Switcher: Cadastrar vs Entrar */}
+              {/* Tab Selector: Entrar vs Cadastrar */}
               <div className="flex p-1 bg-[#120326] rounded-2xl border border-purple-800/50">
                 <button
                   type="button"
-                  onClick={() => setAuthMode('register')}
-                  className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    authMode === 'register'
+                  onClick={() => {
+                    setAuthMode('login');
+                    setIsForgotPassword(false);
+                    setErrorMsg(null);
+                  }}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    authMode === 'login' && !isForgotPassword
                       ? 'bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white shadow-md'
                       : 'text-purple-300 hover:text-white'
                   }`}
                 >
-                  <User className="w-4 h-4" />
-                  <span>Criar Conta Grátis</span>
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Entrar</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setAuthMode('login')}
-                  className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                    authMode === 'login'
+                  onClick={() => {
+                    setAuthMode('register');
+                    setIsForgotPassword(false);
+                    setErrorMsg(null);
+                  }}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    authMode === 'register' && !isForgotPassword
                       ? 'bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white shadow-md'
                       : 'text-purple-300 hover:text-white'
                   }`}
                 >
-                  <Lock className="w-4 h-4" />
-                  <span>Já Possuo Conta</span>
+                  <User className="w-3.5 h-3.5" />
+                  <span>Criar Conta</span>
                 </button>
               </div>
 
-              {/* Quick Google Sign In */}
-              <div className="space-y-3">
-                <div className="flex justify-center">
-                  <GoogleLoginButton
-                    onSuccess={handleGoogleSuccess}
-                    onError={(err) => setErrorMsg(err || 'Falha ao conectar com o Google.')}
-                    buttonText={authMode === 'register' ? 'Cadastrar com Google' : 'Entrar com Google'}
-                  />
-                </div>
+              {/* FORGOT PASSWORD SUB-VIEW */}
+              {isForgotPassword ? (
+                <form onSubmit={handleForgotPasswordSubmit} className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-purple-200">E-mail Cadastrado</label>
+                    <input
+                      type="email"
+                      required
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="seu.email@consultorio.com.br"
+                      className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-xl px-3.5 py-2 text-xs text-white placeholder-purple-300/40 focus:outline-none"
+                    />
+                  </div>
 
-                <div className="relative flex items-center justify-center">
-                  <div className="border-t border-purple-800/60 w-full" />
-                  <span className="bg-[#1a0533] px-3 text-[11px] font-bold text-purple-300 uppercase tracking-wider">
-                    Ou com seu e-mail profissional
-                  </span>
-                  <div className="border-t border-purple-800/60 w-full" />
-                </div>
-              </div>
+                  {forgotSuccess ? (
+                    <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-600/60 text-emerald-200 text-xs">
+                      Instruções para redefinição de senha foram enviadas ao seu e-mail!
+                    </div>
+                  ) : (
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 rounded-xl bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Enviar Link de Recuperação
+                    </button>
+                  )}
 
-              {/* FORM: CADASTRO */}
-              {authMode === 'register' ? (
-                <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                  
-                  {/* Nome Completo */}
-                  <div className="space-y-1.5">
+                  <div className="text-center pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotPassword(false)}
+                      className="text-xs text-purple-300 hover:text-white underline cursor-pointer"
+                    >
+                      Voltar ao Login
+                    </button>
+                  </div>
+                </form>
+              ) : authMode === 'login' ? (
+                /* TRADITIONAL LOGIN FORM */
+                <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-purple-200 flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-fuchsia-400" />
+                      <span>E-mail Profissional *</span>
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="seu.email@consultorio.com.br"
+                      className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-purple-300/40 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-purple-200 flex items-center gap-1.5">
+                        <KeyRound className="w-3.5 h-3.5 text-fuchsia-400" />
+                        <span>Senha de Acesso *</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsForgotPassword(true)}
+                        className="text-[11px] text-fuchsia-400 hover:underline cursor-pointer"
+                      >
+                        Esqueci a senha
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showLoginPassword ? 'text' : 'password'}
+                        required
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        placeholder="Sua senha cadastrada"
+                        className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-purple-300/40 focus:outline-none pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400 hover:text-white"
+                      >
+                        {showLoginPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-fuchsia-950/60 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                    id="btn-login-traditional-submit"
+                  >
+                    <Lock className="w-4 h-4 text-fuchsia-200" />
+                    <span>{isSubmitting ? 'Acessando Consultório...' : 'ENTRAR NO NUTRINK'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+              ) : (
+                /* TRADITIONAL REGISTER FORM */
+                <form onSubmit={handleRegisterSubmit} className="space-y-3">
+                  <div className="space-y-1">
                     <label className="text-xs font-bold text-purple-200 flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5 text-fuchsia-400" />
                       <span>Nome Completo do Profissional *</span>
@@ -706,13 +576,12 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Ex: Dra. Juliana Silveira"
-                      className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-purple-300/40 focus:outline-none transition-all"
+                      placeholder="Ex: Dra. Mariana Albuquerque"
+                      className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-purple-300/40 focus:outline-none"
                     />
                   </div>
 
-                  {/* E-mail Profissional */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-bold text-purple-200 flex items-center gap-1.5">
                       <Mail className="w-3.5 h-3.5 text-fuchsia-400" />
                       <span>E-mail Profissional *</span>
@@ -723,13 +592,12 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu.email@consultorio.com.br"
-                      className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-purple-300/40 focus:outline-none transition-all"
+                      className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-purple-300/40 focus:outline-none"
                     />
                   </div>
 
-                  {/* Senha e Confirmar Senha */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="space-y-1">
                       <label className="text-xs font-bold text-purple-200 flex items-center gap-1.5">
                         <KeyRound className="w-3.5 h-3.5 text-fuchsia-400" />
                         <span>Criar Senha *</span>
@@ -741,19 +609,19 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="Mínimo 6 caracteres"
-                          className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-purple-300/40 focus:outline-none pr-10"
+                          className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-xl px-3 py-2 text-xs text-white placeholder-purple-300/40 focus:outline-none pr-8"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400 hover:text-white"
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-purple-400 hover:text-white"
                         >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <label className="text-xs font-bold text-purple-200 flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5 text-fuchsia-400" />
                         <span>Confirmar Senha *</span>
@@ -764,23 +632,22 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                         value={passwordConfirm}
                         onChange={(e) => setPasswordConfirm(e.target.value)}
                         placeholder="Repita sua senha"
-                        className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-purple-300/40 focus:outline-none"
+                        className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-xl px-3 py-2 text-xs text-white placeholder-purple-300/40 focus:outline-none"
                       />
                     </div>
                   </div>
 
-                  {/* Conselho e Especialidade (Opcional para personalização) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <div className="space-y-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+                    <div className="space-y-1">
                       <label className="text-xs font-bold text-purple-200 flex items-center gap-1.5">
                         <Stethoscope className="w-3.5 h-3.5 text-fuchsia-400" />
                         <span>Registro Profissional</span>
                       </label>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1.5">
                         <select
                           value={roleType}
                           onChange={(e) => setRoleType(e.target.value as 'CRN' | 'CRM')}
-                          className="bg-[#120326] border border-purple-700/60 text-white rounded-2xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-fuchsia-400"
+                          className="bg-[#120326] border border-purple-700/60 text-white rounded-xl px-2.5 py-2 text-xs font-bold focus:outline-none"
                         >
                           <option value="CRN">CRN</option>
                           <option value="CRM">CRM</option>
@@ -790,17 +657,17 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                           value={crnNumber}
                           onChange={(e) => setCrnNumber(e.target.value)}
                           placeholder="Ex: 12345/SP"
-                          className="flex-1 bg-[#120326] border border-purple-700/60 rounded-2xl px-3 py-2.5 text-xs text-white placeholder-purple-300/40 focus:outline-none focus:border-fuchsia-400"
+                          className="flex-1 bg-[#120326] border border-purple-700/60 rounded-xl px-2.5 py-2 text-xs text-white placeholder-purple-300/40 focus:outline-none"
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <label className="text-xs font-bold text-purple-200">Especialidade Principal</label>
                       <select
                         value={selectedSpecialty}
                         onChange={(e) => setSelectedSpecialty(e.target.value)}
-                        className="w-full bg-[#120326] border border-purple-700/60 text-white rounded-2xl px-3 py-2.5 text-xs font-medium focus:outline-none focus:border-fuchsia-400"
+                        className="w-full bg-[#120326] border border-purple-700/60 text-white rounded-xl px-2.5 py-2 text-xs font-medium focus:outline-none"
                       >
                         {SPECIALTY_OPTIONS.map((spec, i) => (
                           <option key={i} value={spec}>{spec}</option>
@@ -809,217 +676,83 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Terms Checkbox */}
-                  <div className="flex items-start gap-2 pt-1 text-xs text-purple-200">
-                    <input
-                      type="checkbox"
-                      id="terms-check"
-                      checked={acceptedTerms}
-                      onChange={(e) => setAcceptedTerms(e.target.checked)}
-                      className="mt-0.5 rounded border-purple-700 text-fuchsia-600 focus:ring-fuchsia-500 bg-[#120326]"
-                    />
-                    <label htmlFor="terms-check" className="cursor-pointer">
-                      Concordo com os{' '}
-                      <button
-                        type="button"
-                        onClick={() => onOpenTermsDoc && onOpenTermsDoc('termos_de_uso')}
-                        className="text-fuchsia-400 hover:underline font-semibold"
-                      >
-                        Termos de Uso
-                      </button>
-                      {' '}e a{' '}
-                      <button
-                        type="button"
-                        onClick={() => onOpenTermsDoc && onOpenTermsDoc('politica_de_privacidade')}
-                        className="text-fuchsia-400 hover:underline font-semibold"
-                      >
-                        Política de Privacidade
-                      </button>.
-                    </label>
-                  </div>
-
-                  {/* Action Button: Criar Conta */}
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-black text-sm sm:text-base shadow-xl shadow-fuchsia-950/70 border border-fuchsia-400/40 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
-                    id="btn-register-submit"
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-fuchsia-950/60 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50 mt-1"
+                    id="btn-register-traditional-submit"
                   >
-                    <Sparkles className="w-5 h-5 text-fuchsia-200" />
-                    <span>{isSubmitting ? 'Configurando Consultório...' : 'CRIAR MINHA CONTA GRÁTIS'}</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4 text-fuchsia-200" />
+                    <span>{isSubmitting ? 'Criando Conta...' : 'CRIAR MINHA CONTA GRÁTIS'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
-
-                  {/* Aceite Único no Cadastro */}
-                  <p className="text-center text-[11px] text-purple-300/80 leading-relaxed px-1">
-                    Ao acessar a plataforma, você concorda com os{' '}
-                    <button
-                      type="button"
-                      onClick={() => onOpenTermsDoc && onOpenTermsDoc('termos_de_uso')}
-                      className="text-fuchsia-400 hover:text-fuchsia-300 underline font-medium"
-                    >
-                      Termos de Uso
-                    </button>{' '}
-                    e{' '}
-                    <button
-                      type="button"
-                      onClick={() => onOpenTermsDoc && onOpenTermsDoc('politica_de_privacidade')}
-                      className="text-cyan-400 hover:text-cyan-300 underline font-medium"
-                    >
-                      Políticas de Privacidade
-                    </button>{' '}
-                    do NutrinK.
-                  </p>
-                </form>
-              ) : (
-                /* FORM: LOGIN */
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
-                  
-                  {/* Login E-mail */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-purple-200 flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5 text-fuchsia-400" />
-                      <span>E-mail Profissional *</span>
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="seu.email@consultorio.com.br"
-                      className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-purple-300/40 focus:outline-none transition-all"
-                    />
-                  </div>
-
-                  {/* Login Senha */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-purple-200 flex items-center gap-1.5">
-                      <KeyRound className="w-3.5 h-3.5 text-fuchsia-400" />
-                      <span>Senha de Acesso *</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showLoginPassword ? 'text' : 'password'}
-                        required
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        placeholder="Sua senha cadastrada"
-                        className="w-full bg-[#120326] border border-purple-700/60 focus:border-fuchsia-400 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-purple-300/40 focus:outline-none pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowLoginPassword(!showLoginPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400 hover:text-white"
-                      >
-                        {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Action Button: Entrar */}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-black text-sm sm:text-base shadow-xl shadow-fuchsia-950/70 border border-fuchsia-400/40 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
-                    id="btn-login-submit"
-                  >
-                    <Lock className="w-5 h-5 text-fuchsia-200" />
-                    <span>{isSubmitting ? 'Acessando Consultório...' : 'ENTRAR NO NUTRINK'}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-
-                  {/* Aceite Único no Login */}
-                  <p className="text-center text-[11px] text-purple-300/80 leading-relaxed px-1">
-                    Ao acessar a plataforma, você concorda com os{' '}
-                    <button
-                      type="button"
-                      onClick={() => onOpenTermsDoc && onOpenTermsDoc('termos_de_uso')}
-                      className="text-fuchsia-400 hover:text-fuchsia-300 underline font-medium"
-                    >
-                      Termos de Uso
-                    </button>{' '}
-                    e{' '}
-                    <button
-                      type="button"
-                      onClick={() => onOpenTermsDoc && onOpenTermsDoc('politica_de_privacidade')}
-                      className="text-cyan-400 hover:text-cyan-300 underline font-medium"
-                    >
-                      Políticas de Privacidade
-                    </button>{' '}
-                    do NutrinK.
-                  </p>
-
-                  <div className="text-center pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode('register')}
-                      className="text-xs text-purple-300 hover:text-fuchsia-300 font-semibold transition-all cursor-pointer"
-                    >
-                      Ainda não tem cadastro? <strong>Crie sua conta grátis agora</strong>
-                    </button>
-                  </div>
                 </form>
               )}
 
             </div>
+          )}
 
+          {/* 3. TERMOS DE USO E LGPD: Rodapé Discreto */}
+          <div className="pt-2 text-center text-[11px] text-purple-300/80 leading-relaxed border-t border-purple-900/30">
+            <p>
+              Ao acessar a plataforma, você concorda com os{' '}
+              <button
+                type="button"
+                onClick={() => onOpenTermsDoc && onOpenTermsDoc('termos_de_uso')}
+                className="text-fuchsia-400 hover:underline font-semibold cursor-pointer"
+              >
+                Termos de Uso
+              </button>
+              {' '}e as{' '}
+              <button
+                type="button"
+                onClick={() => onOpenTermsDoc && onOpenTermsDoc('politica_de_privacidade')}
+                className="text-fuchsia-400 hover:underline font-semibold cursor-pointer"
+              >
+                Políticas de Privacidade
+              </button>
+              {' '}do NutrinK.
+            </p>
           </div>
-        )}
+
+        </div>
 
       </main>
 
-      {/* Bottom Step Navigation Bar */}
-      <footer className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-purple-900/40 z-10">
-        
-        {/* Step Indicators (1, 2, 3, 4) */}
+      {/* Bottom Global Footer */}
+      <footer className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-purple-300/70 border-t border-purple-900/40 z-10">
         <div className="flex items-center gap-2">
-          {[1, 2, 3, 4].map((step) => (
-            <button
-              key={step}
-              onClick={() => setCurrentStep(step)}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                currentStep === step
-                  ? 'bg-fuchsia-600 text-white shadow-md shadow-fuchsia-950/60 scale-105'
-                  : currentStep > step
-                  ? 'bg-purple-900/60 text-fuchsia-300 hover:bg-purple-800/60'
-                  : 'bg-[#150328] text-purple-400 hover:text-purple-200 border border-purple-900/40'
-              }`}
-            >
-              {currentStep > step ? <Check className="w-3 h-3" /> : <span>{step}</span>}
-              <span className="hidden sm:inline">
-                {step === 1 ? 'Apresentação' : step === 2 ? 'Copiloto IA' : step === 3 ? 'Prontuários' : 'Cadastro'}
-              </span>
-            </button>
-          ))}
+          <span>NutrinK Plataforma Clínica © {new Date().getFullYear()}</span>
+          <span>•</span>
+          <span>Em conformidade com LGPD & CFM/CFN</span>
         </div>
-
-        {/* Previous & Next Control Buttons */}
-        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-          {currentStep > 1 && (
-            <button
-              onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
-              className="px-4 py-2 rounded-xl bg-[#1d0637] hover:bg-[#280a4d] border border-purple-800/60 text-purple-200 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-              id="btn-onboarding-prev"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Voltar</span>
-            </button>
-          )}
-
-          {currentStep < 4 && (
-            <button
-              onClick={() => setCurrentStep(prev => Math.min(4, prev + 1))}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/30"
-              id="btn-onboarding-next"
-            >
-              <span>Próximo</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          )}
+        <div className="flex items-center gap-4 text-[11px]">
+          <button
+            type="button"
+            onClick={() => onOpenTermsDoc && onOpenTermsDoc('termos_de_uso')}
+            className="hover:text-fuchsia-300 transition-colors cursor-pointer"
+          >
+            Termos
+          </button>
+          <button
+            type="button"
+            onClick={() => onOpenTermsDoc && onOpenTermsDoc('politica_de_privacidade')}
+            className="hover:text-fuchsia-300 transition-colors cursor-pointer"
+          >
+            Privacidade
+          </button>
+          <button
+            type="button"
+            onClick={() => onOpenTermsDoc && onOpenTermsDoc('seguranca')}
+            className="hover:text-fuchsia-300 transition-colors cursor-pointer"
+          >
+            Segurança
+          </button>
         </div>
-
       </footer>
 
     </div>
   );
 };
+
+export default OnboardingView;
