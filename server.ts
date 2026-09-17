@@ -2720,24 +2720,47 @@ app.post("/api/payments/webhook", handleMercadoPagoWebhook);
 app.get("/api/payments/webhook", (req, res) => res.status(200).send("NutriNK Webhook Gateway Ativo"));
 
 // 7. Check User Subscription Status via Backend
-app.get("/api/payments/user-subscription/:email", (req: Request, res: Response) => {
-  const email = (req.params.email || '').toLowerCase().trim();
-  const sub = activatedSubscriptions.get(email);
-  if (sub) {
+app.get(["/api/payments/user-subscription", "/api/payments/user-subscription/:email"], (req: Request, res: Response) => {
+  try {
+    const rawEmail = (req.params.email || (req.query.email as string) || '').trim();
+    let email = '';
+    try {
+      email = decodeURIComponent(rawEmail).toLowerCase().trim();
+    } catch {
+      email = rawEmail.toLowerCase().trim();
+    }
+
+    if (!email) {
+      return res.json({
+        hasActiveSubscription: false,
+        planId: null,
+        status: 'none'
+      });
+    }
+
+    const sub = activatedSubscriptions.get(email);
+    if (sub) {
+      return res.json({
+        hasActiveSubscription: sub.status === 'active',
+        planId: sub.planId,
+        status: sub.status,
+        activatedAt: sub.activatedAt,
+        paymentId: sub.paymentId,
+        paymentMethod: sub.paymentMethod
+      });
+    }
     return res.json({
-      hasActiveSubscription: sub.status === 'active',
-      planId: sub.planId,
-      status: sub.status,
-      activatedAt: sub.activatedAt,
-      paymentId: sub.paymentId,
-      paymentMethod: sub.paymentMethod
+      hasActiveSubscription: false,
+      planId: null,
+      status: 'none'
+    });
+  } catch (err: any) {
+    return res.json({
+      hasActiveSubscription: false,
+      planId: null,
+      status: 'none'
     });
   }
-  return res.json({
-    hasActiveSubscription: false,
-    planId: null,
-    status: 'none'
-  });
 });
 
 // Clinical deep-calc & exam analyzer endpoint

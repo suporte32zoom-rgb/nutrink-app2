@@ -842,6 +842,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 )}
               </button>
 
+              {/* Aceite Único no Acesso */}
+              <p className="text-center text-[11px] text-purple-300/80 leading-relaxed px-1">
+                Ao acessar a plataforma, você concorda com os{' '}
+                <button
+                  type="button"
+                  onClick={() => onOpenTermsDoc && onOpenTermsDoc('termos_servico')}
+                  className="text-fuchsia-300 hover:text-fuchsia-200 underline font-medium"
+                >
+                  Termos de Uso
+                </button>{' '}
+                e{' '}
+                <button
+                  type="button"
+                  onClick={() => onOpenTermsDoc && onOpenTermsDoc('privacidade_lgpd')}
+                  className="text-cyan-300 hover:text-cyan-200 underline font-medium"
+                >
+                  Políticas de Privacidade
+                </button>{' '}
+                do NutrinK.
+              </p>
+
               <div className="flex items-center justify-between pt-1 text-xs">
                 <button
                   type="button"
@@ -1137,6 +1158,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 )}
               </button>
 
+              {/* Aceite Único no Cadastro */}
+              <p className="text-center text-[11px] text-purple-300/80 leading-relaxed px-1">
+                Ao acessar a plataforma, você concorda com os{' '}
+                <button
+                  type="button"
+                  onClick={() => onOpenTermsDoc && onOpenTermsDoc('termos_servico')}
+                  className="text-fuchsia-300 hover:text-fuchsia-200 underline font-medium"
+                >
+                  Termos de Uso
+                </button>{' '}
+                e{' '}
+                <button
+                  type="button"
+                  onClick={() => onOpenTermsDoc && onOpenTermsDoc('privacidade_lgpd')}
+                  className="text-cyan-300 hover:text-cyan-200 underline font-medium"
+                >
+                  Políticas de Privacidade
+                </button>{' '}
+                do NutrinK.
+              </p>
+
               <div className="text-center pt-1">
                 <button
                   type="button"
@@ -1299,7 +1341,28 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <span>Entrar no Consultório NutrinK</span>
               </button>
 
-              <div className="text-center pt-2">
+              {/* Aceite Único no Login */}
+              <p className="text-center text-[11px] text-purple-300/80 leading-relaxed px-1">
+                Ao acessar a plataforma, você concorda com os{' '}
+                <button
+                  type="button"
+                  onClick={() => onOpenTermsDoc && onOpenTermsDoc('termos_servico')}
+                  className="text-fuchsia-300 hover:text-fuchsia-200 underline font-medium"
+                >
+                  Termos de Uso
+                </button>{' '}
+                e{' '}
+                <button
+                  type="button"
+                  onClick={() => onOpenTermsDoc && onOpenTermsDoc('privacidade_lgpd')}
+                  className="text-cyan-300 hover:text-cyan-200 underline font-medium"
+                >
+                  Políticas de Privacidade
+                </button>{' '}
+                do NutrinK.
+              </p>
+
+              <div className="text-center pt-1">
                 <button
                   type="button"
                   onClick={() => { setActiveTab('register'); setErrorMessage(''); }}

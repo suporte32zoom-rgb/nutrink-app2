@@ -316,10 +316,16 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
   useEffect(() => {
     if (!userAccount?.email) return;
 
+    let isMounted = true;
+
     const checkBackendSubscription = async () => {
       try {
         const email = encodeURIComponent(userAccount.email.trim().toLowerCase());
-        const res = await safeFetchJson<{ hasActiveSubscription: boolean; planId: any }>(`/api/payments/user-subscription/${email}`);
+        const res = await safeFetchJson<{ hasActiveSubscription: boolean; planId: any }>(
+          `/api/payments/user-subscription/${email}`,
+          { silent: true }
+        );
+        if (!isMounted) return;
         if (res.ok && res.data) {
           const data = res.data;
           if (data.hasActiveSubscription && (!userAccount.isSubscribed || userAccount.plan !== data.planId)) {
@@ -331,18 +337,22 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
               monthlyMessageLimit: 99999
             };
             setUserAccount(upgradedUser);
-            localStorage.setItem('nutrink_user_session', JSON.stringify(upgradedUser));
+            try {
+              localStorage.setItem('nutrink_user_session', JSON.stringify(upgradedUser));
 
-            // Also update registered users list in local DB
-            const registeredRaw = localStorage.getItem('nutrink_registered_users');
-            if (registeredRaw) {
-              const regList = JSON.parse(registeredRaw);
-              const updatedList = regList.map((u: any) => 
-                u.email?.toLowerCase() === userAccount.email.toLowerCase()
-                  ? { ...u, plan: data.planId, isSubscribed: true }
-                  : u
-              );
-              localStorage.setItem('nutrink_registered_users', JSON.stringify(updatedList));
+              // Also update registered users list in local DB
+              const registeredRaw = localStorage.getItem('nutrink_registered_users');
+              if (registeredRaw) {
+                const regList = JSON.parse(registeredRaw);
+                const updatedList = regList.map((u: any) => 
+                  u.email?.toLowerCase() === userAccount.email.toLowerCase()
+                    ? { ...u, plan: data.planId, isSubscribed: true }
+                    : u
+                );
+                localStorage.setItem('nutrink_registered_users', JSON.stringify(updatedList));
+              }
+            } catch (storageErr) {
+              console.warn('[NutrinK LocalStorage Warn]', storageErr);
             }
           }
         }
@@ -352,8 +362,11 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     };
 
     checkBackendSubscription();
-    const subSyncInterval = setInterval(checkBackendSubscription, 10000);
-    return () => clearInterval(subSyncInterval);
+    const subSyncInterval = setInterval(checkBackendSubscription, 20000);
+    return () => {
+      isMounted = false;
+      clearInterval(subSyncInterval);
+    };
   }, [userAccount?.email, userAccount?.plan, userAccount?.isSubscribed]);
 
   // Iframe Compatibility & Cross-Framework PostMessage Bridge (Hostinger, React, Next, Vue, Nuxt, Angular, Svelte, WordPress)

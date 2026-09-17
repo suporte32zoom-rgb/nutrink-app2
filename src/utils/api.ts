@@ -12,14 +12,19 @@ export interface SafeFetchResponse<T = any> {
   isHtml?: boolean;
 }
 
+export interface SafeFetchOptions extends RequestInit {
+  silent?: boolean;
+}
+
 /**
- * Safely executes a fetch request and parses JSON response without crashing if the server returns HTML.
+ * Safely executes a fetch request and parses JSON response without crashing if the server returns HTML or network fails.
  */
 export async function safeFetchJson<T = any>(
   input: RequestInfo | URL,
-  init?: RequestInit
+  init?: SafeFetchOptions
 ): Promise<SafeFetchResponse<T>> {
   const urlString = typeof input === 'string' ? input : (input instanceof URL ? input.toString() : (input as Request).url);
+  const isSilent = Boolean(init?.silent);
 
   try {
     const response = await fetch(input, init);
@@ -35,10 +40,12 @@ export async function safeFetchJson<T = any>(
       contentType.includes('text/html');
 
     if (isHtmlResponse) {
-      console.warn(
-        `[NutrinK API Warn] Endpoint '${urlString}' retornou HTML (Status: ${response.status}) em vez de JSON estruturado.`,
-        `Preview: ${trimmedText.slice(0, 120)}...`
-      );
+      if (!isSilent) {
+        console.warn(
+          `[NutrinK API Warn] Endpoint '${urlString}' retornou HTML (Status: ${response.status}) em vez de JSON estruturado.`,
+          `Preview: ${trimmedText.slice(0, 120)}...`
+        );
+      }
 
       return {
         ok: false,
@@ -57,10 +64,12 @@ export async function safeFetchJson<T = any>(
       try {
         parsedData = JSON.parse(trimmedText);
       } catch (parseError) {
-        console.warn(
-          `[NutrinK API Warn] Não foi possível converter a resposta de '${urlString}' em JSON.`,
-          `Conteúdo: ${trimmedText.slice(0, 100)}`
-        );
+        if (!isSilent) {
+          console.warn(
+            `[NutrinK API Warn] Não foi possível converter a resposta de '${urlString}' em JSON.`,
+            `Conteúdo: ${trimmedText.slice(0, 100)}`
+          );
+        }
         return {
           ok: false,
           status: response.status,
@@ -90,7 +99,9 @@ export async function safeFetchJson<T = any>(
       data: parsedData
     };
   } catch (networkError: any) {
-    console.error(`[NutrinK API Error] Falha de comunicação de rede ao acessar '${urlString}':`, networkError);
+    if (!isSilent) {
+      console.warn(`[NutrinK API Warn] Comunicação de rede temporariamente indisponível para '${urlString}':`, networkError?.message || networkError);
+    }
     return {
       ok: false,
       status: 0,

@@ -849,6 +849,27 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                     <span>{isSubmitting ? 'Configurando Consultório...' : 'CRIAR MINHA CONTA GRÁTIS'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
+
+                  {/* Aceite Único no Cadastro */}
+                  <p className="text-center text-[11px] text-purple-300/80 leading-relaxed px-1">
+                    Ao acessar a plataforma, você concorda com os{' '}
+                    <button
+                      type="button"
+                      onClick={() => onOpenTermsDoc && onOpenTermsDoc('termos_de_uso')}
+                      className="text-fuchsia-400 hover:text-fuchsia-300 underline font-medium"
+                    >
+                      Termos de Uso
+                    </button>{' '}
+                    e{' '}
+                    <button
+                      type="button"
+                      onClick={() => onOpenTermsDoc && onOpenTermsDoc('politica_de_privacidade')}
+                      className="text-cyan-400 hover:text-cyan-300 underline font-medium"
+                    >
+                      Políticas de Privacidade
+                    </button>{' '}
+                    do NutrinK.
+                  </p>
                 </form>
               ) : (
                 /* FORM: LOGIN */
@@ -906,6 +927,27 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                     <span>{isSubmitting ? 'Acessando Consultório...' : 'ENTRAR NO NUTRINK'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
+
+                  {/* Aceite Único no Login */}
+                  <p className="text-center text-[11px] text-purple-300/80 leading-relaxed px-1">
+                    Ao acessar a plataforma, você concorda com os{' '}
+                    <button
+                      type="button"
+                      onClick={() => onOpenTermsDoc && onOpenTermsDoc('termos_de_uso')}
+                      className="text-fuchsia-400 hover:text-fuchsia-300 underline font-medium"
+                    >
+                      Termos de Uso
+                    </button>{' '}
+                    e{' '}
+                    <button
+                      type="button"
+                      onClick={() => onOpenTermsDoc && onOpenTermsDoc('politica_de_privacidade')}
+                      className="text-cyan-400 hover:text-cyan-300 underline font-medium"
+                    >
+                      Políticas de Privacidade
+                    </button>{' '}
+                    do NutrinK.
+                  </p>
 
                   <div className="text-center pt-1">
                     <button
