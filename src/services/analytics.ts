@@ -10,42 +10,41 @@ declare global {
   }
 }
 
-// Chave oficial configurada (ID da tag do Google do usuário)
+// Chave oficial do Google Analytics 4 (GA4)
 const DEFAULT_GA_ID = 'G-33RTJ85RGN';
 export const GA_MEASUREMENT_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID as string) || DEFAULT_GA_ID;
 
 let isInitialized = false;
 
 /**
- * Inicializa dinamicamente o script gtag.js do Google Analytics 4
+ * Inicializa com segurança o Google Analytics 4
+ * Se a tag já foi inserida no index.html, reaproveita a instância global sem duplicação.
  */
 export function initGoogleAnalytics(measurementId: string = GA_MEASUREMENT_ID): void {
   if (typeof window === 'undefined') return;
 
-  if (isInitialized && window.gtag) {
+  if (isInitialized) {
     return;
   }
 
-  // Prepara o array global dataLayer
+  // Prepara o array global dataLayer se ainda não existir
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag() {
-    window.dataLayer.push(arguments);
-  };
+  if (!window.gtag) {
+    window.gtag = function gtag() {
+      window.dataLayer.push(arguments);
+    };
+    window.gtag('js', new Date());
+    window.gtag('config', measurementId);
+  }
 
-  // Inicializa o timestamp e configurações
-  window.gtag('js', new Date());
-  window.gtag('config', measurementId, {
-    page_title: document.title || 'NutrinK — Sistema de Gestão e Inteligência Clínica Digital',
-    page_location: window.location.href,
-    anonymize_ip: true,
-    send_page_view: true
-  });
+  // Se o script da tag já não existir na página, injeta na head
+  const hasGtagScript = Array.from(document.querySelectorAll('script')).some(
+    s => s.src && s.src.includes('googletagmanager.com/gtag/js')
+  );
 
-  // Se o script da tag já não existir, injeta na head
-  const scriptId = 'google-analytics-gtag';
-  if (!document.getElementById(scriptId)) {
+  if (!hasGtagScript) {
     const script = document.createElement('script');
-    script.id = scriptId;
+    script.id = 'google-analytics-gtag';
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
     script.onerror = () => {
@@ -55,14 +54,15 @@ export function initGoogleAnalytics(measurementId: string = GA_MEASUREMENT_ID): 
   }
 
   isInitialized = true;
-  console.log(`📊 [NutrinK Analytics] Google Analytics 4 inicializado (${measurementId})`);
 }
 
 /**
- * Registra a visualização de tela / módulo do sistema NutrinK
+ * Registra a visualização de tela / módulo do sistema NutrinK (SPA Navigation)
  */
 export function trackPageView(pageTitle: string, pagePath: string = window.location.pathname): void {
-  if (typeof window === 'undefined' || !window.gtag) {
+  if (typeof window === 'undefined') return;
+
+  if (!window.gtag) {
     initGoogleAnalytics();
   }
 
@@ -71,7 +71,7 @@ export function trackPageView(pageTitle: string, pagePath: string = window.locat
       window.gtag('event', 'page_view', {
         page_title: pageTitle,
         page_path: pagePath,
-        page_location: window.location.href
+        page_location: `${window.location.origin}${pagePath.startsWith('/') ? pagePath : '/' + pagePath}`
       });
     }
   } catch (err) {

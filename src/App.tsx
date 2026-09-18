@@ -93,40 +93,6 @@ export function App() {
     return 'dashboard';
   });
 
-  // Listen to popstate for browser back/forward and deep link updates
-  useEffect(() => {
-    const handlePopState = () => {
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const pathname = window.location.pathname.toLowerCase();
-        const room = urlParams.get('room') || urlParams.get('r') || urlParams.get('sala');
-        const patientName = urlParams.get('patient') || urlParams.get('paciente') || urlParams.get('name');
-        if (room) setTelemedRoomFromUrl(room);
-        if (patientName) setTelemedPatientFromUrl(patientName);
-        if (pathname.includes('/telemedicina') || urlParams.get('tab') === 'telemedicine' || !!room) {
-          setCurrentTab('telemedicine');
-        }
-      } catch {}
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  // Track page views in Google Analytics whenever the active tab/screen changes
-  useEffect(() => {
-    const tabTitles: Record<string, string> = {
-      dashboard: 'Painel Principal | NutrinK',
-      patients: 'Prontuários de Pacientes | NutrinK',
-      calendar: 'Agenda de Consultas | NutrinK',
-      finance: 'Controle Financeiro | NutrinK',
-      nutricalc: 'NutriCalc & Protocolos | NutrinK',
-      telemedicine: 'Teleconsulta HD | NutrinK',
-      nutria_hub: 'Copiloto NÚTRIA AI | NutrinK',
-      plans: 'Planos e Assinaturas | NutrinK'
-    };
-    trackPageView(tabTitles[currentTab] || `NutrinK - ${currentTab}`, `/${currentTab}`);
-  }, [currentTab]);
-
   // Application Data States (persistent in localStorage with initial empty/clean state)
   const [patients, setPatients] = useState<Patient[]>(() => {
     try {
@@ -156,6 +122,45 @@ export function App() {
   });
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+
+  // Listen to popstate for browser back/forward and deep link updates
+  useEffect(() => {
+    const handlePopState = () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pathname = window.location.pathname.toLowerCase();
+        const room = urlParams.get('room') || urlParams.get('r') || urlParams.get('sala');
+        const patientName = urlParams.get('patient') || urlParams.get('paciente') || urlParams.get('name');
+        if (room) setTelemedRoomFromUrl(room);
+        if (patientName) setTelemedPatientFromUrl(patientName);
+        if (pathname.includes('/telemedicina') || urlParams.get('tab') === 'telemedicine' || !!room) {
+          setCurrentTab('telemedicine');
+        }
+      } catch {}
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Track page views in Google Analytics whenever the active tab/screen changes (SPA navigation)
+  useEffect(() => {
+    const tabTitles: Record<string, string> = {
+      dashboard: 'Painel Principal | NutrinK',
+      patients: selectedPatientId ? 'Prontuário do Paciente | NutrinK' : 'Prontuários de Pacientes | NutrinK',
+      calendar: 'Agenda de Consultas | NutrinK',
+      finance: 'Controle Financeiro | NutrinK',
+      nutricalc: 'NutriCalc & Protocolos | NutrinK',
+      telemedicine: 'Teleconsulta HD | NutrinK',
+      nutria_hub: 'Copiloto NÚTRIA AI | NutrinK',
+      plans: 'Planos e Assinaturas | NutrinK'
+    };
+
+    const path = currentTab === 'patients' && selectedPatientId
+      ? `/patients/${selectedPatientId}`
+      : `/${currentTab}`;
+
+    trackPageView(tabTitles[currentTab] || `NutrinK - ${currentTab}`, path);
+  }, [currentTab, selectedPatientId]);
 
   // Sync state changes with localStorage and Cloud Database
   useEffect(() => {
