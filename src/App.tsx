@@ -53,7 +53,11 @@ import {
   saveNutriaMessage,
   subscribeToAppointments,
   subscribeToTransactions,
-  subscribeToPatients
+  subscribeToPatients,
+  auth,
+  onAuthStateChanged,
+  signOut,
+  handleGoogleProfileAuth
 } from './services/databaseService';
 import { trackPageView, trackAppointmentEvent, trackEvent } from './services/analytics';
 
@@ -334,11 +338,36 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     } catch (e) {
       console.error('Failed to clear session:', e);
     }
+    signOut(auth).catch(() => {});
     setUserAccount(null);
     setIsAuthenticated(false);
     setIsProfileModalOpen(false);
     setIsLoginModalOpen(false);
   };
+
+  // Sync session with Firebase Auth automatically
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      if (fbUser && fbUser.email) {
+        try {
+          const user = await handleGoogleProfileAuth({
+            email: fbUser.email,
+            name: fbUser.displayName || undefined,
+            picture: fbUser.photoURL || undefined,
+            uid: fbUser.uid
+          });
+          setUserAccount(user);
+          setIsAuthenticated(true);
+          // If on onboarding, redirect directly to 'dashboard' (Painel Clínico)
+          setCurrentTab(prev => (prev === 'dashboard' || prev === 'patients' || prev === 'calendar' || prev === 'finance' || prev === 'nutricalc' || prev === 'telemedicine' || prev === 'nutria_hub' || prev === 'plans' ? prev : 'dashboard'));
+        } catch (err) {
+          console.warn('[Firebase Auth auto-sync notice]:', err);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Real-time backend subscription sync (via Mercado Pago Webhook)
   useEffect(() => {

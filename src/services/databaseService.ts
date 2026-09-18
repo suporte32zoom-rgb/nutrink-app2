@@ -39,6 +39,7 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export { onAuthStateChanged, signOut };
 
 // Google Provider setup
 export const googleProvider = new GoogleAuthProvider();
@@ -108,10 +109,10 @@ export async function handleGoogleProfileAuth(profile: {
     };
   }
 
-  // Save to Firestore
-  await saveProfile(finalUser);
+  // Non-blocking background save to Firestore
+  saveProfile(finalUser).catch(err => console.warn('Sync profile to Firestore:', err));
 
-  // Sync to local registered users list
+  // Sync to local registered users list and immediate active session
   try {
     const raw = localStorage.getItem('nutrink_registered_users');
     const list = raw ? JSON.parse(raw) : [];
@@ -123,6 +124,7 @@ export async function handleGoogleProfileAuth(profile: {
     }
     localStorage.setItem('nutrink_registered_users', JSON.stringify(list));
     localStorage.setItem('nutrink_last_email', cleanEmail);
+    localStorage.setItem('nutrink_user_session', JSON.stringify(finalUser));
   } catch (err) {
     console.warn('Local storage sync warn:', err);
   }

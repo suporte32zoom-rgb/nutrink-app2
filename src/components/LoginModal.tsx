@@ -169,14 +169,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       // 1. Standard Firebase Auth Google Popup
       const user = await signInWithGoogleFirebase();
       setAuthSuccess(true);
-      setAuthSuccessMsg(`Bem-vindo(a), ${user.name}!`);
+      setAuthSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
       onLoginAs(user);
-
-      setTimeout(() => {
-        setIsGoogleLoading(false);
-        setAuthSuccess(false);
-        onClose();
-      }, 700);
+      setIsGoogleLoading(false);
+      onClose();
     } catch (fbErr: any) {
       console.warn('[Firebase Auth fallback in Modal]:', fbErr);
 
@@ -187,14 +183,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             try {
               const user = await handleGoogleProfileAuth(profile);
               setAuthSuccess(true);
-              setAuthSuccessMsg(`Bem-vindo(a), ${user.name}!`);
+              setAuthSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
               onLoginAs(user);
-
-              setTimeout(() => {
-                setIsGoogleLoading(false);
-                setAuthSuccess(false);
-                onClose();
-              }, 700);
+              setIsGoogleLoading(false);
+              onClose();
             } catch (err: any) {
               setIsGoogleLoading(false);
               setErrorMessage('Falha ao processar autenticação com Google.');
@@ -209,7 +201,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         );
       } catch (oauthErr: any) {
         setIsGoogleLoading(false);
-        setErrorMessage('Não foi possível conectar ao Google. Verifique sua conexão.');
+        setErrorMessage('Não foi possível conectar ao Google. Verifique se os pop-ups estão liberados no navegador.');
       }
     }
   };
