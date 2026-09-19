@@ -1455,7 +1455,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
       {currentTab !== 'nutria_hub' && !isFloatingChatOpen && (
         <button
           onClick={() => setIsFloatingChatOpen(true)}
-          className="fixed bottom-20 sm:bottom-22 right-4 z-40 px-3.5 py-2.5 sm:px-4 sm:py-2.5 max-w-[180px] sm:max-w-none bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-full shadow-2xl hover:shadow-fuchsia-500/40 flex items-center justify-center gap-2 font-bold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 border border-fuchsia-400/50 group shadow-purple-950/90 cursor-pointer"
+          className="fixed bottom-20 sm:bottom-24 lg:bottom-6 right-4 z-40 px-3.5 py-2.5 sm:px-4 sm:py-2.5 max-w-[180px] sm:max-w-none bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-full shadow-2xl hover:shadow-fuchsia-500/40 flex items-center justify-center gap-2 font-bold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 border border-fuchsia-400/50 group shadow-purple-950/90 cursor-pointer"
           id="btn-open-nutria-floating"
           title="Falar com Copiloto NUTRIA AI"
         >
@@ -1472,7 +1472,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
       {/* Floating NUTRIA Chat Drawer */}
       {isFloatingChatOpen && (
         <div 
-          className="fixed bottom-20 sm:bottom-22 right-2.5 sm:right-4 z-50 w-[calc(100vw-20px)] sm:w-full max-w-lg p-0.5 sm:p-2 max-h-[80vh] flex flex-col box-border min-w-0"
+          className="fixed bottom-20 sm:bottom-24 lg:bottom-6 right-2.5 sm:right-4 z-50 w-[calc(100vw-20px)] sm:w-full max-w-lg p-0.5 sm:p-2 max-h-[80vh] lg:max-h-[85vh] flex flex-col box-border min-w-0"
         >
           <NutriaCopilot
             messages={nutriaMessages}

@@ -56,7 +56,7 @@ export const Footer: React.FC<FooterProps> = ({
   };
 
   return (
-    <footer className="bg-[#0b0217] text-slate-300 border-t border-purple-900/60 mt-16 pt-12 pb-28 shadow-2xl relative z-10">
+    <footer className="bg-[#0b0217] text-slate-300 border-t border-purple-900/60 mt-16 pt-12 pb-32 sm:pb-36 lg:pb-8 shadow-2xl relative z-10">
       {/* Decorative gradient blur */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent"></div>
 

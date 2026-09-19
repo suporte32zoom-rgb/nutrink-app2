@@ -81,7 +81,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       {/* Top subtle neon light accent line */}
       <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-fuchsia-500/40 to-transparent pointer-events-none" />
 
-      <div className="max-w-lg mx-auto px-2 sm:px-4 h-16 flex items-center justify-around relative">
+      <div className="w-full md:max-w-[90%] lg:max-w-7xl mx-auto px-2 sm:px-6 md:px-12 lg:px-16 h-16 md:h-20 flex items-center justify-around md:justify-between relative">
         {navItems.map((item) => {
           const isActive = currentTab === item.id;
           const IconComponent = item.icon;
@@ -89,14 +89,14 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           // Central Floating Highlight Button for NÚTRIA IA
           if (item.isCenterHighlight) {
             return (
-              <div key={item.id} className="relative -top-3 flex flex-col items-center group">
+              <div key={item.id} className="relative -top-3 md:-top-4 flex flex-col items-center group px-1 md:px-4">
                 <button
                   type="button"
                   onClick={handleNutriaClick}
-                  className={`relative w-13 h-13 rounded-full flex items-center justify-center p-0.5 transition-all duration-300 transform active:scale-95 cursor-pointer shadow-lg ${
+                  className={`relative w-13 h-13 md:w-16 md:h-16 rounded-full flex items-center justify-center p-0.5 md:p-1 transition-all duration-300 transform active:scale-95 cursor-pointer shadow-lg ${
                     isActive
-                      ? 'shadow-[0_0_25px_rgba(217,70,239,0.7)] ring-2 ring-fuchsia-400 ring-offset-2 ring-offset-[#0D0B18] scale-105'
-                      : 'shadow-[0_0_18px_rgba(168,85,247,0.45)] hover:scale-105'
+                      ? 'shadow-[0_0_30px_rgba(217,70,239,0.8)] ring-2 ring-fuchsia-400 ring-offset-2 ring-offset-[#0D0B18] scale-105'
+                      : 'shadow-[0_0_20px_rgba(168,85,247,0.5)] hover:scale-105'
                   }`}
                   id="btn-bottom-nav-nutria-ia"
                   title="Abrir Central e Copiloto NÚTRIA IA"
@@ -106,22 +106,22 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                   
                   {/* Subtle inner dark circle */}
                   <span className="relative w-full h-full rounded-full bg-[#130728] flex items-center justify-center border border-fuchsia-400/40">
-                    <IconComponent className={`w-6 h-6 transition-all duration-200 ${
+                    <IconComponent className={`w-6 h-6 md:w-8 md:h-8 transition-all duration-200 ${
                       isActive ? 'text-teal-300 drop-shadow-[0_0_8px_rgba(45,212,191,0.8)]' : 'text-fuchsia-300 group-hover:text-white'
                     }`} />
                     
                     {/* Tiny sparkling icon indicator */}
-                    <Sparkles className="w-2.5 h-2.5 text-teal-300 absolute top-1.5 right-1.5 animate-pulse" />
+                    <Sparkles className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 text-teal-300 absolute top-1.5 md:top-2 right-1.5 md:right-2 animate-pulse" />
                   </span>
 
                   {/* Pulsing ping glow */}
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3 md:h-3.5 md:w-3.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-teal-400"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 md:h-3.5 md:w-3.5 bg-teal-400"></span>
                   </span>
                 </button>
 
-                <span className={`text-[10px] font-bold tracking-tight mt-0.5 transition-colors ${
+                <span className={`text-[10px] md:text-sm font-bold tracking-tight mt-0.5 md:mt-1 transition-colors ${
                   isActive ? 'text-teal-300 font-black drop-shadow-[0_0_6px_rgba(45,212,191,0.6)]' : 'text-purple-300/80 group-hover:text-purple-100'
                 }`}>
                   {item.label}
@@ -136,19 +136,19 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
               key={item.id}
               type="button"
               onClick={() => handleNavClick(item.id)}
-              className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-200 relative group cursor-pointer ${
+              className={`flex-1 max-w-[140px] md:max-w-[200px] flex flex-col items-center justify-center py-1.5 md:py-2 px-1 md:px-3 rounded-xl transition-all duration-200 relative group cursor-pointer ${
                 isActive ? 'text-fuchsia-400 font-bold' : 'text-slate-400 hover:text-purple-200'
               }`}
               id={`btn-bottom-nav-${item.id}`}
             >
               {/* Active glow pill indicator on top */}
               {isActive && (
-                <span className="absolute top-0.5 w-7 h-1 rounded-full bg-gradient-to-r from-fuchsia-400 to-teal-400 shadow-[0_0_10px_rgba(217,70,239,0.9)] animate-fadeIn" />
+                <span className="absolute top-0.5 md:top-1 w-7 md:w-12 h-1 md:h-1.5 rounded-full bg-gradient-to-r from-fuchsia-400 to-teal-400 shadow-[0_0_12px_rgba(217,70,239,0.9)] animate-fadeIn" />
               )}
 
-              <div className="relative mt-0.5">
+              <div className="relative mt-0.5 md:mt-1">
                 <IconComponent 
-                  className={`w-5 h-5 transition-all duration-200 ${
+                  className={`w-5 h-5 md:w-7 md:h-7 transition-all duration-200 ${
                     isActive 
                       ? 'text-fuchsia-400 scale-110 drop-shadow-[0_0_8px_rgba(217,70,239,0.6)]' 
                       : 'text-slate-400 group-hover:text-purple-300 group-hover:scale-105'
@@ -157,15 +157,15 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 
                 {/* Badge if appointments or alerts */}
                 {item.badge !== null && (
-                  <span className="absolute -top-1.5 -right-2 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-gradient-to-r from-fuchsia-500 to-teal-400 text-white shadow-sm shadow-purple-950 flex items-center justify-center min-w-[15px] h-[15px]">
+                  <span className="absolute -top-1.5 -right-2 md:-top-2 md:-right-3 px-1.5 md:px-2 py-0.2 md:py-0.5 rounded-full text-[9px] md:text-xs font-black bg-gradient-to-r from-fuchsia-500 to-teal-400 text-white shadow-sm shadow-purple-950 flex items-center justify-center min-w-[15px] md:min-w-[20px] h-[15px] md:h-[20px]">
                     {item.badge}
                   </span>
                 )}
               </div>
 
-              <span className={`text-[10px] tracking-tight mt-1 transition-all ${
+              <span className={`text-[10px] md:text-sm tracking-tight mt-1 md:mt-1.5 transition-all ${
                 isActive 
-                  ? 'text-fuchsia-300 font-bold drop-shadow-[0_0_6px_rgba(217,70,239,0.4)]' 
+                  ? 'text-fuchsia-300 font-bold md:font-extrabold drop-shadow-[0_0_6px_rgba(217,70,239,0.4)]' 
                   : 'text-slate-400 group-hover:text-purple-200'
               }`}>
                 {item.label}
