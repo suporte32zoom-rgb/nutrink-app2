@@ -76,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'telemedicine', label: 'Telemedicina & Vídeo', icon: Video },
     { id: 'finance', label: 'Financeiro & Faturamento', icon: DollarSign },
     { id: 'nutricalc', label: 'NutriCalc & Protocolos', icon: Calculator },
-    { id: 'nutria_hub', label: 'Copiloto NUTRIA (IA)', icon: Bot },
+    { id: 'nutria_hub', label: 'Copiloto NÚTRIA (IA)', icon: Bot },
     { id: 'plans', label: 'Planos & Assinaturas', icon: Crown }
   ];
 
@@ -85,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
       className="bg-[#120326] text-white border-b border-purple-900/50 sticky top-0 shadow-lg shadow-purple-950/40 pt-2 sm:pt-3 pb-2 sm:pb-3 px-2 sm:px-6 lg:px-8 transition-all overflow-x-hidden"
       style={{ zIndex: 1000 }}
     >
-      <div className="max-w-7xl mx-auto w-full overflow-x-hidden">
+      <div className="w-full max-w-[1440px] mx-auto overflow-x-hidden">
         <div className="flex items-center justify-between w-full overflow-x-hidden gap-1 sm:gap-3 min-h-[3rem] sm:min-h-[3.25rem]">
           
           {/* Mobile Hamburger Menu Button (z-index: 1000) */}
@@ -132,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <div className="hidden xl:flex items-center gap-1.5 text-[11px] text-purple-200 border-l border-purple-800/60 pl-3">
               <span className="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse"></span>
-              <span>Copiloto <strong>NUTRIA</strong> Ativo</span>
+              <span>Copiloto <strong>NÚTRIA</strong> Ativo</span>
             </div>
           </div>
 
@@ -194,11 +194,11 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={onOpenNutriaChat}
               className="relative inline-flex items-center justify-center gap-1 sm:gap-2 px-2 py-1 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-fuchsia-950/50 transition-all transform hover:scale-[1.03] active:scale-[0.98] border border-fuchsia-400/40 shrink-0 flex-shrink-0"
-              title="Falar com Copiloto IA NUTRIA"
+              title="Falar com Copiloto IA NÚTRIA"
               id="btn-header-nutria-chat"
             >
               <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-fuchsia-100 shrink-0" />
-              <span className="hidden sm:inline">NUTRIA</span>
+              <span className="hidden sm:inline">NÚTRIA</span>
               <span className="flex h-1.5 w-1.5 sm:h-2 sm:w-2 relative shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-300 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-fuchsia-200"></span>

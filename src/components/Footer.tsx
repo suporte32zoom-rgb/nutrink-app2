@@ -60,7 +60,7 @@ export const Footer: React.FC<FooterProps> = ({
       {/* Decorative gradient blur */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1 bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent"></div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Main Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
@@ -75,7 +75,7 @@ export const Footer: React.FC<FooterProps> = ({
             <div className="p-3 bg-purple-950/40 border border-purple-800/40 rounded-xl space-y-2">
               <div className="flex items-center gap-2 text-xs font-semibold text-fuchsia-300">
                 <Bot className="w-4 h-4 text-fuchsia-400" />
-                <span>NUTRIA AI • Copiloto Ativo</span>
+                <span>NÚTRIA AI • Copiloto Ativo</span>
               </div>
               <p className="text-[11px] text-purple-300/70">
                 Prontuários estruturados, cálculos TMB/GET e protocolos clínicos baseados em evidências.
@@ -85,7 +85,7 @@ export const Footer: React.FC<FooterProps> = ({
                   onClick={() => onOpenNutriaPrompt("Quais são todos os recursos e diferenciais do NutrinK?")}
                   className="text-[11px] text-fuchsia-400 hover:text-fuchsia-300 font-bold flex items-center gap-1 transition-colors"
                 >
-                  <span>Perguntar à Nutria</span>
+                  <span>Perguntar à Nútria</span>
                   <ArrowUpRight className="w-3 h-3" />
                 </button>
               )}
@@ -295,7 +295,7 @@ export const Footer: React.FC<FooterProps> = ({
           <p>© 2026 NutrinK Tecnologia em Saúde Digital. Todos os direitos reservados.</p>
           <p className="flex items-center gap-1">
             <span>Desenvolvido para máxima precisão clínica com</span>
-            <span className="text-fuchsia-400 font-bold">NUTRIA Copilot</span>
+            <span className="text-fuchsia-400 font-bold">NÚTRIA Copilot</span>
           </p>
         </div>
 

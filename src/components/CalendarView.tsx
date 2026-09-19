@@ -248,7 +248,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <button
                       onClick={() => onStartTelemedicine(apt.patientId)}
                       className="px-3 py-2 bg-gradient-to-r from-rose-600 to-fuchsia-600 hover:from-rose-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-fuchsia-950/60 transition-all border border-rose-400/40"
-                      title="Entrar na sala de vídeo com NUTRIA"
+                      title="Entrar na sala de vídeo com NÚTRIA"
                     >
                       <Video className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
                       <span>Entrar no Vídeo</span>
