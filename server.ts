@@ -212,10 +212,6 @@ app.get(["/auth/google/callback", "/auth/google/callback/"], (req: Request, res:
             }, '*');
           }
           setTimeout(function() { window.close(); }, 500);
-        } else {
-          // Redirect mode: return smoothly to application at current origin
-          var targetUrl = window.location.origin + '/painel' + (window.location.hash || '');
-          window.location.replace(targetUrl);
         }
       } catch(e) {
         console.error('Callback error:', e);

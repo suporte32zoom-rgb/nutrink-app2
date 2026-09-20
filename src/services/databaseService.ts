@@ -18,15 +18,12 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
-  signInWithRedirect,
-  getRedirectResult,
   signInWithCredential, 
   onAuthStateChanged, 
   signOut,
   User as FirebaseUser
 } from 'firebase/auth';
 import { Patient, Appointment, FinancialTransaction, UserAccount, NutriaMessage } from '../types';
-import { initiateGoogleOAuthPopup, GoogleProfile } from './googleAuth';
 
 // Load Firebase configuration
 const firebaseConfig = {
@@ -44,48 +41,11 @@ export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export { onAuthStateChanged, signOut };
 
-/**
- * Resolves current application origin dynamically:
- * Correctly distinguishes between Google AI Studio preview/sandbox environment
- * (*.run.app, localhost) and the official production domain (https://nutrink.com.br).
- */
-export function getAppOrigin(): string {
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    const origin = window.location.origin;
-    if (origin && origin !== 'null') {
-      return origin.replace(/\/+$/, '');
-    }
-  }
-  return 'https://nutrink.com.br';
-}
-
-/**
- * Creates and configures GoogleAuthProvider with dynamic origin & redirect_uri parameters
- * to support both preview sandbox (e.g. *.run.app / localhost) and production (https://nutrink.com.br)
- * without origin_mismatch errors.
- */
-export function createConfiguredGoogleProvider(): GoogleAuthProvider {
-  const provider = new GoogleAuthProvider();
-  provider.addScope('email');
-  provider.addScope('profile');
-  provider.addScope('openid');
-
-  const origin = getAppOrigin();
-  const callbackUrl = `${origin}/auth/google/callback`;
-
-  // Dynamically set redirect_uri and custom parameters to avoid origin_mismatch
-  provider.setCustomParameters({
-    prompt: 'select_account',
-    redirect_uri: callbackUrl,
-    origin: origin,
-    auth_origin: origin
-  });
-
-  return provider;
-}
-
-// Google Provider setup with dynamic origin
-export const googleProvider = createConfiguredGoogleProvider();
+// Google Provider setup
+export const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 /**
  * Handle Google Profile Authentication (from Firebase Auth or Google Identity Services)
@@ -173,34 +133,11 @@ export async function handleGoogleProfileAuth(profile: {
 }
 
 /**
- * Checks for any pending redirect result when the app loads or after a redirect auth flow
- */
-export async function checkFirebaseRedirectResult(): Promise<UserAccount | null> {
-  try {
-    const result = await getRedirectResult(auth);
-    if (result && result.user && result.user.email) {
-      const fbUser = result.user;
-      return await handleGoogleProfileAuth({
-        email: fbUser.email || '',
-        name: fbUser.displayName || undefined,
-        picture: fbUser.photoURL || undefined,
-        uid: fbUser.uid
-      });
-    }
-    return null;
-  } catch (err) {
-    console.warn('[Firebase Auth redirect check notice]:', err);
-    return null;
-  }
-}
-
-/**
- * Sign in with Firebase Auth Google Popup using dynamic origin/callback
+ * Sign in with Firebase Auth Google Popup
  */
 export async function signInWithGoogleFirebase(): Promise<UserAccount> {
   try {
-    const provider = createConfiguredGoogleProvider();
-    const result = await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, googleProvider);
     const fbUser = result.user;
     return await handleGoogleProfileAuth({
       email: fbUser.email || '',
@@ -211,54 +148,6 @@ export async function signInWithGoogleFirebase(): Promise<UserAccount> {
   } catch (error: any) {
     console.warn('[Firebase Auth Google error]:', error);
     throw error;
-  }
-}
-
-/**
- * Sign in with Firebase Auth Google Redirect using dynamic origin/callback
- * (Alternative when popup is completely restricted or user prefers redirect)
- */
-export async function signInWithGoogleFirebaseRedirect(): Promise<void> {
-  const provider = createConfiguredGoogleProvider();
-  await signInWithRedirect(auth, provider);
-}
-
-/**
- * Complete, unified Google Sign In for NutrinK:
- * Tries Firebase Auth popup first with dynamic origin; if popup is blocked or environment throws an OAuth notice,
- * automatically falls back to direct Google Identity Services (GSI) / OAuth popup with dynamic callback URL.
- */
-export async function signInWithGoogleComplete(): Promise<UserAccount> {
-  try {
-    const user = await signInWithGoogleFirebase();
-    return user;
-  } catch (fbErr: any) {
-    console.warn('[Firebase Auth notice, attempting direct Google OAuth fallback]:', fbErr?.code || fbErr?.message || fbErr);
-    
-    // If user closed popup intentionally
-    if (fbErr?.code === 'auth/popup-closed-by-user' || fbErr?.code === 'auth/cancelled-popup-request') {
-      throw new Error('AUTH_CANCELLED');
-    }
-
-    return new Promise((resolve, reject) => {
-      initiateGoogleOAuthPopup(
-        async (profile: GoogleProfile) => {
-          try {
-            const user = await handleGoogleProfileAuth(profile);
-            resolve(user);
-          } catch (err) {
-            reject(err);
-          }
-        },
-        (errMsg: string) => {
-          if (!errMsg || errMsg.includes('fechad') || errMsg.includes('cancelad')) {
-            reject(new Error('AUTH_CANCELLED'));
-          } else {
-            reject(new Error(errMsg));
-          }
-        }
-      );
-    });
   }
 }
 

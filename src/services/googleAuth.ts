@@ -49,21 +49,6 @@ declare global {
 // Configured or fallback Google Client ID
 export const DEFAULT_GOOGLE_CLIENT_ID = '193329003759-q76ctrdt6miks89qu3jdiovdd64e9stq.apps.googleusercontent.com';
 
-/**
- * Resolves current application origin dynamically:
- * Correctly distinguishes between Google AI Studio preview/sandbox environment
- * (*.run.app, localhost) and the official production domain (https://nutrink.com.br).
- */
-export function getAppOrigin(): string {
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    const origin = window.location.origin;
-    if (origin && origin !== 'null') {
-      return origin.replace(/\/+$/, '');
-    }
-  }
-  return 'https://nutrink.com.br';
-}
-
 export function getGoogleClientId(): string {
   const envId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
   if (envId) return envId;
@@ -135,8 +120,7 @@ export function loadGoogleGsiScript(): Promise<boolean> {
 /**
  * Fetches user profile from Google UserInfo endpoint with OAuth2 Access Token
  */
-export async function fetchGoogleUserInfo(accessToken: string, idToken?: string): Promise<GoogleProfile | null> {
-  // 1. Try Google UserInfo API endpoint directly
+export async function fetchGoogleUserInfo(accessToken: string): Promise<GoogleProfile | null> {
   try {
     const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: {
@@ -144,57 +128,26 @@ export async function fetchGoogleUserInfo(accessToken: string, idToken?: string)
       },
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        sub: data.sub || data.id,
-        id: data.sub || data.id,
-        name: data.name || `${data.given_name || ''} ${data.family_name || ''}`.trim() || 'Profissional de Saúde',
-        given_name: data.given_name,
-        family_name: data.family_name,
-        email: data.email,
-        email_verified: data.email_verified,
-        picture: data.picture,
-        locale: data.locale,
-      };
+    if (!response.ok) {
+      throw new Error(`Google UserInfo retornou status ${response.status}`);
     }
+
+    const data = await response.json();
+    return {
+      sub: data.sub || data.id,
+      id: data.sub || data.id,
+      name: data.name || `${data.given_name || ''} ${data.family_name || ''}`.trim() || 'Profissional de Saúde',
+      given_name: data.given_name,
+      family_name: data.family_name,
+      email: data.email,
+      email_verified: data.email_verified,
+      picture: data.picture,
+      locale: data.locale,
+    };
   } catch (err) {
-    console.warn('Direct Google userinfo fetch notice:', err);
+    console.error('Erro ao buscar dados do perfil do Google via Token:', err);
+    return null;
   }
-
-  // 2. Try server-side verification proxy (/api/auth/google/verify)
-  try {
-    const serverRes = await fetch('/api/auth/google/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken, idToken }),
-    });
-    if (serverRes.ok) {
-      const serverData = await serverRes.json();
-      if (serverData.success && serverData.user?.email) {
-        return {
-          sub: serverData.user.googleId || '',
-          id: serverData.user.googleId || '',
-          name: serverData.user.name || 'Profissional de Saúde',
-          email: serverData.user.email,
-          email_verified: serverData.user.emailVerified,
-          picture: serverData.user.picture,
-        };
-      }
-    }
-  } catch (err) {
-    console.warn('Server-side Google verify endpoint notice:', err);
-  }
-
-  // 3. Fallback: Parse ID token if present
-  if (idToken) {
-    const parsed = parseGoogleJwt(idToken);
-    if (parsed && parsed.email) {
-      return parsed;
-    }
-  }
-
-  return null;
 }
 
 /**
@@ -267,8 +220,7 @@ export async function initiateGoogleOAuthPopup(
   }
 
   // 2. Direct OAuth 2.0 Web Popup with PostMessage Listener
-  const currentOrigin = getAppOrigin();
-  const redirectUri = `${currentOrigin}/auth/google/callback`;
+  const redirectUri = `${window.location.origin}/auth/google/callback`;
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
     clientId
   )}&redirect_uri=${encodeURIComponent(
@@ -297,16 +249,8 @@ export async function initiateGoogleOAuthPopup(
     // Listen for postMessage from popup callback
     let messageReceived = false;
     const messageHandler = async (event: MessageEvent) => {
-      // Security check: accept same-origin, currentOrigin, run.app, nutrink.com.br, and localhost
-      const origin = event.origin || '';
-      const isAllowedOrigin = 
-        origin === window.location.origin ||
-        origin === currentOrigin ||
-        origin.endsWith('.run.app') ||
-        origin.includes('localhost') ||
-        origin.includes('nutrink.com.br');
-
-      if (!isAllowedOrigin) {
+      // Security check
+      if (event.origin !== window.location.origin && !event.origin.endsWith('.run.app') && !event.origin.includes('localhost')) {
         return;
       }
 
@@ -317,19 +261,18 @@ export async function initiateGoogleOAuthPopup(
         const { accessToken, idToken } = event.data;
         if (idToken) {
           const profile = parseGoogleJwt(idToken);
-          if (profile && profile.email) {
+          if (profile) {
             handleProfileSuccess(profile);
             return;
           }
         }
-        if (accessToken || idToken) {
-          const profile = await fetchGoogleUserInfo(accessToken || '', idToken);
-          if (profile && profile.email) {
+        if (accessToken) {
+          const profile = await fetchGoogleUserInfo(accessToken);
+          if (profile) {
             handleProfileSuccess(profile);
             return;
           }
         }
-        onError('Não foi possível obter os dados do perfil Google.');
       } else if (event.data?.type === 'GOOGLE_AUTH_ERROR') {
         messageReceived = true;
         window.removeEventListener('message', messageHandler);

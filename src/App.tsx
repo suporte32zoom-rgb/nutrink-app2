@@ -61,8 +61,7 @@ import {
   auth,
   onAuthStateChanged,
   signOut,
-  handleGoogleProfileAuth,
-  checkFirebaseRedirectResult
+  handleGoogleProfileAuth
 } from './services/databaseService';
 import { trackPageView, trackAppointmentEvent, trackEvent } from './services/analytics';
 import { updateDocumentSeo } from './services/seo';
@@ -462,17 +461,8 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     setIsLoginModalOpen(false);
   };
 
-  // Sync session with Firebase Auth automatically & handle redirect results
+  // Sync session with Firebase Auth automatically
   useEffect(() => {
-    // Check if coming back from a Firebase Auth redirect flow
-    checkFirebaseRedirectResult().then((redirectUser) => {
-      if (redirectUser) {
-        setUserAccount(redirectUser);
-        setIsAuthenticated(true);
-        setCurrentTab('dashboard');
-      }
-    });
-
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser && fbUser.email) {
         try {

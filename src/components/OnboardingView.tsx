@@ -32,7 +32,7 @@ import {
 import { UserAccount } from '../types';
 import { getRegisteredUsers, saveRegisteredUser, SPECIALTY_OPTIONS, RegisteredProfessionalUser } from './LoginModal';
 import { GoogleProfile, initiateGoogleOAuthPopup } from '../services/googleAuth';
-import { signInWithGoogleFirebase, signInWithGoogleComplete, handleGoogleProfileAuth } from '../services/databaseService';
+import { signInWithGoogleFirebase, handleGoogleProfileAuth } from '../services/databaseService';
 
 interface OnboardingViewProps {
   onCompleteAuth: (user: Partial<UserAccount>, destinationTab?: string) => void;
@@ -241,19 +241,41 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
     setIsGoogleLoading(true);
 
     try {
-      // 1. Unified Google Authentication (Firebase Auth Popup + OAuth 2.0 fallback)
-      const user = await signInWithGoogleComplete();
+      // 1. Attempt standard Firebase Auth Google Popup
+      const user = await signInWithGoogleFirebase();
       setSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
       setIsGoogleLoading(false);
       onCompleteAuth(user, 'dashboard');
-    } catch (err: any) {
-      setIsGoogleLoading(false);
-      if (err?.message === 'AUTH_CANCELLED' || err?.message?.includes('fechad') || err?.message?.includes('cancelad')) {
-        return;
+    } catch (fbErr: any) {
+      console.warn('[Firebase Auth fallback]: tentando OAuth popup alternativo...', fbErr);
+
+      // If popup blocked or standard Firebase popup failed, fallback to direct Google OAuth popup
+      try {
+        await initiateGoogleOAuthPopup(
+          async (profile: GoogleProfile) => {
+            try {
+              const user = await handleGoogleProfileAuth(profile);
+              setSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
+              setIsGoogleLoading(false);
+              onCompleteAuth(user, 'dashboard');
+            } catch (err: any) {
+              setIsGoogleLoading(false);
+              setErrorMsg('Falha ao processar cadastro com Google. Tente novamente.');
+            }
+          },
+          (errText: string) => {
+            setIsGoogleLoading(false);
+            if (errText) {
+              setErrorMsg(errText);
+              setShowGoogleEmailFallback(true);
+            }
+          }
+        );
+      } catch (oauthErr: any) {
+        setIsGoogleLoading(false);
+        setErrorMsg('Pop-up de autenticação bloqueado pelo navegador. Digite seu e-mail do Google para acessar diretamente.');
+        setShowGoogleEmailFallback(true);
       }
-      console.warn('[Google Auth issue in Onboarding]:', err);
-      setErrorMsg('Pop-up de autenticação bloqueado pelo navegador ou restrito pelo dispositivo. Você pode acessar com 1 clique confirmando seu e-mail do Google abaixo:');
-      setShowGoogleEmailFallback(true);
     }
   };
 
