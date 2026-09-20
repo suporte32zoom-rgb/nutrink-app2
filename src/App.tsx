@@ -64,7 +64,6 @@ import {
   handleGoogleProfileAuth
 } from './services/databaseService';
 import { trackPageView, trackAppointmentEvent, trackEvent } from './services/analytics';
-import { updateDocumentSeo } from './services/seo';
 
 export type MainTab = 'dashboard' | 'patients' | 'calendar' | 'finance' | 'nutricalc' | 'telemedicine' | 'nutria_hub' | 'plans';
 
@@ -283,7 +282,6 @@ export function App() {
       title = `${INSTITUTIONAL_PAGES[institutionalPageIdFromUrl].title} | NutrinK`;
     }
 
-    updateDocumentSeo(title, location.pathname);
     trackPageView(title, location.pathname + location.search);
   }, [location.pathname, location.search, currentTab, activePatientId, isInstitutionalRoute, institutionalPageIdFromUrl]);
 
