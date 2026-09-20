@@ -91,7 +91,7 @@ export const MercadoPagoSubscriptionsView: React.FC<MercadoPagoSubscriptionsView
   const isUserPremium = userAccount?.plan === 'premium_anual' || userAccount?.plan === 'premium_mensal' || userAccount?.isSubscribed;
 
   return (
-    <div className="space-y-10 pb-12 text-slate-100 animate-fadeIn w-full max-w-6xl mx-auto" id="plans-subscriptions-page">
+    <div className="space-y-10 pb-12 text-slate-100 animate-fadeIn max-w-5xl mx-auto" id="plans-subscriptions-page">
       
       {/* 1. Header / Hero Section */}
       <div className="text-center space-y-4 pt-2">
