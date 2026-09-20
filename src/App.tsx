@@ -16,11 +16,14 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { Footer } from './components/Footer';
 import { InstitutionalDocModal } from './components/InstitutionalDocModal';
+import { InstitutionalView } from './components/InstitutionalView';
 import { LoginModal } from './components/LoginModal';
 import { TelemedicineView } from './components/TelemedicineView';
 import { MercadoPagoSubscriptionsView } from './components/MercadoPagoSubscriptionsView';
 import { OnboardingView } from './components/OnboardingView';
 import { BottomNavigation } from './components/BottomNavigation';
+import { INSTITUTIONAL_PAGES } from './data/institutionalPages';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   INITIAL_PATIENTS, 
   INITIAL_APPOINTMENTS, 
@@ -62,7 +65,89 @@ import {
 } from './services/databaseService';
 import { trackPageView, trackAppointmentEvent, trackEvent } from './services/analytics';
 
+export type MainTab = 'dashboard' | 'patients' | 'calendar' | 'finance' | 'nutricalc' | 'telemedicine' | 'nutria_hub' | 'plans';
+
+export const getTabFromPath = (pathname: string): MainTab => {
+  const p = pathname.toLowerCase().replace(/\/$/, '') || '/';
+  if (p === '/' || p === '/painel' || p === '/dashboard' || p === '/inicio') return 'dashboard';
+  if (p.startsWith('/pacientes') || p.startsWith('/patients')) return 'patients';
+  if (p.startsWith('/agenda') || p.startsWith('/calendar')) return 'calendar';
+  if (p.startsWith('/telemedicina') || p.startsWith('/telemedicine')) return 'telemedicine';
+  if (p.startsWith('/financeiro') || p.startsWith('/finance')) return 'finance';
+  if (p.startsWith('/nutricalc')) return 'nutricalc';
+  if (p.startsWith('/nutria-ia') || p.startsWith('/nutria') || p.startsWith('/nutria_hub')) return 'nutria_hub';
+  if (p.startsWith('/planos') || p.startsWith('/plans')) return 'plans';
+  return 'dashboard';
+};
+
+export const getInstitutionalPageIdFromPath = (pathname: string): string | null => {
+  const p = pathname.toLowerCase().replace(/\/$/, '');
+  const institutionalMap: Record<string, string> = {
+    '/sobre': 'sobre',
+    '/metodologia': 'metodologia',
+    '/privacidade': 'privacidade_lgpd',
+    '/privacidade-lgpd': 'privacidade_lgpd',
+    '/termos': 'termos_servico',
+    '/termos-de-servico': 'termos_servico',
+    '/uso-aceitavel': 'politica_uso_aceitavel',
+    '/politica-uso-aceitavel': 'politica_uso_aceitavel',
+    '/suporte': 'fale_conosco',
+    '/contato': 'fale_conosco',
+    '/fale-conosco': 'fale_conosco',
+    '/faq': 'faq',
+    '/perguntas-frequentes': 'faq',
+    '/recursos': 'recursos',
+    '/clientes': 'clientes'
+  };
+  return institutionalMap[p] || null;
+};
+
+export const getCanonicalPathForTab = (tab: MainTab): string => {
+  switch (tab) {
+    case 'dashboard': return '/painel';
+    case 'patients': return '/pacientes';
+    case 'calendar': return '/agenda';
+    case 'telemedicine': return '/telemedicina';
+    case 'finance': return '/financeiro';
+    case 'nutricalc': return '/nutricalc';
+    case 'nutria_hub': return '/nutria-ia';
+    case 'plans': return '/planos';
+    default: return '/painel';
+  }
+};
+
+export const getCanonicalPathForPageId = (pageId: string): string => {
+  switch (pageId) {
+    case 'inicio': return '/painel';
+    case 'planos': return '/planos';
+    case 'sobre': return '/sobre';
+    case 'metodologia': return '/metodologia';
+    case 'privacidade_lgpd': return '/privacidade';
+    case 'termos_servico': return '/termos';
+    case 'politica_uso_aceitavel': return '/uso-aceitavel';
+    case 'fale_conosco': return '/suporte';
+    case 'faq': return '/faq';
+    case 'recursos': return '/recursos';
+    case 'clientes': return '/clientes';
+    default: return `/${pageId}`;
+  }
+};
+
 export function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Extract patientId if on /pacientes/:id or /patients/:id
+  const patientIdMatch = location.pathname.match(/^\/(?:pacientes|patients)\/([^/?#]+)/i);
+  const routePatientId = patientIdMatch ? decodeURIComponent(patientIdMatch[1]) : null;
+
+  // Active tab derived directly from route
+  const currentTab = getTabFromPath(location.pathname);
+
+  // Active institutional page derived directly from route
+  const institutionalPageIdFromUrl = getInstitutionalPageIdFromPath(location.pathname);
+  const isInstitutionalRoute = institutionalPageIdFromUrl !== null;
+
   // Check URL parameters for direct deep-linking (e.g. /telemedicina?room=xyz, ?tab=telemedicine)
   const [telemedRoomFromUrl, setTelemedRoomFromUrl] = useState<string | null>(() => {
     try {
@@ -82,21 +167,38 @@ export function App() {
     }
   });
 
-  // Navigation state with direct route support
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'patients' | 'calendar' | 'finance' | 'nutricalc' | 'telemedicine' | 'nutria_hub' | 'plans'>(() => {
+  // Track telemed params from query string changes
+  useEffect(() => {
     try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const pathname = window.location.pathname.toLowerCase();
-      const hasRoom = urlParams.has('room') || urlParams.has('r') || urlParams.has('sala');
-      const isTelemed = pathname.includes('/telemedicina') || urlParams.get('tab') === 'telemedicine' || hasRoom;
-      if (isTelemed) return 'telemedicine';
-      if (urlParams.get('tab') === 'patients') return 'patients';
-      if (urlParams.get('tab') === 'calendar') return 'calendar';
-      if (urlParams.get('tab') === 'finance') return 'finance';
-      if (urlParams.get('tab') === 'plans') return 'plans';
+      const urlParams = new URLSearchParams(location.search);
+      const room = urlParams.get('room') || urlParams.get('r') || urlParams.get('sala');
+      const patientName = urlParams.get('patient') || urlParams.get('paciente') || urlParams.get('name');
+      if (room) setTelemedRoomFromUrl(room);
+      if (patientName) setTelemedPatientFromUrl(patientName);
     } catch {}
-    return 'dashboard';
-  });
+  }, [location.search]);
+
+  // Canonical redirection for legacy aliases
+  useEffect(() => {
+    const p = location.pathname.toLowerCase();
+    if (p === '/dashboard' || p === '/inicio') {
+      navigate('/painel', { replace: true });
+    } else if (p === '/patients') {
+      navigate('/pacientes', { replace: true });
+    } else if (p.startsWith('/patients/')) {
+      navigate(p.replace(/^\/patients\//, '/pacientes/'), { replace: true });
+    } else if (p === '/calendar') {
+      navigate('/agenda', { replace: true });
+    } else if (p === '/telemedicine') {
+      navigate(`/telemedicina${location.search}`, { replace: true });
+    } else if (p === '/finance') {
+      navigate('/financeiro', { replace: true });
+    } else if (p === '/plans') {
+      navigate('/planos', { replace: true });
+    } else if (p === '/nutria' || p === '/nutria_hub') {
+      navigate('/nutria-ia', { replace: true });
+    }
+  }, [location.pathname, location.search, navigate]);
 
   // Application Data States (persistent in localStorage with initial empty/clean state)
   const [patients, setPatients] = useState<Patient[]>(() => {
@@ -128,30 +230,45 @@ export function App() {
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
-  // Listen to popstate for browser back/forward and deep link updates
-  useEffect(() => {
-    const handlePopState = () => {
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const pathname = window.location.pathname.toLowerCase();
-        const room = urlParams.get('room') || urlParams.get('r') || urlParams.get('sala');
-        const patientName = urlParams.get('patient') || urlParams.get('paciente') || urlParams.get('name');
-        if (room) setTelemedRoomFromUrl(room);
-        if (patientName) setTelemedPatientFromUrl(patientName);
-        if (pathname.includes('/telemedicina') || urlParams.get('tab') === 'telemedicine' || !!room) {
-          setCurrentTab('telemedicine');
-        }
-      } catch {}
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  // Active patient ID: URL takes priority, falling back to state
+  const activePatientId = routePatientId || selectedPatientId;
 
-  // Track page views in Google Analytics whenever the active tab/screen changes (SPA navigation)
+  // SPA Navigation Handlers
+  const handleNavigateTab = (tab: MainTab) => {
+    if (tab === 'patients') {
+      setSelectedPatientId(null);
+      navigate('/pacientes');
+    } else {
+      setSelectedPatientId(null);
+      navigate(getCanonicalPathForTab(tab));
+    }
+  };
+
+  const handleOpenInstitutionalPage = (pageId: string) => {
+    const path = getCanonicalPathForPageId(pageId);
+    navigate(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSelectPatient = (id: string | null) => {
+    setSelectedPatientId(id);
+    if (id) {
+      navigate(`/pacientes/${id}`);
+    } else {
+      navigate('/pacientes');
+    }
+  };
+
+  // Keep setCurrentTab as a drop-in adapter for any internal caller
+  const setCurrentTab = (tab: MainTab) => {
+    handleNavigateTab(tab);
+  };
+
+  // Track page views in Google Analytics whenever route changes
   useEffect(() => {
     const tabTitles: Record<string, string> = {
       dashboard: 'Painel Principal | NutrinK',
-      patients: selectedPatientId ? 'Prontuário do Paciente | NutrinK' : 'Prontuários de Pacientes | NutrinK',
+      patients: activePatientId ? 'Prontuário do Paciente | NutrinK' : 'Prontuários de Pacientes | NutrinK',
       calendar: 'Agenda de Consultas | NutrinK',
       finance: 'Controle Financeiro | NutrinK',
       nutricalc: 'NutriCalc & Protocolos | NutrinK',
@@ -160,12 +277,13 @@ export function App() {
       plans: 'Planos e Assinaturas | NutrinK'
     };
 
-    const path = currentTab === 'patients' && selectedPatientId
-      ? `/patients/${selectedPatientId}`
-      : `/${currentTab}`;
+    let title = tabTitles[currentTab] || `NutrinK - ${currentTab}`;
+    if (isInstitutionalRoute && institutionalPageIdFromUrl && INSTITUTIONAL_PAGES[institutionalPageIdFromUrl]) {
+      title = `${INSTITUTIONAL_PAGES[institutionalPageIdFromUrl].title} | NutrinK`;
+    }
 
-    trackPageView(tabTitles[currentTab] || `NutrinK - ${currentTab}`, path);
-  }, [currentTab, selectedPatientId]);
+    trackPageView(title, location.pathname + location.search);
+  }, [location.pathname, location.search, currentTab, activePatientId, isInstitutionalRoute, institutionalPageIdFromUrl]);
 
   // Sync state changes with localStorage and Cloud Database
   useEffect(() => {
@@ -273,11 +391,6 @@ export function App() {
     monthlyMessageCount: guestDailyCount,
     monthlyMessageLimit: 50,
     activeSince: '2026'
-  };
-
-  const handleOpenInstitutionalPage = (pageId: string) => {
-    setActiveInstitutionalPageId(pageId);
-    setIsInstitutionalModalOpen(true);
   };
 
   const handleOpenLoginModal = (tab: 'login' | 'register' | 'forgot_password' = 'login') => {
@@ -602,8 +715,8 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     };
   }, [userAccount?.email]);
 
-  // Selected Patient object
-  const activePatient = patients.find(p => p.id === selectedPatientId) || null;
+  // Selected Patient object (resolved from URL or local selection)
+  const activePatient = patients.find(p => p.id === activePatientId) || null;
 
   // Automated Revenue computations (All appointments marked as "(Pago)" + standalone completed transactions)
   const paidAppointments = appointments.filter(a => 
@@ -1199,17 +1312,19 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
     }
   };
 
-  // Auth Guard: If user is not authenticated and not joining a telemedicine guest link, render the Onboarding flow
+  // Auth Guard: If user is not authenticated and not joining a telemedicine guest link and not on an institutional route, render the Onboarding flow
   const isGuestTelemedSession = !!(telemedRoomFromUrl && currentTab === 'telemedicine');
 
-  if (!isAuthenticated && !isGuestTelemedSession) {
+  if (!isAuthenticated && !isGuestTelemedSession && !isInstitutionalRoute) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-fuchsia-500 selection:text-white">
         <OnboardingView
           onCompleteAuth={(user, destinationTab) => {
             handleLoginAs(user);
             if (destinationTab) {
-              setCurrentTab(destinationTab as any);
+              handleNavigateTab(destinationTab as any);
+            } else {
+              handleNavigateTab('dashboard');
             }
           }}
           onOpenTermsDoc={(pageId) => handleOpenInstitutionalPage(pageId)}
@@ -1242,18 +1357,13 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         onOpenLoginModal={() => handleOpenLoginModal('login')}
         userAccount={userAccount}
         currentTab={currentTab}
-        onChangeTab={setCurrentTab}
+        onChangeTab={handleNavigateTab}
       />
 
       {/* Navigation Sub-header / Tabs */}
       <Navigation
         currentTab={currentTab}
-        onChangeTab={(tab) => {
-          setCurrentTab(tab);
-          if (tab !== 'patients' && tab !== 'nutricalc' && tab !== 'telemedicine') {
-            setSelectedPatientId(null);
-          }
-        }}
+        onChangeTab={handleNavigateTab}
         onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
         unreadNutriaAlerts={2}
         todayAppointmentsCount={appointments.filter(a => a.date === new Date().toISOString().split('T')[0]).length}
@@ -1263,7 +1373,19 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
       {/* Main Content Area with bottom padding to prevent bottom bar overlap */}
       <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 sm:pb-32">
         
-        {currentTab === 'plans' && (
+        {/* Institutional View for /sobre, /metodologia, /privacidade, /termos, etc. */}
+        {isInstitutionalRoute && (
+          <InstitutionalView
+            pageId={institutionalPageIdFromUrl || 'sobre'}
+            onNavigatePage={(pId) => handleOpenInstitutionalPage(pId)}
+            onBackToDashboard={() => handleNavigateTab('dashboard')}
+            onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+            onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+            onOpenLoginModal={() => handleOpenLoginModal('login')}
+          />
+        )}
+
+        {!isInstitutionalRoute && currentTab === 'plans' && (
           <MercadoPagoSubscriptionsView
             userAccount={userAccount || undefined}
             onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
@@ -1284,16 +1406,13 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
           />
         )}
         
-        {currentTab === 'dashboard' && (
+        {!isInstitutionalRoute && currentTab === 'dashboard' && (
           <DashboardView
             patients={patients}
             appointments={appointments}
             transactions={transactions}
             userAccount={userAccount}
-            onSelectPatient={(id) => {
-              setSelectedPatientId(id);
-              setCurrentTab('patients');
-            }}
+            onSelectPatient={handleSelectPatient}
             onOpenNewPatient={() => setIsNewPatientOpen(true)}
             onOpenNewAppointment={() => {
               setPreSelectedPatientForApt(null);
@@ -1307,11 +1426,11 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
           />
         )}
 
-        {currentTab === 'patients' && (
+        {!isInstitutionalRoute && currentTab === 'patients' && (
           <PatientsView
             patients={patients}
-            selectedPatientId={selectedPatientId}
-            onSelectPatient={setSelectedPatientId}
+            selectedPatientId={activePatientId}
+            onSelectPatient={handleSelectPatient}
             onOpenNewPatient={() => setIsNewPatientOpen(true)}
             onOpenNewAppointmentWithPatient={handleOpenNewAppointmentWithPatient}
             onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
@@ -1320,12 +1439,13 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
             foodDatabase={INITIAL_FOOD_DATABASE}
             userAccount={userAccount || undefined}
             onStartTelemedicine={(patientId) => {
-              setSelectedPatientId(patientId);
-              setCurrentTab('telemedicine');
+              const p = patients.find(pat => pat.id === patientId);
+              const patientParam = p ? `&paciente=${encodeURIComponent(p.name)}` : '';
+              navigate(`/telemedicina?sala=consultorio-${patientId}${patientParam}`);
             }}
             onNavigateToNutriCalc={(patientId) => {
               setSelectedPatientId(patientId);
-              setCurrentTab('nutricalc');
+              navigate(`/nutricalc?paciente=${encodeURIComponent(patientId)}`);
             }}
             appointments={appointments}
             onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
@@ -1333,7 +1453,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
           />
         )}
 
-        {currentTab === 'calendar' && (
+        {!isInstitutionalRoute && currentTab === 'calendar' && (
           <CalendarView
             appointments={appointments}
             patients={patients}
@@ -1342,20 +1462,18 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
               setIsNewAppointmentOpen(true);
             }}
             onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
-            onSelectPatient={(id) => {
-              setSelectedPatientId(id);
-              setCurrentTab('patients');
-            }}
+            onSelectPatient={handleSelectPatient}
             onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
             onStartTelemedicine={(patientId) => {
-              setSelectedPatientId(patientId);
-              setCurrentTab('telemedicine');
+              const p = patients.find(pat => pat.id === patientId);
+              const patientParam = p ? `&paciente=${encodeURIComponent(p.name)}` : '';
+              navigate(`/telemedicina?sala=consultorio-${patientId}${patientParam}`);
             }}
             onOpenAppointmentDetails={handleOpenAppointmentDetails}
           />
         )}
 
-        {currentTab === 'finance' && (
+        {!isInstitutionalRoute && currentTab === 'finance' && (
           <FinanceView
             transactions={transactions}
             patients={patients}
@@ -1365,18 +1483,18 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
           />
         )}
 
-        {currentTab === 'nutricalc' && (
+        {!isInstitutionalRoute && currentTab === 'nutricalc' && (
           <NutriCalcView
             patients={patients}
-            selectedPatientId={selectedPatientId}
-            onSelectPatient={setSelectedPatientId}
+            selectedPatientId={activePatientId}
+            onSelectPatient={handleSelectPatient}
             onUpdatePatient={handleUpdatePatient}
             userAccount={effectiveUserAccount}
             onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
           />
         )}
 
-        {currentTab === 'telemedicine' && (
+        {!isInstitutionalRoute && currentTab === 'telemedicine' && (
           <TelemedicineView
             patients={patients}
             appointments={appointments}
@@ -1387,23 +1505,17 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
             onUpdatePatient={handleUpdatePatient}
             onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
             onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-            onNavigateTab={(tab) => {
-              if (tab === 'patients' && selectedPatientId) {
-                setCurrentTab('patients');
-              } else {
-                setCurrentTab(tab);
-              }
-            }}
+            onNavigateTab={handleNavigateTab}
           />
         )}
 
-        {currentTab === 'nutria_hub' && (
+        {!isInstitutionalRoute && currentTab === 'nutria_hub' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between pb-2">
               <div>
                 <h1 className="text-xl font-bold text-white flex items-center gap-2">
                   <Bot className="w-5 h-5 text-fuchsia-400" />
-                  Central NUTRIA • Assistente & Copiloto Clínico
+                  Central NÚTRIA • Assistente & Copiloto Clínico
                 </h1>
                 <p className="text-xs text-purple-300">
                   Gerencie prontuários, planos alimentares, exames e rotinas por texto ou voz.
@@ -1433,19 +1545,14 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
       {/* Institutional Footer */}
       <Footer 
         onOpenPage={handleOpenInstitutionalPage}
-        onOpenPlans={() => setIsSubscriptionModalOpen(true)}
+        onOpenPlans={() => handleNavigateTab('plans')}
         onOpenLogin={handleOpenLoginModal}
       />
 
       {/* PWA Fixed Responsive Bottom Navigation Bar */}
       <BottomNavigation
         currentTab={currentTab}
-        onChangeTab={(tab) => {
-          setCurrentTab(tab);
-          if (tab !== 'patients' && tab !== 'nutricalc' && tab !== 'telemedicine') {
-            setSelectedPatientId(null);
-          }
-        }}
+        onChangeTab={handleNavigateTab}
         onOpenNutriaChat={() => setIsFloatingChatOpen(true)}
         unreadNutriaAlerts={2}
         todayAppointmentsCount={appointments.filter(a => a.date === new Date().toISOString().split('T')[0]).length}
