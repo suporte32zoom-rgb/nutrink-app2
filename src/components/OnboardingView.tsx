@@ -265,7 +265,10 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
           },
           (errText: string) => {
             setIsGoogleLoading(false);
-            if (errText) {
+            if (errText === 'origin_mismatch') {
+              setErrorMsg('Identificação Google via domínio customizado: confirme seu e-mail do Google abaixo para entrar com 1 clique.');
+              setShowGoogleEmailFallback(true);
+            } else if (errText) {
               setErrorMsg(errText);
               setShowGoogleEmailFallback(true);
             }

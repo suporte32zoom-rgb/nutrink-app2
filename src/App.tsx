@@ -58,11 +58,22 @@ import {
   auth,
   onAuthStateChanged,
   signOut,
-  handleGoogleProfileAuth
+  handleGoogleProfileAuth,
+  checkFirebaseRedirectResult
 } from './services/databaseService';
 import { trackPageView, trackAppointmentEvent, trackEvent } from './services/analytics';
 
 export function App() {
+  // Check for any returned Google OAuth redirect session on app mount (handles nutrink.com.br and custom domains)
+  useEffect(() => {
+    checkFirebaseRedirectResult().then(user => {
+      if (user) {
+        handleLoginAs(user);
+      }
+    }).catch(err => {
+      console.warn('OAuth redirect check notice:', err);
+    });
+  }, []);
   // Check URL parameters for direct deep-linking (e.g. /telemedicina?room=xyz, ?tab=telemedicine)
   const [telemedRoomFromUrl, setTelemedRoomFromUrl] = useState<string | null>(() => {
     try {

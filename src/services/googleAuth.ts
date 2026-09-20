@@ -178,9 +178,11 @@ export async function initiateGoogleOAuthPopup(
           if (isSettled) return;
           if (response.error) {
             console.warn('Erro retornado pelo popup do Google:', response.error_description || response.error);
-            // Ignore normal user dismissal gracefully without intrusive error banner
+            // Handle origin mismatch or user cancellation gracefully
             if (response.error === 'popup_closed' || response.error === 'access_denied') {
               onError('');
+            } else if (response.error === 'origin_mismatch' || response.error === 'idpiframe_initialization_failed') {
+              onError('origin_mismatch');
             } else {
               onError(response.error_description || response.error || 'Autenticação Google cancelada.');
             }
@@ -203,8 +205,9 @@ export async function initiateGoogleOAuthPopup(
           console.warn('Google GSI OAuth notice:', err);
           const errType = (typeof err === 'string' ? err : err?.type || err?.message || '');
           if (errType.includes('closed') || errType.includes('cancel')) {
-            // User closed the popup manually
             onError('');
+          } else if (errType.includes('origin_mismatch') || errType.includes('idpiframe')) {
+            onError('origin_mismatch');
           } else {
             onError(errType || 'Janela de autenticação fechada.');
           }
@@ -219,8 +222,9 @@ export async function initiateGoogleOAuthPopup(
     }
   }
 
-  // 2. Direct OAuth 2.0 Web Popup with PostMessage Listener
-  const redirectUri = `${window.location.origin}/auth/google/callback`;
+  // 2. Direct OAuth 2.0 Web Popup with PostMessage Listener (captures current window.location.origin including https://nutrink.com.br)
+  const currentOrigin = window.location.origin;
+  const redirectUri = `${currentOrigin}/auth/google/callback`;
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
     clientId
   )}&redirect_uri=${encodeURIComponent(
@@ -249,8 +253,16 @@ export async function initiateGoogleOAuthPopup(
     // Listen for postMessage from popup callback
     let messageReceived = false;
     const messageHandler = async (event: MessageEvent) => {
-      // Security check
-      if (event.origin !== window.location.origin && !event.origin.endsWith('.run.app') && !event.origin.includes('localhost')) {
+      // Dynamic security check: allow current origin, nutrink.com.br, run.app, localhost, firebaseapp.com
+      const eventOrigin = event.origin || '';
+      const isAllowedOrigin = 
+        eventOrigin === window.location.origin ||
+        eventOrigin.includes('nutrink.com.br') ||
+        eventOrigin.includes('firebaseapp.com') ||
+        eventOrigin.endsWith('.run.app') ||
+        eventOrigin.includes('localhost');
+
+      if (!isAllowedOrigin) {
         return;
       }
 

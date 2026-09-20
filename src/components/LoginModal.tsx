@@ -386,11 +386,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           }
         },
         (errNotice: string) => {
-          // If browser blocked popup or user cancelled, seamlessly open the Google Onboarding tab
+          // If browser blocked popup or user cancelled or origin mismatch, seamlessly open the Google Onboarding tab
           setIsProcessing(false);
-          setGoogleEmail(loginEmail || regEmail || localStorage.getItem('nutrink_last_email') || 'profissional@gmail.com');
+          setGoogleEmail(loginEmail || regEmail || localStorage.getItem('nutrink_last_email') || '');
           if (!googleName && regName) {
             setGoogleName(regName);
+          }
+          if (errNotice === 'origin_mismatch') {
+            setErrorMessage('Acesso via domínio externo: confirme seus dados profissionais abaixo para autenticar sua conta Google.');
           }
           setActiveTab('google_onboarding');
         }

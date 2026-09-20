@@ -18,6 +18,8 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signInWithCredential, 
   onAuthStateChanged, 
   signOut,
@@ -45,7 +47,41 @@ export { onAuthStateChanged, signOut };
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('email');
 googleProvider.addScope('profile');
-googleProvider.setCustomParameters({ prompt: 'select_account' });
+googleProvider.setCustomParameters({ 
+  prompt: 'select_account'
+});
+
+/**
+ * Checks if the current window is running inside an iframe
+ */
+export function isRunningInIframe(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Checks for any pending redirect auth result from Firebase Auth (useful when returning from signInWithRedirect)
+ */
+export async function checkFirebaseRedirectResult(): Promise<UserAccount | null> {
+  try {
+    const result = await getRedirectResult(auth);
+    if (result && result.user) {
+      const fbUser = result.user;
+      return await handleGoogleProfileAuth({
+        email: fbUser.email || '',
+        name: fbUser.displayName || undefined,
+        picture: fbUser.photoURL || undefined,
+        uid: fbUser.uid
+      });
+    }
+  } catch (error: any) {
+    console.warn('[Firebase Auth redirect result check]:', error);
+  }
+  return null;
+}
 
 /**
  * Handle Google Profile Authentication (from Firebase Auth or Google Identity Services)
@@ -133,9 +169,23 @@ export async function handleGoogleProfileAuth(profile: {
 }
 
 /**
- * Sign in with Firebase Auth Google Popup
+ * Sign in with Firebase Auth Google (handles popup mode, redirect mode, and custom domains like nutrink.com.br)
  */
-export async function signInWithGoogleFirebase(): Promise<UserAccount> {
+export async function signInWithGoogleFirebase(preferredMode?: 'popup' | 'redirect'): Promise<UserAccount> {
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  
+  // Dynamically set prompt and host parameters
+  googleProvider.setCustomParameters({
+    prompt: 'select_account',
+    authuser: '0'
+  });
+
+  // If redirect mode explicitly requested or running outside iframe with mobile browser
+  if (preferredMode === 'redirect') {
+    await signInWithRedirect(auth, googleProvider);
+    return new Promise(() => {}); // Will reload upon redirect
+  }
+
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const fbUser = result.user;
@@ -146,7 +196,20 @@ export async function signInWithGoogleFirebase(): Promise<UserAccount> {
       uid: fbUser.uid
     });
   } catch (error: any) {
-    console.warn('[Firebase Auth Google error]:', error);
+    const errorCode = error?.code || '';
+    console.warn('[Firebase Auth Google error]:', errorCode, error?.message || error);
+
+    // If popup was blocked and we are outside iframe (e.g., on https://nutrink.com.br), attempt redirect fallback
+    if ((errorCode === 'auth/popup-blocked' || errorCode === 'auth/popup-closed-by-user') && !isRunningInIframe()) {
+      try {
+        console.log('[Firebase Auth]: tentando signInWithRedirect como fallback para popup bloqueado...');
+        await signInWithRedirect(auth, googleProvider);
+        return new Promise(() => {});
+      } catch (redirectErr) {
+        console.warn('[Firebase Auth redirect fallback error]:', redirectErr);
+      }
+    }
+
     throw error;
   }
 }
