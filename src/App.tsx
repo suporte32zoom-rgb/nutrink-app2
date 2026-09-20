@@ -21,7 +21,6 @@ import { TelemedicineView } from './components/TelemedicineView';
 import { MercadoPagoSubscriptionsView } from './components/MercadoPagoSubscriptionsView';
 import { OnboardingView } from './components/OnboardingView';
 import { BottomNavigation } from './components/BottomNavigation';
-import { FirebaseAuthActionModal } from './components/FirebaseAuthActionModal';
 import { 
   INITIAL_PATIENTS, 
   INITIAL_APPOINTMENTS, 
@@ -56,38 +55,11 @@ import {
   subscribeToAppointments,
   subscribeToTransactions,
   subscribeToPatients,
-  auth,
-  onAuthStateChanged,
-  signOut,
-  handleGoogleProfileAuth,
-  checkFirebaseRedirectResult
+  handleGoogleProfileAuth
 } from './services/databaseService';
 import { trackPageView, trackAppointmentEvent, trackEvent } from './services/analytics';
 
 export function App() {
-  // Check for any returned Google OAuth redirect session on app mount (handles nutrink.com.br and custom domains)
-  useEffect(() => {
-    checkFirebaseRedirectResult().then(user => {
-      if (user) {
-        handleLoginAs(user);
-      }
-    }).catch(err => {
-      console.warn('OAuth redirect check notice:', err);
-    });
-  }, []);
-  // Firebase Auth Action URL parameters (handles nutrink-505600.firebaseapp.com/__/auth/action or ?mode=...&oobCode=...)
-  const [authActionState, setAuthActionState] = useState<{ isOpen: boolean; mode: string | null; oobCode: string | null }>(() => {
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const mode = urlParams.get('mode');
-      const oobCode = urlParams.get('oobCode');
-      if (mode && oobCode) {
-        return { isOpen: true, mode, oobCode };
-      }
-    } catch {}
-    return { isOpen: false, mode: null, oobCode: null };
-  });
-
   // Check URL parameters for direct deep-linking (e.g. /telemedicina?room=xyz, ?tab=telemedicine)
   const [telemedRoomFromUrl, setTelemedRoomFromUrl] = useState<string | null>(() => {
     try {
@@ -377,36 +349,11 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     } catch (e) {
       console.error('Failed to clear session:', e);
     }
-    signOut(auth).catch(() => {});
     setUserAccount(null);
     setIsAuthenticated(false);
     setIsProfileModalOpen(false);
     setIsLoginModalOpen(false);
   };
-
-  // Sync session with Firebase Auth automatically
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser && fbUser.email) {
-        try {
-          const user = await handleGoogleProfileAuth({
-            email: fbUser.email,
-            name: fbUser.displayName || undefined,
-            picture: fbUser.photoURL || undefined,
-            uid: fbUser.uid
-          });
-          setUserAccount(user);
-          setIsAuthenticated(true);
-          // If on onboarding, redirect directly to 'dashboard' (Painel Clínico)
-          setCurrentTab(prev => (prev === 'dashboard' || prev === 'patients' || prev === 'calendar' || prev === 'finance' || prev === 'nutricalc' || prev === 'telemedicine' || prev === 'nutria_hub' || prev === 'plans' ? prev : 'dashboard'));
-        } catch (err) {
-          console.warn('[Firebase Auth auto-sync notice]:', err);
-        }
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   // Real-time backend subscription sync (via Mercado Pago Webhook)
   useEffect(() => {
@@ -1646,24 +1593,6 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         onSaveTransaction={(newTx) => {
           setTransactions(prev => [newTx, ...prev]);
           saveTransactionToDb(newTx, userAccount?.email).catch(err => console.warn('Erro ao persistir nova transação:', err));
-        }}
-      />
-
-      {/* Firebase Auth Action Modal (Email verification, Password reset via nutrink-505600.firebaseapp.com) */}
-      <FirebaseAuthActionModal
-        isOpen={authActionState.isOpen}
-        onClose={() => {
-          setAuthActionState({ isOpen: false, mode: null, oobCode: null });
-          try {
-            // Clean url params without reloading
-            const cleanUrl = window.location.pathname;
-            window.history.replaceState({}, document.title, cleanUrl);
-          } catch {}
-        }}
-        mode={authActionState.mode}
-        oobCode={authActionState.oobCode}
-        onSuccessLogin={(email) => {
-          handleOpenLoginModal('login');
         }}
       />
 

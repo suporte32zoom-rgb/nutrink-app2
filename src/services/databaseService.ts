@@ -14,104 +14,23 @@ import {
   serverTimestamp,
   Timestamp 
 } from 'firebase/firestore';
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signInWithRedirect,
-  getRedirectResult,
-  signInWithCredential, 
-  onAuthStateChanged, 
-  signOut,
-  applyActionCode,
-  verifyPasswordResetCode,
-  confirmPasswordReset,
-  checkActionCode,
-  User as FirebaseUser
-} from 'firebase/auth';
 import { Patient, Appointment, FinancialTransaction, UserAccount, NutriaMessage } from '../types';
 
-// Load Firebase configuration (nutrink-505600.firebaseapp.com)
+// Load Firebase Firestore configuration
 const firebaseConfig = {
   projectId: "gen-lang-client-0157446519",
   appId: "1:193329003759:web:b4922d6b2c9545104e6f1a",
   apiKey: "AIzaSyDb20KbtkPnP9Cn8v26cbMuTvVEkzE_Bss",
-  authDomain: (typeof window !== 'undefined' && (window.location.origin.includes('nutrink-505600') || window.location.origin.includes('nutrink.com.br')))
-    ? "nutrink-505600.firebaseapp.com"
-    : "nutrink-505600.firebaseapp.com",
   firestoreDatabaseId: "ai-studio-remixnutrinknutr-51d08cbc-daf3-4ec1-978f-d4e0c04f216a",
   storageBucket: "gen-lang-client-0157446519.firebasestorage.app",
   messagingSenderId: "193329003759"
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export { onAuthStateChanged, signOut };
 
 /**
- * Verifies a password reset oobCode and returns the corresponding email address
- */
-export async function verifyResetCode(oobCode: string): Promise<string> {
-  return await verifyPasswordResetCode(auth, oobCode);
-}
-
-/**
- * Confirms password reset with new password
- */
-export async function submitNewPassword(oobCode: string, newPass: string): Promise<void> {
-  await confirmPasswordReset(auth, oobCode, newPass);
-}
-
-/**
- * Applies email verification action code
- */
-export async function applyEmailVerification(oobCode: string): Promise<void> {
-  await applyActionCode(auth, oobCode);
-}
-
-// Google Provider setup
-export const googleProvider = new GoogleAuthProvider();
-googleProvider.addScope('email');
-googleProvider.addScope('profile');
-googleProvider.setCustomParameters({ 
-  prompt: 'select_account'
-});
-
-/**
- * Checks if the current window is running inside an iframe
- */
-export function isRunningInIframe(): boolean {
-  try {
-    return window.self !== window.top;
-  } catch {
-    return true;
-  }
-}
-
-/**
- * Checks for any pending redirect auth result from Firebase Auth (useful when returning from signInWithRedirect)
- */
-export async function checkFirebaseRedirectResult(): Promise<UserAccount | null> {
-  try {
-    const result = await getRedirectResult(auth);
-    if (result && result.user) {
-      const fbUser = result.user;
-      return await handleGoogleProfileAuth({
-        email: fbUser.email || '',
-        name: fbUser.displayName || undefined,
-        picture: fbUser.photoURL || undefined,
-        uid: fbUser.uid
-      });
-    }
-  } catch (error: any) {
-    console.warn('[Firebase Auth redirect result check]:', error);
-  }
-  return null;
-}
-
-/**
- * Handle Google Profile Authentication (from Firebase Auth or Google Identity Services)
+ * Handle Google Profile Authentication (Native Google Identity Services / GSI / OAuth 2.0)
  * Automatically checks and registers account in database if first access, merges profile data,
  * and persists to Firestore.
  */
@@ -120,6 +39,7 @@ export async function handleGoogleProfileAuth(profile: {
   name?: string;
   picture?: string;
   sub?: string;
+  id?: string;
   uid?: string;
 }): Promise<UserAccount> {
   const cleanEmail = (profile.email || '').trim().toLowerCase();
@@ -128,7 +48,7 @@ export async function handleGoogleProfileAuth(profile: {
   }
   const name = (profile.name || 'Profissional de Saúde').trim();
   const avatarUrl = profile.picture || undefined;
-  const googleId = profile.sub || profile.uid || '';
+  const googleId = profile.sub || profile.id || profile.uid || '';
 
   // Check if existing profile in Firestore
   let existing = await getProfileByEmail(cleanEmail);
@@ -193,52 +113,6 @@ export async function handleGoogleProfileAuth(profile: {
   }
 
   return finalUser;
-}
-
-/**
- * Sign in with Firebase Auth Google (handles popup mode, redirect mode, and custom domains like nutrink.com.br)
- */
-export async function signInWithGoogleFirebase(preferredMode?: 'popup' | 'redirect'): Promise<UserAccount> {
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-  
-  // Dynamically set prompt and host parameters
-  googleProvider.setCustomParameters({
-    prompt: 'select_account',
-    authuser: '0'
-  });
-
-  // If redirect mode explicitly requested or running outside iframe with mobile browser
-  if (preferredMode === 'redirect') {
-    await signInWithRedirect(auth, googleProvider);
-    return new Promise(() => {}); // Will reload upon redirect
-  }
-
-  try {
-    const result = await signInWithPopup(auth, googleProvider);
-    const fbUser = result.user;
-    return await handleGoogleProfileAuth({
-      email: fbUser.email || '',
-      name: fbUser.displayName || undefined,
-      picture: fbUser.photoURL || undefined,
-      uid: fbUser.uid
-    });
-  } catch (error: any) {
-    const errorCode = error?.code || '';
-    console.warn('[Firebase Auth Google error]:', errorCode, error?.message || error);
-
-    // If popup was blocked and we are outside iframe (e.g., on https://nutrink.com.br), attempt redirect fallback
-    if ((errorCode === 'auth/popup-blocked' || errorCode === 'auth/popup-closed-by-user') && !isRunningInIframe()) {
-      try {
-        console.log('[Firebase Auth]: tentando signInWithRedirect como fallback para popup bloqueado...');
-        await signInWithRedirect(auth, googleProvider);
-        return new Promise(() => {});
-      } catch (redirectErr) {
-        console.warn('[Firebase Auth redirect fallback error]:', redirectErr);
-      }
-    }
-
-    throw error;
-  }
 }
 
 

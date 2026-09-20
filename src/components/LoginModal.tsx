@@ -23,7 +23,7 @@ import {
 import { UserAccount } from '../types';
 import { formatBrasiliaShortDate } from '../utils/dateUtils';
 import { GoogleProfile, initiateGoogleOAuthPopup } from '../services/googleAuth';
-import { saveProfile, signInWithGoogleFirebase, handleGoogleProfileAuth } from '../services/databaseService';
+import { saveProfile, handleGoogleProfileAuth } from '../services/databaseService';
 
 export type AuthModalTab = 'login' | 'register' | 'forgot_password' | 'google_onboarding';
 
@@ -318,7 +318,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }, 800);
   };
 
-  // Initiate Google Authentication Flow
+  // Initiate Google Authentication Flow (Google Identity Services GSI / Native OAuth 2.0)
   const handleInitiateGoogleAuth = async () => {
     setErrorMessage('');
     setIsProcessing(true);
@@ -344,26 +344,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
     } catch {}
 
-    // 2. Attempt real Firebase Auth Google Popup
-    try {
-      const fbUser = await signInWithGoogleFirebase();
-      if (fbUser && fbUser.email) {
-        setIsProcessing(false);
-        setAuthSuccess(true);
-        setAuthSuccessMsg(`Bem-vindo(a), ${fbUser.name}! Acessando Consultório...`);
-        await saveRegisteredUser(fbUser);
-        onLoginAs(fbUser);
-        setTimeout(() => {
-          setAuthSuccess(false);
-          onClose();
-        }, 800);
-        return;
-      }
-    } catch (fbErr: any) {
-      console.warn('[Firebase Auth Google]: tentativa de popup falhou ou foi bloqueada pelo navegador, tentando fallback...', fbErr);
-    }
-
-    // 3. Attempt direct Google OAuth 2.0 Client Popup
+    // 2. Direct Google Identity Services (GSI) OAuth 2.0 Web Popup
     try {
       await initiateGoogleOAuthPopup(
         async (profile: GoogleProfile) => {
@@ -393,7 +374,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             setGoogleName(regName);
           }
           if (errNotice === 'origin_mismatch') {
-            setErrorMessage('Acesso via domínio externo: confirme seus dados profissionais abaixo para autenticar sua conta Google.');
+            setErrorMessage('Acesso via domínio customizado: confirme seus dados profissionais abaixo para autenticar sua conta Google.');
           }
           setActiveTab('google_onboarding');
         }

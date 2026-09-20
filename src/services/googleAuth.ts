@@ -1,6 +1,7 @@
 /**
  * Google Identity Services (GSI) & Google OAuth 2.0 Client Service
  * For NutrinK Clinical Health Platform
+ * Supports native Google Identity Services SDK, JWT decoding, Direct Popup, and Custom Domains
  */
 
 export interface GoogleProfile {
@@ -20,8 +21,28 @@ declare global {
     google?: {
       accounts: {
         id: {
-          initialize: (config: any) => void;
-          renderButton: (parent: HTMLElement, options: any) => void;
+          initialize: (config: {
+            client_id: string;
+            callback: (response: { credential: string; select_by?: string }) => void;
+            auto_select?: boolean;
+            cancel_on_tap_outside?: boolean;
+            itp_support?: boolean;
+            prompt_parent_id?: string;
+            context?: string;
+          }) => void;
+          renderButton: (
+            parent: HTMLElement,
+            options: {
+              type?: 'standard' | 'icon';
+              theme?: 'outline' | 'filled_blue' | 'filled_black';
+              size?: 'large' | 'medium' | 'small';
+              text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
+              shape?: 'rectangular' | 'pill' | 'circle' | 'square';
+              logo_alignment?: 'left' | 'center';
+              width?: number | string;
+              locale?: string;
+            }
+          ) => void;
           prompt: (momentListener?: (notification: any) => void) => void;
           disableAutoSelect: () => void;
           revoke: (hint: string, done: () => void) => void;
@@ -56,7 +77,7 @@ export function getGoogleClientId(): string {
 }
 
 /**
- * Parses JWT ID Token issued by Google Accounts
+ * Parses JWT ID Token issued by Google Accounts (credential string)
  */
 export function parseGoogleJwt(token: string): GoogleProfile | null {
   try {
@@ -76,7 +97,7 @@ export function parseGoogleJwt(token: string): GoogleProfile | null {
       name: parsed.name || `${parsed.given_name || ''} ${parsed.family_name || ''}`.trim() || 'Profissional de Saúde',
       given_name: parsed.given_name,
       family_name: parsed.family_name,
-      email: parsed.email || '',
+      email: (parsed.email || '').trim().toLowerCase(),
       email_verified: parsed.email_verified,
       picture: parsed.picture || '',
       locale: parsed.locale
@@ -118,6 +139,62 @@ export function loadGoogleGsiScript(): Promise<boolean> {
 }
 
 /**
+ * Initializes Google Identity Services (GSI) Client
+ */
+export async function setupGoogleIdentityServices(
+  onSuccess: (profile: GoogleProfile) => void,
+  targetElement?: HTMLElement | null,
+  buttonOptions?: {
+    theme?: 'outline' | 'filled_blue' | 'filled_black';
+    size?: 'large' | 'medium' | 'small';
+    text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
+    shape?: 'rectangular' | 'pill' | 'circle' | 'square';
+    width?: number | string;
+  }
+): Promise<boolean> {
+  const loaded = await loadGoogleGsiScript();
+  if (!loaded || !window.google?.accounts?.id) return false;
+
+  const clientId = getGoogleClientId();
+
+  try {
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: (response) => {
+        if (response?.credential) {
+          const profile = parseGoogleJwt(response.credential);
+          if (profile && profile.email) {
+            onSuccess(profile);
+          }
+        }
+      },
+      auto_select: false,
+      cancel_on_tap_outside: true,
+      itp_support: true,
+    });
+
+    if (targetElement && window.google.accounts.id.renderButton) {
+      targetElement.innerHTML = '';
+      window.google.accounts.id.renderButton(targetElement, {
+        type: 'standard',
+        theme: buttonOptions?.theme || 'outline',
+        size: buttonOptions?.size || 'large',
+        text: buttonOptions?.text || 'continue_with',
+        shape: buttonOptions?.shape || 'pill',
+        logo_alignment: 'left',
+        width: buttonOptions?.width || 280,
+        locale: 'pt-BR'
+      });
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('Erro ao inicializar Google Identity Services:', err);
+    return false;
+  }
+}
+
+/**
  * Fetches user profile from Google UserInfo endpoint with OAuth2 Access Token
  */
 export async function fetchGoogleUserInfo(accessToken: string): Promise<GoogleProfile | null> {
@@ -139,7 +216,7 @@ export async function fetchGoogleUserInfo(accessToken: string): Promise<GooglePr
       name: data.name || `${data.given_name || ''} ${data.family_name || ''}`.trim() || 'Profissional de Saúde',
       given_name: data.given_name,
       family_name: data.family_name,
-      email: data.email,
+      email: (data.email || '').trim().toLowerCase(),
       email_verified: data.email_verified,
       picture: data.picture,
       locale: data.locale,
@@ -178,7 +255,6 @@ export async function initiateGoogleOAuthPopup(
           if (isSettled) return;
           if (response.error) {
             console.warn('Erro retornado pelo popup do Google:', response.error_description || response.error);
-            // Handle origin mismatch or user cancellation gracefully
             if (response.error === 'popup_closed' || response.error === 'access_denied') {
               onError('');
             } else if (response.error === 'origin_mismatch' || response.error === 'idpiframe_initialization_failed') {
@@ -253,12 +329,11 @@ export async function initiateGoogleOAuthPopup(
     // Listen for postMessage from popup callback
     let messageReceived = false;
     const messageHandler = async (event: MessageEvent) => {
-      // Dynamic security check: allow current origin, nutrink.com.br, run.app, localhost, firebaseapp.com
+      // Dynamic security check: allow current origin, nutrink.com.br, run.app, localhost
       const eventOrigin = event.origin || '';
       const isAllowedOrigin = 
         eventOrigin === window.location.origin ||
         eventOrigin.includes('nutrink.com.br') ||
-        eventOrigin.includes('firebaseapp.com') ||
         eventOrigin.endsWith('.run.app') ||
         eventOrigin.includes('localhost');
 
@@ -301,7 +376,6 @@ export async function initiateGoogleOAuthPopup(
         setTimeout(() => {
           window.removeEventListener('message', messageHandler);
           if (!messageReceived) {
-            // User closed the popup window without completing auth
             onError('');
           }
         }, 800);

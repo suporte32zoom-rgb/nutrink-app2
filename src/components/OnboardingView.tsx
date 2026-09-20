@@ -32,7 +32,7 @@ import {
 import { UserAccount } from '../types';
 import { getRegisteredUsers, saveRegisteredUser, SPECIALTY_OPTIONS, RegisteredProfessionalUser } from './LoginModal';
 import { GoogleProfile, initiateGoogleOAuthPopup } from '../services/googleAuth';
-import { signInWithGoogleFirebase, handleGoogleProfileAuth } from '../services/databaseService';
+import { handleGoogleProfileAuth } from '../services/databaseService';
 
 interface OnboardingViewProps {
   onCompleteAuth: (user: Partial<UserAccount>, destinationTab?: string) => void;
@@ -234,51 +234,40 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
     }
   };
 
-  // 1-Click Google Sign In (Primary Action via Firebase Auth & OAuth)
+  // 1-Click Google Sign In (Google Identity Services GSI & Native OAuth 2.0)
   const handleGoogleClick = async () => {
     setErrorMsg(null);
     setSuccessMsg(null);
     setIsGoogleLoading(true);
 
     try {
-      // 1. Attempt standard Firebase Auth Google Popup
-      const user = await signInWithGoogleFirebase();
-      setSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
-      setIsGoogleLoading(false);
-      onCompleteAuth(user, 'dashboard');
-    } catch (fbErr: any) {
-      console.warn('[Firebase Auth fallback]: tentando OAuth popup alternativo...', fbErr);
-
-      // If popup blocked or standard Firebase popup failed, fallback to direct Google OAuth popup
-      try {
-        await initiateGoogleOAuthPopup(
-          async (profile: GoogleProfile) => {
-            try {
-              const user = await handleGoogleProfileAuth(profile);
-              setSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
-              setIsGoogleLoading(false);
-              onCompleteAuth(user, 'dashboard');
-            } catch (err: any) {
-              setIsGoogleLoading(false);
-              setErrorMsg('Falha ao processar cadastro com Google. Tente novamente.');
-            }
-          },
-          (errText: string) => {
+      await initiateGoogleOAuthPopup(
+        async (profile: GoogleProfile) => {
+          try {
+            const user = await handleGoogleProfileAuth(profile);
+            setSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
             setIsGoogleLoading(false);
-            if (errText === 'origin_mismatch') {
-              setErrorMsg('Identificação Google via domínio customizado: confirme seu e-mail do Google abaixo para entrar com 1 clique.');
-              setShowGoogleEmailFallback(true);
-            } else if (errText) {
-              setErrorMsg(errText);
-              setShowGoogleEmailFallback(true);
-            }
+            onCompleteAuth(user, 'dashboard');
+          } catch (err: any) {
+            setIsGoogleLoading(false);
+            setErrorMsg('Falha ao processar cadastro com Google. Tente novamente.');
           }
-        );
-      } catch (oauthErr: any) {
-        setIsGoogleLoading(false);
-        setErrorMsg('Pop-up de autenticação bloqueado pelo navegador. Digite seu e-mail do Google para acessar diretamente.');
-        setShowGoogleEmailFallback(true);
-      }
+        },
+        (errText: string) => {
+          setIsGoogleLoading(false);
+          if (errText === 'origin_mismatch') {
+            setErrorMsg('Identificação Google via domínio customizado: confirme seu e-mail do Google abaixo para entrar com 1 clique.');
+            setShowGoogleEmailFallback(true);
+          } else if (errText) {
+            setErrorMsg(errText);
+            setShowGoogleEmailFallback(true);
+          }
+        }
+      );
+    } catch (oauthErr: any) {
+      setIsGoogleLoading(false);
+      setErrorMsg('Pop-up de autenticação bloqueado pelo navegador. Digite seu e-mail do Google para acessar diretamente.');
+      setShowGoogleEmailFallback(true);
     }
   };
 
