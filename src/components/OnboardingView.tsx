@@ -33,7 +33,6 @@ import { UserAccount } from '../types';
 import { getRegisteredUsers, saveRegisteredUser, SPECIALTY_OPTIONS, RegisteredProfessionalUser } from './LoginModal';
 import { GoogleProfile, initiateGoogleOAuthPopup } from '../services/googleAuth';
 import { signInWithGoogleFirebase, signInWithGoogleComplete, handleGoogleProfileAuth } from '../services/databaseService';
-import GoogleLoginButton from './GoogleLoginButton';
 
 interface OnboardingViewProps {
   onCompleteAuth: (user: Partial<UserAccount>, destinationTab?: string) => void;
@@ -728,30 +727,6 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                   {isGoogleLoading ? 'Autenticando com o Google...' : 'Continuar com o Google'}
                 </span>
               </button>
-
-              {/* Google Identity Services Official Embedded Component */}
-              <div className="pt-1 flex justify-center">
-                <GoogleLoginButton
-                  text="continue_with"
-                  theme="outline"
-                  size="large"
-                  onSuccess={async (profile) => {
-                    try {
-                      setIsGoogleLoading(true);
-                      const user = await handleGoogleProfileAuth(profile);
-                      setSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
-                      setIsGoogleLoading(false);
-                      onCompleteAuth(user, 'dashboard');
-                    } catch (e: any) {
-                      setIsGoogleLoading(false);
-                      setErrorMsg('Erro ao autenticar com as credenciais do Google.');
-                    }
-                  }}
-                  onError={(errText) => {
-                    if (errText) console.warn('GIS error notice in onboarding:', errText);
-                  }}
-                />
-              </div>
 
               {/* Quick Benefits Tags */}
               <div className="grid grid-cols-3 gap-2 pt-1">

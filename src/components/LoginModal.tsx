@@ -24,7 +24,6 @@ import { UserAccount } from '../types';
 import { formatBrasiliaShortDate } from '../utils/dateUtils';
 import { GoogleProfile, initiateGoogleOAuthPopup } from '../services/googleAuth';
 import { saveProfile, signInWithGoogleFirebase, signInWithGoogleComplete, handleGoogleProfileAuth } from '../services/databaseService';
-import GoogleLoginButton from './GoogleLoginButton';
 
 export type AuthModalTab = 'login' | 'register' | 'forgot_password';
 
@@ -445,32 +444,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 {isGoogleLoading ? 'Autenticando com o Google...' : 'Continuar com o Google'}
               </span>
             </button>
-
-            {/* Google Identity Services Official One-Click Component */}
-            <div className="pt-1 flex justify-center">
-              <GoogleLoginButton
-                text="continue_with"
-                theme="outline"
-                size="large"
-                onSuccess={async (profile) => {
-                  try {
-                    setIsGoogleLoading(true);
-                    const user = await handleGoogleProfileAuth(profile);
-                    setAuthSuccess(true);
-                    setAuthSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
-                    onLoginAs(user);
-                    setIsGoogleLoading(false);
-                    onClose();
-                  } catch (e: any) {
-                    setIsGoogleLoading(false);
-                    setErrorMessage('Erro ao autenticar com as credenciais do Google.');
-                  }
-                }}
-                onError={(errText) => {
-                  if (errText) console.warn('GIS error notice:', errText);
-                }}
-              />
-            </div>
 
             {/* Resilient Direct Email Form (Shown automatically if browser blocks popup or on user click) */}
             {showGoogleEmailFallback ? (

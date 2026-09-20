@@ -49,6 +49,21 @@ declare global {
 // Configured or fallback Google Client ID
 export const DEFAULT_GOOGLE_CLIENT_ID = '193329003759-q76ctrdt6miks89qu3jdiovdd64e9stq.apps.googleusercontent.com';
 
+/**
+ * Resolves current application origin dynamically:
+ * Correctly distinguishes between Google AI Studio preview/sandbox environment
+ * (*.run.app, localhost) and the official production domain (https://nutrink.com.br).
+ */
+export function getAppOrigin(): string {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    const origin = window.location.origin;
+    if (origin && origin !== 'null') {
+      return origin.replace(/\/+$/, '');
+    }
+  }
+  return 'https://nutrink.com.br';
+}
+
 export function getGoogleClientId(): string {
   const envId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
   if (envId) return envId;
@@ -252,7 +267,8 @@ export async function initiateGoogleOAuthPopup(
   }
 
   // 2. Direct OAuth 2.0 Web Popup with PostMessage Listener
-  const redirectUri = `${window.location.origin}/auth/google/callback`;
+  const currentOrigin = getAppOrigin();
+  const redirectUri = `${currentOrigin}/auth/google/callback`;
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
     clientId
   )}&redirect_uri=${encodeURIComponent(
@@ -281,10 +297,11 @@ export async function initiateGoogleOAuthPopup(
     // Listen for postMessage from popup callback
     let messageReceived = false;
     const messageHandler = async (event: MessageEvent) => {
-      // Security check: accept same-origin, run.app, nutrink.com.br, and localhost
+      // Security check: accept same-origin, currentOrigin, run.app, nutrink.com.br, and localhost
       const origin = event.origin || '';
       const isAllowedOrigin = 
         origin === window.location.origin ||
+        origin === currentOrigin ||
         origin.endsWith('.run.app') ||
         origin.includes('localhost') ||
         origin.includes('nutrink.com.br');
