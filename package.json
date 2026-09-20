@@ -3,24 +3,27 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "dist/server.cjs",
   "engines": {
     "node": ">=18.0.0"
   },
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && esbuild server.ts --bundle --platform=node --format=esm --packages=external --sourcemap --outfile=dist/server.mjs && node -e \"const fs = require('fs'); fs.cpSync('dist', 'build', {recursive: true});\"",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
-    "lint": "node --check dist/server.cjs && node --check dist/server.mjs"
+    "lint": "node --check dist/server.cjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@google/generative-ai": "^0.24.1",
     "@tailwindcss/vite": "^4.1.14",
     "@types/canvas-confetti": "^1.9.0",
+    "@types/express": "^4.17.21",
     "@types/marked": "^6.0.0",
+    "@types/node": "^22.14.0",
+    "@types/qrcode": "^1.5.6",
     "@vitejs/plugin-react": "^5.0.4",
     "archiver": "^7.0.1",
+    "autoprefixer": "^10.4.21",
     "canvas-confetti": "^1.9.4",
     "dotenv": "^17.2.3",
     "esbuild": "^0.25.0",
@@ -37,15 +40,10 @@
     "react-router-dom": "^7.18.4",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
+    "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
+    "typescript": "~5.8.2",
     "vite": "^6.2.3"
   },
-  "devDependencies": {
-    "@types/express": "^4.17.21",
-    "@types/node": "^22.14.0",
-    "@types/qrcode": "^1.5.6",
-    "autoprefixer": "^10.4.21",
-    "tailwindcss": "^4.1.14",
-    "typescript": "~5.8.2"
-  }
+  "devDependencies": {}
 }
