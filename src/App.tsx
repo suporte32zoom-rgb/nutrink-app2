@@ -192,34 +192,47 @@ export function App() {
     }
   }, [transactions]);
 
-  // User Account & Session Management (strictly queries registered users database for real Full Name)
+  // User Account & Session Management (restores active session or registered profile)
   const [userAccount, setUserAccount] = useState<UserAccount | null>(() => {
     try {
       const saved = localStorage.getItem('nutrink_user_session');
-      if (!saved) return null;
-      const parsed: UserAccount = JSON.parse(saved);
-
-      // Verify and pull the exact Full Name from the registered users database
-      const registeredUsersRaw = localStorage.getItem('nutrink_registered_users');
-      if (registeredUsersRaw) {
-        const registeredUsers = JSON.parse(registeredUsersRaw);
-        const match = registeredUsers.find((u: any) => u.email?.trim().toLowerCase() === parsed.email?.trim().toLowerCase());
-        if (match && match.name && match.name.trim()) {
-          parsed.name = match.name.trim(); // Strictly enforce the real full registered name
+      if (saved) {
+        const parsed: UserAccount = JSON.parse(saved);
+        const registeredUsersRaw = localStorage.getItem('nutrink_registered_users');
+        if (registeredUsersRaw) {
+          const registeredUsers = JSON.parse(registeredUsersRaw);
+          const match = registeredUsers.find((u: any) => u.email?.trim().toLowerCase() === parsed.email?.trim().toLowerCase());
+          if (match && match.name && match.name.trim()) {
+            parsed.name = match.name.trim();
+          }
+        }
+        return parsed;
+      }
+      const registered = localStorage.getItem('nutrink_registered_users');
+      if (registered) {
+        const users = JSON.parse(registered);
+        if (users.length > 0) {
+          const lastEmail = localStorage.getItem('nutrink_last_email');
+          const found = users.find((u: any) => u.email?.trim().toLowerCase() === lastEmail?.trim().toLowerCase());
+          return found || users[0];
         }
       }
-      return parsed;
     } catch {
       return null;
     }
+    return null;
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
-      return !!localStorage.getItem('nutrink_user_session');
+      const storedSession = localStorage.getItem('nutrink_user_session');
+      if (storedSession) return true;
+      const registered = localStorage.getItem('nutrink_registered_users');
+      if (registered && JSON.parse(registered).length > 0) return true;
     } catch {
       return false;
     }
+    return false;
   });
 
   // Modals
