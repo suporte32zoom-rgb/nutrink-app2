@@ -24,6 +24,7 @@ import {
   User as FirebaseUser
 } from 'firebase/auth';
 import { Patient, Appointment, FinancialTransaction, UserAccount, NutriaMessage } from '../types';
+import { initiateGoogleOAuthPopup, GoogleProfile } from './googleAuth';
 
 // Load Firebase configuration
 const firebaseConfig = {
@@ -148,6 +149,45 @@ export async function signInWithGoogleFirebase(): Promise<UserAccount> {
   } catch (error: any) {
     console.warn('[Firebase Auth Google error]:', error);
     throw error;
+  }
+}
+
+/**
+ * Complete, unified Google Sign In for NutrinK:
+ * Tries Firebase Auth popup first; if popup is blocked or environment throws an OAuth notice,
+ * automatically falls back to direct Google Identity Services (GSI) / OAuth popup.
+ */
+export async function signInWithGoogleComplete(): Promise<UserAccount> {
+  try {
+    const user = await signInWithGoogleFirebase();
+    return user;
+  } catch (fbErr: any) {
+    console.warn('[Firebase Auth notice, attempting direct Google OAuth fallback]:', fbErr?.code || fbErr?.message || fbErr);
+    
+    // If user closed popup intentionally
+    if (fbErr?.code === 'auth/popup-closed-by-user' || fbErr?.code === 'auth/cancelled-popup-request') {
+      throw new Error('AUTH_CANCELLED');
+    }
+
+    return new Promise((resolve, reject) => {
+      initiateGoogleOAuthPopup(
+        async (profile: GoogleProfile) => {
+          try {
+            const user = await handleGoogleProfileAuth(profile);
+            resolve(user);
+          } catch (err) {
+            reject(err);
+          }
+        },
+        (errMsg: string) => {
+          if (!errMsg || errMsg.includes('fechad') || errMsg.includes('cancelad')) {
+            reject(new Error('AUTH_CANCELLED'));
+          } else {
+            reject(new Error(errMsg));
+          }
+        }
+      );
+    });
   }
 }
 

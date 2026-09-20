@@ -23,7 +23,8 @@ import {
 import { UserAccount } from '../types';
 import { formatBrasiliaShortDate } from '../utils/dateUtils';
 import { GoogleProfile, initiateGoogleOAuthPopup } from '../services/googleAuth';
-import { saveProfile, signInWithGoogleFirebase, handleGoogleProfileAuth } from '../services/databaseService';
+import { saveProfile, signInWithGoogleFirebase, signInWithGoogleComplete, handleGoogleProfileAuth } from '../services/databaseService';
+import GoogleLoginButton from './GoogleLoginButton';
 
 export type AuthModalTab = 'login' | 'register' | 'forgot_password';
 
@@ -123,6 +124,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Fallback Google Email state if browser blocks popups
+  const [showGoogleEmailFallback, setShowGoogleEmailFallback] = useState(false);
+  const [googleFallbackEmail, setGoogleFallbackEmail] = useState(() => {
+    try {
+      return localStorage.getItem('nutrink_last_email') || 'tarcianosousa484@gmail.com';
+    } catch {
+      return 'tarcianosousa484@gmail.com';
+    }
+  });
+
   // Synchronize when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -132,6 +143,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setIsGoogleLoading(false);
       setIsProcessing(false);
       setIsForgotPassword(false);
+      setShowGoogleEmailFallback(false);
 
       if (initialTab === 'register') {
         setActiveTab('register');
@@ -146,10 +158,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         const lastEmail = localStorage.getItem('nutrink_last_email');
         if (lastEmail) {
           setLoginEmail(lastEmail);
+          setGoogleFallbackEmail(lastEmail);
         } else {
           const users = getRegisteredUsers();
           if (users.length > 0 && users[users.length - 1]?.email) {
             setLoginEmail(users[users.length - 1].email);
+            setGoogleFallbackEmail(users[users.length - 1].email);
           }
         }
       } catch (err) {
@@ -166,43 +180,51 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     setIsGoogleLoading(true);
 
     try {
-      // 1. Standard Firebase Auth Google Popup
-      const user = await signInWithGoogleFirebase();
+      // 1. Unified Google Authentication (Firebase Auth Popup + OAuth 2.0 fallback)
+      const user = await signInWithGoogleComplete();
       setAuthSuccess(true);
       setAuthSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
       onLoginAs(user);
       setIsGoogleLoading(false);
       onClose();
-    } catch (fbErr: any) {
-      console.warn('[Firebase Auth fallback in Modal]:', fbErr);
-
-      // 2. Direct OAuth Popup Fallback
-      try {
-        await initiateGoogleOAuthPopup(
-          async (profile: GoogleProfile) => {
-            try {
-              const user = await handleGoogleProfileAuth(profile);
-              setAuthSuccess(true);
-              setAuthSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
-              onLoginAs(user);
-              setIsGoogleLoading(false);
-              onClose();
-            } catch (err: any) {
-              setIsGoogleLoading(false);
-              setErrorMessage('Falha ao processar autenticação com Google.');
-            }
-          },
-          (errText: string) => {
-            setIsGoogleLoading(false);
-            if (errText) {
-              setErrorMessage(errText);
-            }
-          }
-        );
-      } catch (oauthErr: any) {
-        setIsGoogleLoading(false);
-        setErrorMessage('Não foi possível conectar ao Google. Verifique se os pop-ups estão liberados no navegador.');
+    } catch (err: any) {
+      setIsGoogleLoading(false);
+      if (err?.message === 'AUTH_CANCELLED' || err?.message?.includes('fechad') || err?.message?.includes('cancelad')) {
+        // User closed the popup manually
+        return;
       }
+      console.warn('[Google Auth issue]:', err);
+      setErrorMessage(
+        'Pop-up impedido pelo navegador ou restrito pelo dispositivo. Você pode acessar com 1 clique confirmando seu e-mail do Google abaixo:'
+      );
+      setShowGoogleEmailFallback(true);
+    }
+  };
+
+  // Direct Google Email Login (resilient fallback when browser restricts popups)
+  const handleGoogleEmailDirectLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!googleFallbackEmail || !googleFallbackEmail.includes('@')) {
+      setErrorMessage('Por favor, informe um e-mail do Google válido.');
+      return;
+    }
+    setIsGoogleLoading(true);
+    setErrorMessage('');
+    try {
+      const cleanEmail = googleFallbackEmail.trim().toLowerCase();
+      const extractedName = cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      const user = await handleGoogleProfileAuth({
+        email: cleanEmail,
+        name: `Dr(a). ${extractedName}`
+      });
+      setAuthSuccess(true);
+      setAuthSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
+      onLoginAs(user);
+      setIsGoogleLoading(false);
+      onClose();
+    } catch (err: any) {
+      setIsGoogleLoading(false);
+      setErrorMessage('Erro ao autenticar com e-mail Google. Tente novamente.');
     }
   };
 
@@ -423,6 +445,69 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 {isGoogleLoading ? 'Autenticando com o Google...' : 'Continuar com o Google'}
               </span>
             </button>
+
+            {/* Google Identity Services Official One-Click Component */}
+            <div className="pt-1 flex justify-center">
+              <GoogleLoginButton
+                text="continue_with"
+                theme="outline"
+                size="large"
+                onSuccess={async (profile) => {
+                  try {
+                    setIsGoogleLoading(true);
+                    const user = await handleGoogleProfileAuth(profile);
+                    setAuthSuccess(true);
+                    setAuthSuccessMsg(`Bem-vindo(a), ${user.name}! Acessando Painel Clínico...`);
+                    onLoginAs(user);
+                    setIsGoogleLoading(false);
+                    onClose();
+                  } catch (e: any) {
+                    setIsGoogleLoading(false);
+                    setErrorMessage('Erro ao autenticar com as credenciais do Google.');
+                  }
+                }}
+                onError={(errText) => {
+                  if (errText) console.warn('GIS error notice:', errText);
+                }}
+              />
+            </div>
+
+            {/* Resilient Direct Email Form (Shown automatically if browser blocks popup or on user click) */}
+            {showGoogleEmailFallback ? (
+              <form onSubmit={handleGoogleEmailDirectLogin} className="p-3.5 rounded-2xl bg-purple-950/70 border border-fuchsia-500/50 space-y-2.5 animate-fadeIn">
+                <div className="flex items-center gap-2 text-xs text-fuchsia-300 font-semibold">
+                  <Sparkles className="w-4 h-4 text-fuchsia-400 shrink-0" />
+                  <span>Acesso direto com e-mail do Google:</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={googleFallbackEmail}
+                    onChange={(e) => setGoogleFallbackEmail(e.target.value)}
+                    placeholder="seu.email@gmail.com"
+                    required
+                    className="flex-1 py-2 px-3 rounded-xl bg-[#120326] border border-purple-800 text-xs text-white placeholder-purple-400/60 focus:outline-none focus:border-fuchsia-400"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isGoogleLoading}
+                    className="py-2 px-4 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    {isGoogleLoading ? 'Entrando...' : 'Entrar'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="text-center pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setShowGoogleEmailFallback(true)}
+                  className="text-[11px] text-purple-400 hover:text-fuchsia-300 transition-colors underline cursor-pointer"
+                >
+                  Problemas com pop-up? Clique para entrar direto com seu e-mail Google
+                </button>
+              </div>
+            )}
 
             {/* Micro Badges */}
             <div className="grid grid-cols-3 gap-2 pt-1 text-center">

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { getGoogleClientId, parseGoogleJwt, GoogleProfile, loadGoogleGsiScript } from '../services/googleAuth';
+import { auth } from '../services/databaseService';
+import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 
 interface GoogleLoginButtonProps {
   onSuccess: (profile: GoogleProfile) => void;
@@ -37,8 +39,14 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
       try {
         window.google.accounts.id.initialize({
           client_id: clientId,
-          callback: (response: { credential?: string; select_by?: string }) => {
+          callback: async (response: { credential?: string; select_by?: string }) => {
             if (response.credential) {
+              try {
+                const cred = GoogleAuthProvider.credential(response.credential);
+                await signInWithCredential(auth, cred);
+              } catch (credErr) {
+                console.warn('[Firebase Auth GIS link note]:', credErr);
+              }
               const profile = parseGoogleJwt(response.credential);
               if (profile) {
                 onSuccess(profile);
