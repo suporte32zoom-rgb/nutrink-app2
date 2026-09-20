@@ -23,16 +23,22 @@ import {
   signInWithCredential, 
   onAuthStateChanged, 
   signOut,
+  applyActionCode,
+  verifyPasswordResetCode,
+  confirmPasswordReset,
+  checkActionCode,
   User as FirebaseUser
 } from 'firebase/auth';
 import { Patient, Appointment, FinancialTransaction, UserAccount, NutriaMessage } from '../types';
 
-// Load Firebase configuration
+// Load Firebase configuration (nutrink-505600.firebaseapp.com)
 const firebaseConfig = {
   projectId: "gen-lang-client-0157446519",
   appId: "1:193329003759:web:b4922d6b2c9545104e6f1a",
   apiKey: "AIzaSyDb20KbtkPnP9Cn8v26cbMuTvVEkzE_Bss",
-  authDomain: "gen-lang-client-0157446519.firebaseapp.com",
+  authDomain: (typeof window !== 'undefined' && (window.location.origin.includes('nutrink-505600') || window.location.origin.includes('nutrink.com.br')))
+    ? "nutrink-505600.firebaseapp.com"
+    : "nutrink-505600.firebaseapp.com",
   firestoreDatabaseId: "ai-studio-remixnutrinknutr-51d08cbc-daf3-4ec1-978f-d4e0c04f216a",
   storageBucket: "gen-lang-client-0157446519.firebasestorage.app",
   messagingSenderId: "193329003759"
@@ -42,6 +48,27 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export { onAuthStateChanged, signOut };
+
+/**
+ * Verifies a password reset oobCode and returns the corresponding email address
+ */
+export async function verifyResetCode(oobCode: string): Promise<string> {
+  return await verifyPasswordResetCode(auth, oobCode);
+}
+
+/**
+ * Confirms password reset with new password
+ */
+export async function submitNewPassword(oobCode: string, newPass: string): Promise<void> {
+  await confirmPasswordReset(auth, oobCode, newPass);
+}
+
+/**
+ * Applies email verification action code
+ */
+export async function applyEmailVerification(oobCode: string): Promise<void> {
+  await applyActionCode(auth, oobCode);
+}
 
 // Google Provider setup
 export const googleProvider = new GoogleAuthProvider();

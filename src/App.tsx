@@ -21,6 +21,7 @@ import { TelemedicineView } from './components/TelemedicineView';
 import { MercadoPagoSubscriptionsView } from './components/MercadoPagoSubscriptionsView';
 import { OnboardingView } from './components/OnboardingView';
 import { BottomNavigation } from './components/BottomNavigation';
+import { FirebaseAuthActionModal } from './components/FirebaseAuthActionModal';
 import { 
   INITIAL_PATIENTS, 
   INITIAL_APPOINTMENTS, 
@@ -74,6 +75,19 @@ export function App() {
       console.warn('OAuth redirect check notice:', err);
     });
   }, []);
+  // Firebase Auth Action URL parameters (handles nutrink-505600.firebaseapp.com/__/auth/action or ?mode=...&oobCode=...)
+  const [authActionState, setAuthActionState] = useState<{ isOpen: boolean; mode: string | null; oobCode: string | null }>(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const mode = urlParams.get('mode');
+      const oobCode = urlParams.get('oobCode');
+      if (mode && oobCode) {
+        return { isOpen: true, mode, oobCode };
+      }
+    } catch {}
+    return { isOpen: false, mode: null, oobCode: null };
+  });
+
   // Check URL parameters for direct deep-linking (e.g. /telemedicina?room=xyz, ?tab=telemedicine)
   const [telemedRoomFromUrl, setTelemedRoomFromUrl] = useState<string | null>(() => {
     try {
@@ -1632,6 +1646,24 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         onSaveTransaction={(newTx) => {
           setTransactions(prev => [newTx, ...prev]);
           saveTransactionToDb(newTx, userAccount?.email).catch(err => console.warn('Erro ao persistir nova transação:', err));
+        }}
+      />
+
+      {/* Firebase Auth Action Modal (Email verification, Password reset via nutrink-505600.firebaseapp.com) */}
+      <FirebaseAuthActionModal
+        isOpen={authActionState.isOpen}
+        onClose={() => {
+          setAuthActionState({ isOpen: false, mode: null, oobCode: null });
+          try {
+            // Clean url params without reloading
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+          } catch {}
+        }}
+        mode={authActionState.mode}
+        oobCode={authActionState.oobCode}
+        onSuccessLogin={(email) => {
+          handleOpenLoginModal('login');
         }}
       />
 
