@@ -4,15 +4,10 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const compiledCjs = path.join(__dirname, 'dist', 'server.cjs');
-const compiledMjs = path.join(__dirname, 'dist', 'server.mjs');
+const compiledServer = path.join(__dirname, 'dist', 'server.mjs');
 
 // If the compiled bundle exists, launch the full NutrinK application server
-if (fs.existsSync(compiledCjs)) {
-  const { createRequire } = await import('node:module');
-  const require = createRequire(import.meta.url);
-  require('./dist/server.cjs');
-} else if (fs.existsSync(compiledMjs)) {
+if (fs.existsSync(compiledServer)) {
   await import('./dist/server.mjs');
 } else {
   // Fallback server when dist/ has not been compiled yet
