@@ -125,7 +125,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-fuchsia-950/80 text-fuchsia-300 border border-fuchsia-500/50 shadow-sm">
                 <Sparkles className="w-3.5 h-3.5 text-fuchsia-300" />
-                Copiloto NÚTRIA • NutrinK AI
+                Copiloto NUTRIA • NutrinK AI
               </span>
 
               {/* Time & Brasilia Date Indicator */}
@@ -164,7 +164,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <p className="text-xs sm:text-sm text-purple-100 mt-2 leading-relaxed max-w-2xl">
               {patients.length === 0 ? (
-                <span>Bem-vindo(a) ao seu consultório inteligente. Seu prontuário eletrônico está pronto para receber os dados do seu primeiro paciente e emitir laudos com a inteligência clínica da NÚTRIA.</span>
+                <span>Bem-vindo(a) ao seu consultório inteligente. Seu prontuário eletrônico está pronto para receber os dados do seu primeiro paciente e emitir laudos com a inteligência clínica da NUTRIA.</span>
               ) : (
                 <span>Você tem <strong className="text-fuchsia-300">{todayAppointments.length} consulta(s) hoje</strong> e <strong className="text-white">{patients.length} paciente(s) ativo(s)</strong> sob seu acompanhamento clínico no consultório.</span>
               )}
@@ -175,14 +175,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <button
               onClick={() => onOpenNutriaWithPrompt(
                 patients.length === 0 
-                  ? `NÚTRIA, como você pode me auxiliar na anamnese e prescrição dietoterápica do meu primeiro paciente como ${professionalRoleLabel}?`
-                  : `NÚTRIA, faça um briefing rápido das consultas de hoje (${currentTime} em Brasília) com o resumo de cada paciente.`
+                  ? `Nutria, como você pode me auxiliar na anamnese e prescrição dietoterápica do meu primeiro paciente como ${professionalRoleLabel}?`
+                  : `Nutria, faça um briefing rápido das consultas de hoje (${currentTime} em Brasília) com o resumo de cada paciente.`
               )}
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 transition-all hover:scale-[1.02]"
               id="btn-nutria-briefing-dashboard"
             >
               <Bot className="w-4 h-4 text-fuchsia-200" />
-              <span>{patients.length === 0 ? 'Iniciar com a NÚTRIA' : 'Briefing do Dia com NÚTRIA'}</span>
+              <span>{patients.length === 0 ? 'Iniciar com a NUTRIA' : 'Briefing do Dia com NUTRIA'}</span>
             </button>
           </div>
         </div>
@@ -461,13 +461,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Right 1 Col: Alertas & Insights Clínicos da NÚTRIA */}
+        {/* Right 1 Col: Alertas & Insights Clínicos da NUTRIA */}
         <div className="bg-[#150328] border border-purple-900/50 rounded-3xl p-5 sm:p-6 space-y-4 shadow-md flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-purple-900/40">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <Bot className="w-4 h-4 text-fuchsia-400" />
-                Insights Clínicos NÚTRIA
+                Insights Clínicos NUTRIA
               </h2>
               <span className="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse"></span>
             </div>
@@ -481,7 +481,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       Ecossistema Clínico Pronto
                     </div>
                     <p className="text-purple-100 leading-relaxed font-medium">
-                      O motor da NÚTRIA analisará automaticamente taxas de TMB/GET (Mifflin & Harris-Benedict), dobras cutâneas e alertas de micronutrientes assim que os primeiros pacientes forem inseridos.
+                      O motor da NUTRIA analisará automaticamente taxas de TMB/GET (Mifflin & Harris-Benedict), dobras cutâneas e alertas de micronutrientes assim que os primeiros pacientes forem inseridos.
                     </p>
                   </div>
 
@@ -531,14 +531,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <button
               onClick={() => onOpenNutriaWithPrompt(
                 patients.length === 0
-                  ? "Nútria, como você recomenda estruturar a primeira consulta nutricional para maximizar a retenção do paciente?"
-                  : "Nútria, sugira 3 intervenções clínicas prioritárias para os pacientes cadastrados."
+                  ? "Nutria, como você recomenda estruturar a primeira consulta nutricional para maximizar a retenção do paciente?"
+                  : "Nutria, sugira 3 intervenções clínicas prioritárias para os pacientes cadastrados."
               )}
               className="w-full py-2.5 px-3 rounded-xl bg-[#29094e] hover:bg-[#360c67] text-purple-100 font-bold text-xs border border-purple-700/60 flex items-center justify-center gap-2 transition-all hover:text-white shadow-sm"
               id="btn-nutria-ai-action-dash"
             >
               <Sparkles className="w-3.5 h-3.5 text-fuchsia-300" />
-              <span>{patients.length === 0 ? 'Pedir Dicas de Consulta à NÚTRIA' : 'Solicitar Análise Global à NÚTRIA'}</span>
+              <span>{patients.length === 0 ? 'Pedir Dicas de Consulta à NUTRIA' : 'Solicitar Análise Global à NUTRIA'}</span>
             </button>
           </div>
         </div>
@@ -574,7 +574,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Nenhum paciente cadastrado no prontuário ainda
             </h3>
             <p className="text-xs text-purple-200 max-w-md mx-auto mb-5 leading-relaxed">
-              Inicie seu consultório cadastrando o primeiro paciente. O NutrinK calculará automaticamente TMB, GET, IMC e gerará planos alimentares personalizados com a ajuda da NÚTRIA.
+              Inicie seu consultório cadastrando o primeiro paciente. O NutrinK calculará automaticamente TMB, GET, IMC e gerará planos alimentares personalizados com a ajuda da NUTRIA.
             </p>
             <button
               onClick={onOpenNewPatient}

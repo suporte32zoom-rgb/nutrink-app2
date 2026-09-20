@@ -90,7 +90,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn" id="subscription-modal">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn" id="subscription-modal">
       <div className="bg-[#150328] border border-purple-800/60 rounded-3xl max-w-4xl w-full text-white shadow-2xl overflow-hidden relative max-h-[92vh] flex flex-col my-auto shadow-purple-950/80">
         
         {/* Top Header Banner */}

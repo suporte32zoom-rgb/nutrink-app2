@@ -339,7 +339,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
       <div className="relative w-full max-w-lg rounded-3xl bg-[#170530] border border-purple-800/70 shadow-2xl shadow-fuchsia-950/80 overflow-hidden">
         
         {/* Close button */}
@@ -432,7 +432,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               </div>
               <div className="py-1 px-2 rounded-xl bg-purple-950/60 border border-purple-800/40 text-[10px] text-purple-200 flex items-center justify-center gap-1">
                 <Bot className="w-3 h-3 text-fuchsia-400 shrink-0" />
-                IA NÚTRIA
+                IA NUTRIA
               </div>
               <div className="py-1 px-2 rounded-xl bg-purple-950/60 border border-purple-800/40 text-[10px] text-purple-200 flex items-center justify-center gap-1">
                 <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />

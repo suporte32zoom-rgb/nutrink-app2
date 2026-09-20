@@ -193,7 +193,7 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
 
   const handleDownloadReport = (content: string, id: string) => {
     const cleaned = cleanMathAndLatex(content);
-    const header = `# NUTRINK - PARECER CLÍNICO NÚTRIA\nEmitido em: ${new Date().toLocaleString('pt-BR')}\n---\n\n`;
+    const header = `# NUTRINK - PARECER CLÍNICO NUTRIA\nEmitido em: ${new Date().toLocaleString('pt-BR')}\n---\n\n`;
     const fullText = header + cleaned;
     const blob = new Blob([fullText], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -325,7 +325,7 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
         onActionExecuted(result.actionExecuted);
       }
     } catch (err: any) {
-      console.error('Erro na comunicação com a NÚTRIA AI:', err);
+      console.error('Erro na comunicação com a NUTRIA AI:', err);
 
       const errorMessage: NutriaMessage = {
         id: `msg-${Date.now() + 1}`,
@@ -350,44 +350,44 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
     {
       title: "Painel Clínico",
       icon: Layers,
-      prompt: "Nútria, carregue o painel visual do Painel Clínico em formato de texto estruturado."
+      prompt: "Nutria, carregue o painel visual do Painel Clínico em formato de texto estruturado."
     },
     {
       title: "Pacientes & Prontuários",
       icon: UserPlus,
-      prompt: "Nútria, carregue a seção de Pacientes & Prontuários com tabela e atalhos."
+      prompt: "Nutria, carregue a seção de Pacientes & Prontuários com tabela e atalhos."
     },
     {
       title: "Agenda & Calendário",
       icon: Calendar,
-      prompt: "Nútria, carregue a grade de horários e próximos agendamentos da Agenda & Calendário."
+      prompt: "Nutria, carregue a grade de horários e próximos agendamentos da Agenda & Calendário."
     },
     {
       title: "Financeiro & Faturamento",
       icon: DollarSign,
-      prompt: "Nútria, carregue o balanço financeiro e extrato em texto estruturado."
+      prompt: "Nutria, carregue o balanço financeiro e extrato em texto estruturado."
     },
     {
       title: "NutriCalc & Cálculos",
       icon: Calculator,
-      prompt: "Nútria, carregue a central do NutriCalc & Protocolos de Cálculos."
+      prompt: "Nutria, carregue a central do NutriCalc & Protocolos de Cálculos."
     },
     {
       title: "Planos & Assinaturas",
       icon: Crown,
-      prompt: "Nútria, quais são os planos de assinatura do NutrinK e valores?"
+      prompt: "Nutria, quais são os planos de assinatura do NutrinK e valores?"
     },
     {
       title: "Plano Alimentar & Macros",
       icon: Flame,
       prompt: activePatient 
-        ? `Nútria, elabore um plano alimentar completo e estruturado em tabelas markdown para ${activePatient.name}, com meta de ${activePatient.get || 2000} kcal e distribuição de macronutrientes para ${activePatient.objective || 'Geral'}.`
-        : "Nútria, gere um plano alimentar completo com tabela de refeições, calorias e macros para um homem de 30 anos, 80kg e meta de hipertrofia."
+        ? `Nutria, elabore um plano alimentar completo e estruturado em tabelas markdown para ${activePatient.name}, com meta de ${activePatient.get || 2000} kcal e distribuição de macronutrientes para ${activePatient.objective || 'Geral'}.`
+        : "Nutria, gere um plano alimentar completo com tabela de refeições, calorias e macros para um homem de 30 anos, 80kg e meta de hipertrofia."
     },
     {
       title: "Interpretação de Exames",
       icon: HeartPulse,
-      prompt: "Nútria, faça uma interpretação clínica completa dos seguintes exames: Ferritina 18 ng/mL, Vitamina B12 210 pg/mL, Vitamina D 22 ng/mL, Glicemia de Jejum 98 mg/dL e Insulina 14 uIU/mL (calculando HOMA-IR)."
+      prompt: "Nutria, faça uma interpretação clínica completa dos seguintes exames: Ferritina 18 ng/mL, Vitamina B12 210 pg/mL, Vitamina D 22 ng/mL, Glicemia de Jejum 98 mg/dL e Insulina 14 uIU/mL (calculando HOMA-IR)."
     }
   ];
 
@@ -399,12 +399,12 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
         <div className="flex items-center gap-3">
           <img 
             src="/icon-512.svg" 
-            alt="NÚTRIA NutrinK Logo" 
+            alt="NUTRIA NutrinK Logo" 
             className="w-10 h-10 rounded-2xl shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 object-cover shrink-0" 
           />
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="font-black text-sm text-white tracking-wide">NÚTRIA • Copiloto NutrinK</h2>
+              <h2 className="font-black text-sm text-white tracking-wide">NUTRIA • Copiloto NutrinK</h2>
               <span className="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse"></span>
             </div>
             <p className="text-[11px] text-purple-200 font-medium">
@@ -468,7 +468,7 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
               <FileText className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-white">NÚTRIA: Copiloto de Documentos & Clínica</h3>
+              <h3 className="font-bold text-base text-white">NUTRIA: Copiloto de Documentos & Clínica</h3>
               <p className="text-xs text-purple-200 mt-1 leading-relaxed font-medium">
                 Todas as respostas são geradas em <strong className="text-white">texto estruturado em tempo real</strong>, tabelas de macronutrientes, cálculos metabólicos e pareceres prontos para exportação em Markdown ou impressão em PDF.
               </p>
@@ -506,7 +506,7 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
                 {!isUser && (
                   <img
                     src="/icon-512.svg"
-                    alt="NÚTRIA"
+                    alt="NUTRIA"
                     className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl shrink-0 shadow-md border border-fuchsia-400/40 mt-0.5 object-cover"
                   />
                 )}
@@ -690,12 +690,12 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
           <div className="flex items-center gap-3">
             <img
               src="/icon-512.svg"
-              alt="NÚTRIA"
+              alt="NUTRIA"
               className="w-8 h-8 rounded-xl shrink-0 shadow-md border border-fuchsia-400/40 object-cover animate-pulse"
             />
             <div className="p-3.5 bg-[#1d0637] rounded-2xl border border-purple-800/40 text-xs text-purple-200 flex items-center gap-2 font-medium">
               <RefreshCw className="w-3.5 h-3.5 text-fuchsia-400 animate-spin" />
-              <span>NÚTRIA processando em tempo real com o modelo de inteligência artificial...</span>
+              <span>NUTRIA processando em tempo real com o modelo Gemini...</span>
             </div>
           </div>
         )}
@@ -745,7 +745,7 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
           <div className="mb-2 p-2 bg-rose-950/90 border border-rose-600 text-rose-200 rounded-2xl text-xs flex items-center justify-between animate-pulse">
             <span className="flex items-center gap-2 font-semibold">
               <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span>
-              Ditando comando para o texto... Fale com a Nútria.
+              Ditando comando para o texto... Fale com a Nutria.
             </span>
             <button onClick={toggleRecording} className="font-bold underline text-white cursor-pointer">
               Parar
@@ -764,7 +764,7 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
                   ? 'bg-rose-600 text-white border-rose-500 animate-pulse'
                   : 'bg-[#220743] text-purple-200 hover:text-white border-purple-700/60 hover:bg-[#2f0b5a]'
               }`}
-              title={isRecording ? 'Parar gravação' : 'Ditar comando de voz para a NÚTRIA'}
+              title={isRecording ? 'Parar gravação' : 'Ditar comando de voz para a NUTRIA'}
             >
               {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
@@ -777,7 +777,7 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
             placeholder={
               isMessageLimitReached 
                 ? '🔒 Limite do Plano Free atingido. Digite para ver planos ou clique em Upgrade...'
-                : (isRecording ? 'Ouvindo...' : 'Solicite prontuários, planos alimentares, exames ou cálculos clínicos à NÚTRIA...')
+                : (isRecording ? 'Ouvindo...' : 'Solicite prontuários, planos alimentares, exames ou cálculos clínicos à NUTRIA...')
             }
             disabled={isLoading}
             className="flex-1 bg-[#120326] border border-purple-700/60 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-purple-300/60 focus:outline-none focus:border-fuchsia-400"
@@ -801,7 +801,7 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
               </span>
             )}
           </div>
-          <span>NÚTRIA v2.5</span>
+          <span>NUTRIA v2.5</span>
         </div>
       </div>
 

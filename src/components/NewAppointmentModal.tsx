@@ -60,7 +60,7 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-[#0c0217]/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-[#0c0217]/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <div className="bg-[#150328] border border-purple-800/60 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 shadow-fuchsia-950/40 my-auto max-h-[92vh] overflow-y-auto">
         
         {/* Header */}

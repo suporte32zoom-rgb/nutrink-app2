@@ -26,7 +26,7 @@ O **NutrinK** é o software completo em nuvem projetado especificamente para **n
 
 | Módulo Estrutural | Finalidade Primária | Impacto Clínico & Operacional |
 | :--- | :--- | :--- |
-| **Copiloto NÚTRIA AI** | Inteligência Artificial Clínica Especializada | Reduz em até **75%** o tempo gasto com digitação e cálculos em consulta |
+| **Copiloto NUTRIA AI** | Inteligência Artificial Clínica Especializada | Reduz em até **75%** o tempo gasto com digitação e cálculos em consulta |
 | **Prontuário Eletrônico** | Registro Antropométrico e Histórico do Paciente | Centralização 100% segura e criptografada (AES-256) de anamneses e exames |
 | **Agenda Inteligente** | Gestão de Horários & Consultas Presenciais/Online | Redução de até **62%** nas faltas (*no-show*) com controle de status |
 | **Fluxo Financeiro** | Controle de Caixa, Honorários e Lucratividade | Visão clara de faturamento, despesas operacionais e emissão de recibos |
@@ -36,14 +36,14 @@ O **NutrinK** é o software completo em nuvem projetado especificamente para **n
 
 ## Como o NutrinK Potencializa seu Consultório
 
-1. **Atendimento Ágil e Sem Fricção**: Opere o prontuário via comandos por voz ou texto com o copiloto NÚTRIA, sem desviar o olhar do paciente.
+1. **Atendimento Ágil e Sem Fricção**: Opere o prontuário via comandos por voz ou texto com o copiloto NUTRIA, sem desviar o olhar do paciente.
 2. **Cálculos Metabólicos Instantâneos**: Adequação automática de macros e micronutrientes em segundos, com base no gasto energético individual.
 3. **Segurança & Conformidade Total**: Arquitetura blindada sob a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018) e resoluções do CFN e CFM.
 4. **Relatórios Clínicos de Alto Impacto**: Emissão de planos alimentares e pareceres detalhados que encantam o paciente e aumentam a fidelização.
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+> **Nutria AI** • *O Cérebro Inteligente do NutrinK*`
   },
 
   recursos: {
@@ -52,7 +52,7 @@ O **NutrinK** é o software completo em nuvem projetado especificamente para **n
     category: 'produto_recursos',
     categoryLabel: 'PRODUTO & RECURSOS',
     iconName: 'Layers',
-    shortDescription: 'Apresentação detalhada dos módulos: Prontuário Eletrônico, Agenda Inteligente, Gestão Financeira e Copiloto NÚTRIA AI.',
+    shortDescription: 'Apresentação detalhada dos módulos: Prontuário Eletrônico, Agenda Inteligente, Gestão Financeira e Copiloto NUTRIA AI.',
     markdownContent: `# Recursos & Módulos Completos do Software NutrinK
 
 O **NutrinK** consolida em uma única interface moderna todos os pilares essenciais para a rotina de consultório de **Nutricionistas Clínicos, Esportivos, Funcionais e Médicos Nutrólogos**.
@@ -98,14 +98,14 @@ O **NutrinK** consolida em uma única interface moderna todos os pilares essenci
 
 ---
 
-## 5. Copiloto NÚTRIA AI (Inteligência Artificial Clínica)
+## 5. Copiloto NUTRIA AI (Inteligência Artificial Clínica)
 - **Digitação Hands-Free por Voz**: Transcrição inteligente de dados falados durante a avaliação para preenchimento automático do prontuário.
 - **Geração de Pareceres e Relatórios**: Elaboração de pareceres clínicos estruturados com embasamento nas diretrizes da ESPEN, ASPEN e BRASPEN.
 - **Ajustes Dietoterápicos em Tempo Real**: Sugestões de combinações de alimentos e macronutrientes adequadas ao objetivo do paciente.
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+> **Nutria AI** • *O Cérebro Inteligente do NutrinK*`
   },
 
   planos: {
@@ -128,7 +128,7 @@ O **NutrinK** democratiza a tecnologia clínica com o **software de nutrição m
 | **Investimento** | **R$ 0,00** | **R$ 39,00 / mês** | **R$ 399,00 / ano (~R$ 33/mês)** |
 | **Forma de Pagamento** | Sem cartão / Sem compromisso | **PIX Instantâneo & Cartão** | **PIX com Liberação Instantânea** |
 | **Economia Real** | 100% Gratuito para Iniciar | Acesso completo sem fidelidade | **2 Meses Grátis** (R$ 69,00 de economia) |
-| **Copiloto Clínico NÚTRIA AI** | **30 mensagens / dia grátis** | **ILIMITADAS** | **ILIMITADAS** |
+| **Copiloto Clínico NUTRIA AI** | **30 mensagens / dia grátis** | **ILIMITADAS** | **ILIMITADAS** |
 | **Cadastro de Prontuários** | Até 10 pacientes | **ILIMITADOS** | **ILIMITADOS** |
 | **Telemedicina com Vídeo Nativo** | Sala de teste | **Sala HD Ilimitada** | **Sala HD Ilimitada + Gravação** |
 | **Agenda Clínica Inteligente** | Recursos básicos | Grade completa + Retornos | Grade completa + Sincronização |
@@ -143,11 +143,11 @@ O **NutrinK** democratiza a tecnologia clínica com o **software de nutrição m
 
 1. **Mensalidade Acessível**: Um sistema completo para nutricionistas por menos de R$ 50 reais ao mês, sem custos ocultos de implantação.
 2. **Plano Anual Barato**: No plano anual, você garante 12 meses pagando apenas 10, com suporte VIP prioritário.
-3. **IA Gratuita para Testar**: Experimente a NÚTRIA AI com 30 mensagens gratuitas por dia e comprove o ganho de tempo na consulta.
+3. **IA Gratuita para Testar**: Experimente a NUTRIA AI com 30 mensagens gratuitas por dia e comprove o ganho de tempo na consulta.
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+> **Nutria AI** • *O Cérebro Inteligente do NutrinK*`
   },
 
   sobre: {
@@ -178,7 +178,7 @@ O **NutrinK** nasceu com um propósito claro: eliminar a sobrecarga de tarefas b
 ## Por Que Escolher o NutrinK?
 
 1. **Inteligência Artificial Verdadeiramente Especializada**:
-   - A NÚTRIA AI não é um assistente genérico. Ela é calibrada com tabelas oficiais de composição de alimentos (TACO, TBCA), diretrizes de macronutrientes da SBAN, ESPEN e consensos de nutrologia.
+   - A NUTRIA AI não é um assistente genérico. Ela é calibrada com tabelas oficiais de composição de alimentos (TACO, TBCA), diretrizes de macronutrientes da SBAN, ESPEN e consensos de nutrologia.
 
 2. **Tudo em Uma Única Tela**:
    - Elimine planilhas soltas de Excel, cadernos de papel e múltiplos softwares desconexos. No NutrinK, a anamnese alimenta a antropometria, que ajusta a calculadora, que atualiza a conduta e o financeiro.
@@ -188,7 +188,7 @@ O **NutrinK** nasceu com um propósito claro: eliminar a sobrecarga de tarefas b
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+> **Nutria AI** • *O Cérebro Inteligente do NutrinK*`
   },
 
   metodologia: {
@@ -279,7 +279,7 @@ O NutrinK adota parâmetros balizados pelos consensos da **SBAN, ESPEN, ISSN e D
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+> **Nutria AI** • *O Cérebro Inteligente do NutrinK*`
   },
 
   clientes: {
@@ -298,17 +298,17 @@ Mais de **3.800 profissionais de saúde em todo o Brasil** transformaram suas ro
 ## O Que Dizem os Especialistas
 
 ### Dra. Mariana Fonseca • Nutricionista Clínica & Funcional (CRN-3 32.110/SP)
-> *"Antes do NutrinK, eu passava as noites de domingo montando cardápios e ajustando planilhas de micronutrientes. Com o copiloto Nútria, consigo estruturar toda a conduta e o plano durante os últimos 15 minutos da consulta. Meus pacientes saem do consultório com o PDF na mão e a retenção aumentou em 45%."*
+> *"Antes do NutrinK, eu passava as noites de domingo montando cardápios e ajustando planilhas de micronutrientes. Com o copiloto Nutria, consigo estruturar toda a conduta e o plano durante os últimos 15 minutos da consulta. Meus pacientes saem do consultório com o PDF na mão e a retenção aumentou em 45%."*
 
 ---
 
 ### Dr. Roberto Alencar • Médico Nutrólogo (CRM-RJ 89.442)
-> *"Na nutrologia de alta performance, a interpretação de marcadores hormonais e lipídicos combinados com Cunningham faz toda a diferença. O NutriCalc Pro e os relatórios clínicos da Nútria são impecáveis, com formatação médica clara e rigor técnico irrepreensível."*
+> *"Na nutrologia de alta performance, a interpretação de marcadores hormonais e lipídicos combinados com Cunningham faz toda a diferença. O NutriCalc Pro e os relatórios clínicos da Nutria são impecáveis, com formatação médica clara e rigor técnico irrepreensível."*
 
 ---
 
 ### Dra. Camila Pires • Nutrição Esportiva (CRN-8 19.854/PR)
-> *"A funcionalidade de comandos por voz é surreal. Enquanto avalio a bioimpedância do atleta, vou falando os dados e a Nútria já lança tudo no prontuário e calcula os deltas de gordura e massa magra. É produtividade pura."*
+> *"A funcionalidade de comandos por voz é surreal. Enquanto avalio a bioimpedância do atleta, vou falando os dados e a Nutria já lança tudo no prontuário e calcula os deltas de gordura e massa magra. É produtividade pura."*
 
 ---
 
@@ -322,7 +322,7 @@ Mais de **3.800 profissionais de saúde em todo o Brasil** transformaram suas ro
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+> **Nutria AI** • *O Cérebro Inteligente do NutrinK*`
   },
 
   acessar: {
@@ -357,7 +357,7 @@ O acesso ao NutrinK é protegido por camadas rigorosas de segurança digital e a
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+> **Nutria AI** • *O Cérebro Inteligente do NutrinK*`
   },
 
   privacidade_lgpd: {
@@ -422,7 +422,7 @@ Para exercer seus direitos de titular, dirimir dúvidas sobre esta política ou 
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+> **Nutria AI** • *O Cérebro Inteligente do NutrinK*`
   },
 
   termos_servico: {
@@ -448,7 +448,7 @@ Bem-vindo ao **NutrinK**. Ao criar uma conta, assinar um plano ou utilizar qualq
 
 ## 2. Responsabilidade Técnica & Autonomia Profissional
 2.1. **EXCLUSIVIDADE DO PROFISSIONAL HABILITADO**: O diagnóstico clínico-nutricional, a anamnese conclusiva, a prescrição dietoterápica, a indicação de suplementação e a solicitação de exames laboratoriais são de **responsabilidade técnica exclusiva, pessoal e intransferível do profissional devidamente registrado no Conselho Regional de Nutricionistas (CRN) ou Conselho Regional de Medicina (CRM)**.  
-2.2. **PAPEL DO COPILOTO NÚTRIA AI**: As ferramentas de inteligência artificial (**NÚTRIA**) e calculadoras bioenergéticas atuam estritamente como **instrumentos consultivos de suporte à decisão clínica e automação operacional**. O NutrinK não pratica atos privativos de saúde nem substitui o julgamento crítico e a relação médico/nutricionista-paciente.
+2.2. **PAPEL DO COPILOTO NUTRIA AI**: As ferramentas de inteligência artificial (**NUTRIA**) e calculadoras bioenergéticas atuam estritamente como **instrumentos consultivos de suporte à decisão clínica e automação operacional**. O NutrinK não pratica atos privativos de saúde nem substitui o julgamento crítico e a relação médico/nutricionista-paciente.
 
 ---
 
@@ -476,7 +476,7 @@ Este contrato é regido pelas leis da República Federativa do Brasil. As partes
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+> **Nutria AI** • *O Cérebro Inteligente do NutrinK*`
   },
 
   politica_uso_aceitavel: {
@@ -485,8 +485,8 @@ Este contrato é regido pelas leis da República Federativa do Brasil. As partes
     category: 'central_legal_contato',
     categoryLabel: 'CENTRAL LEGAL & CONTATO',
     iconName: 'AlertTriangle',
-    shortDescription: 'Diretrizes de uso ético da IA (NÚTRIA AI), proibição de compartilhamento de credenciais e integridade do ecossistema.',
-    markdownContent: `# Política de Uso Aceitável da Plataforma e do Copiloto NÚTRIA AI
+    shortDescription: 'Diretrizes de uso ético da IA (Nutria AI), proibição de compartilhamento de credenciais e integridade do ecossistema.',
+    markdownContent: `# Política de Uso Aceitável da Plataforma e do Copiloto NUTRIA AI
 
 *Última atualização: Agosto de 2026*
 
@@ -494,8 +494,8 @@ Esta Política de Uso Aceitável estabelece os padrões éticos, legais e operac
 
 ---
 
-## 1. Finalidade da Inteligência Artificial NÚTRIA
-A **NÚTRIA AI** foi desenvolvida para apoiar profissionais de saúde com cálculos metabólicos de precisão, organização de dados clínicos e sumarização de condutas baseadas em evidências científicas. O uso da plataforma deve refletir o mais elevado padrão de integridade profissional.
+## 1. Finalidade da Inteligência Artificial NUTRIA
+A **NUTRIA AI** foi desenvolvida para apoiar profissionais de saúde com cálculos metabólicos de precisão, organização de dados clínicos e sumarização de condutas baseadas em evidências científicas. O uso da plataforma deve refletir o mais elevado padrão de integridade profissional.
 
 ---
 
@@ -503,7 +503,7 @@ A **NÚTRIA AI** foi desenvolvida para apoiar profissionais de saúde com cálcu
 
 É expressamente proibido a qualquer usuário:
 
-1. **Prescrição Indiscriminada ou em Massa**: Utilizar o copiloto NÚTRIA para gerar planos alimentares em lote sem a devida consulta, anamnese e avaliação individual prévia do paciente.
+1. **Prescrição Indiscriminada ou em Massa**: Utilizar o copiloto NUTRIA para gerar planos alimentares em lote sem a devida consulta, anamnese e avaliação individual prévia do paciente.
 2. **Disseminação de Conteúdo Prejudicial à Saúde**: Induzir o sistema a estruturar dietas de restrição calórica extrema incompatíveis com a integridade biológica, incentivar transtornos alimentares ou prescrever substâncias ilícitas.
 3. **Compartilhamento de Credenciais de Acesso**: Ceder, vender ou compartilhar contas individuais de uso pessoal com múltiplos profissionais não licenciados.
 4. **Engenharia de Prompt Maliciosa (Jailbreaking)**: Tentar forçar o copiloto a contornar travas de segurança clínica, emitir falsos diagnósticos médicos ou expor dados internos de infraestrutura.
@@ -521,7 +521,7 @@ A **NÚTRIA AI** foi desenvolvida para apoiar profissionais de saúde com cálcu
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+> **Nutria AI** • *O Cérebro Inteligente do NutrinK*`
   },
 
   fale_conosco: {
@@ -564,7 +564,7 @@ Nossa equipe técnica, comercial e de suporte clínico está pronta para atender
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+> **Nutria AI** • *O Cérebro Inteligente do NutrinK*`
   },
 
   faq: {
@@ -586,12 +586,12 @@ O **NutrinK** foi desenhado para ser o **software de nutrição mais barato e co
 ---
 
 ### 2. O NutrinK oferece IA gratuita para nutricionistas?
-**Sim!** No plano gratuito do NutrinK, você tem acesso a **30 mensagens gratuitas por dia com a NÚTRIA AI**, o copiloto clínico de inteligência artificial especializada. Você pode calcular TMB/GET, montar cardápios e obter diagnósticos de exames sem pagar nada para começar.
+**Sim!** No plano gratuito do NutrinK, você tem acesso a **30 mensagens gratuitas por dia com a NUTRIA AI**, o copiloto clínico de inteligência artificial especializada. Você pode calcular TMB/GET, montar cardápios e obter diagnósticos de exames sem pagar nada para começar.
 
 ---
 
-### 3. Como usar a Inteligência Artificial (NÚTRIA AI) na consulta de nutrição e prontuário?
-Durante a consulta física ou teleconsulta, basta ditar ou digitar os dados do paciente (peso, altura, idade, dobras, exames laboratoriais e preferências alimentares). A NÚTRIA AI atua como seu **copiloto de inteligência artificial para nutrologia e nutrição**, preenchendo automaticamente o prontuário eletrônico, calculando o déficit/superávit calórico e gerando opções de refeições com gramaturas exatas.
+### 3. Como usar a Inteligência Artificial (NUTRIA AI) na consulta de nutrição e prontuário?
+Durante a consulta física ou teleconsulta, basta ditar ou digitar os dados do paciente (peso, altura, idade, dobras, exames laboratoriais e preferências alimentares). A NUTRIA AI atua como seu **copiloto de inteligência artificial para nutrologia e nutrição**, preenchendo automaticamente o prontuário eletrônico, calculando o déficit/superávit calórico e gerando opções de refeições com gramaturas exatas.
 
 ---
 
@@ -615,6 +615,6 @@ O NutrinK é um **PWA (Progressive Web App)** ultra leve. Basta acessar o link d
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+> **Nutria AI** • *O Cérebro Inteligente do NutrinK*`
   }
 };
