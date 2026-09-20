@@ -158,7 +158,7 @@ export const NewPatientModal: React.FC<NewPatientModalProps> = ({
   return (
     <div 
       ref={backdropRef}
-      className="fixed inset-0 z-50 bg-[#0c0217]/85 backdrop-blur-sm flex items-start justify-center p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[60] bg-[#0c0217]/85 backdrop-blur-sm flex items-start justify-center p-3 sm:p-4 overflow-y-auto"
       id="modal-new-patient-backdrop"
     >
       <div 

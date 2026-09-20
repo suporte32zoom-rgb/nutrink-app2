@@ -339,7 +339,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
       <div className="relative w-full max-w-lg rounded-3xl bg-[#170530] border border-purple-800/70 shadow-2xl shadow-fuchsia-950/80 overflow-hidden">
         
         {/* Close button */}

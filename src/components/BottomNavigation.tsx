@@ -75,13 +75,13 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   return (
     <nav 
       aria-label="Menu de Navegação Inferior PWA"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-[#0D0B18]/90 backdrop-blur-md border-t border-purple-900/40 shadow-2xl shadow-purple-950/90 pb-[env(safe-area-inset-bottom)] transition-all duration-200"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-[#0D0B18]/90 backdrop-blur-md border-t border-purple-900/40 shadow-2xl shadow-purple-950/90 pb-[env(safe-area-inset-bottom)] transition-all duration-200"
       id="pwa-bottom-navigation"
     >
       {/* Top subtle neon light accent line */}
       <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-fuchsia-500/40 to-transparent pointer-events-none" />
 
-      <div className="w-full md:max-w-[90%] lg:max-w-7xl mx-auto px-2 sm:px-6 md:px-12 lg:px-16 h-16 md:h-20 flex items-center justify-around md:justify-between relative">
+      <div className="w-full max-w-[1400px] mx-auto px-2 sm:px-6 md:px-12 lg:px-16 h-16 md:h-20 flex items-center justify-around md:justify-between relative">
         {navItems.map((item) => {
           const isActive = currentTab === item.id;
           const IconComponent = item.icon;

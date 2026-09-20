@@ -227,7 +227,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-fadeIn" id="live-camera-modal">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-fadeIn" id="live-camera-modal">
       {/* Hidden Fallback Input */}
       <input
         type="file"

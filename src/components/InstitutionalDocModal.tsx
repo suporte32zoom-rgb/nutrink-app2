@@ -121,7 +121,7 @@ export const InstitutionalDocModal: React.FC<InstitutionalDocModalProps> = ({
   const CurrentIcon = ICON_MAP[currentPage.iconName] || FileText;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       
       <div className="bg-[#120426] border border-purple-800/70 w-full max-w-5xl h-[92vh] max-h-[880px] rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 relative">
         

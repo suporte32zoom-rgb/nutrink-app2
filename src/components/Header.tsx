@@ -85,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
       className="bg-[#120326] text-white border-b border-purple-900/50 sticky top-0 shadow-lg shadow-purple-950/40 pt-2 sm:pt-3 pb-2 sm:pb-3 px-2 sm:px-6 lg:px-8 transition-all overflow-x-hidden"
       style={{ zIndex: 1000 }}
     >
-      <div className="max-w-7xl mx-auto w-full overflow-x-hidden">
+      <div className="w-full max-w-[1400px] mx-auto overflow-x-hidden">
         <div className="flex items-center justify-between w-full overflow-x-hidden gap-1 sm:gap-3 min-h-[3rem] sm:min-h-[3.25rem]">
           
           {/* Mobile Hamburger Menu Button (z-index: 1000) */}
