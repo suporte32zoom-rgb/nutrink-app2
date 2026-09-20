@@ -102,15 +102,8 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {/* Official NutrinK Original Logo: [Ícone NK] [Nutrink] */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-shrink-0">
-            <div 
-              onClick={() => handleNavClick('dashboard')} 
-              className="flex items-center cursor-pointer hover:opacity-95 transition-opacity"
-              title="Ir para o Painel Principal"
-              id="header-logo-nav"
-            >
-              <NutrinKLogo size="md" withGlow={true} className="shrink-0 flex-shrink-0" />
-            </div>
+          <div className="flex items-center gap-2 shrink-0 flex-shrink-0">
+            <NutrinKLogo size="md" withGlow={true} className="shrink-0 flex-shrink-0" />
             
             {/* Plan Badge (Desktop/Tablet) */}
             {isFree ? (
