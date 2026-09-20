@@ -75,7 +75,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   return (
     <nav 
       aria-label="Menu de Navegação Inferior PWA"
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0D0B18]/90 backdrop-blur-md border-t border-purple-900/40 shadow-2xl shadow-purple-950/90 pb-[env(safe-area-inset-bottom)] transition-all duration-200"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-[#0D0B18]/90 backdrop-blur-md border-t border-purple-900/40 shadow-2xl shadow-purple-950/90 pb-[env(safe-area-inset-bottom)] transition-all duration-200"
       id="pwa-bottom-navigation"
     >
       {/* Top subtle neon light accent line */}

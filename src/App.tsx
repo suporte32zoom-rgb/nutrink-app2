@@ -1261,7 +1261,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
       />
 
       {/* Main Content Area with bottom padding to prevent bottom bar overlap */}
-      <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 sm:pb-32">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 sm:pb-32">
         
         {currentTab === 'plans' && (
           <MercadoPagoSubscriptionsView
@@ -1451,29 +1451,28 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         todayAppointmentsCount={appointments.filter(a => a.date === new Date().toISOString().split('T')[0]).length}
       />
 
-      {/* Floating NÚTRIA Action Button (when not on nutria_hub and drawer is closed) */}
+      {/* Floating NUTRIA Action Button (when not on nutria_hub and drawer is closed) */}
       {currentTab !== 'nutria_hub' && !isFloatingChatOpen && (
         <button
-          type="button"
           onClick={() => setIsFloatingChatOpen(true)}
-          className="fixed bottom-20 sm:bottom-24 lg:bottom-8 right-4 lg:right-8 z-50 inline-flex lg:flex items-center justify-center gap-2 px-3.5 py-2.5 sm:px-4 sm:py-2.5 max-w-[180px] sm:max-w-none bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-full shadow-2xl hover:shadow-fuchsia-500/40 font-bold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 border border-fuchsia-400/50 group shadow-purple-950/90 cursor-pointer opacity-100 visible"
+          className="fixed bottom-20 sm:bottom-24 lg:bottom-6 right-4 z-40 px-3.5 py-2.5 sm:px-4 sm:py-2.5 max-w-[180px] sm:max-w-none bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-full shadow-2xl hover:shadow-fuchsia-500/40 flex items-center justify-center gap-2 font-bold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 border border-fuchsia-400/50 group shadow-purple-950/90 cursor-pointer"
           id="btn-open-nutria-floating"
-          title="Falar com Copiloto NÚTRIA AI"
+          title="Falar com Copiloto NUTRIA AI"
         >
-          <div className="relative shrink-0 flex items-center justify-center">
-            <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0" />
+          <div className="relative shrink-0">
+            <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-fuchsia-300 rounded-full animate-ping"></span>
           </div>
-          <span className="truncate text-xs sm:text-sm font-bold tracking-tight text-white">
-            Falar com NÚTRIA
+          <span className="truncate text-xs sm:text-sm font-bold tracking-tight">
+            Falar com NUTRIA
           </span>
         </button>
       )}
 
-      {/* Floating NÚTRIA Chat Drawer */}
+      {/* Floating NUTRIA Chat Drawer */}
       {isFloatingChatOpen && (
         <div 
-          className="fixed bottom-20 sm:bottom-24 lg:bottom-8 right-2.5 sm:right-4 lg:right-8 z-[60] w-[calc(100vw-20px)] sm:w-full max-w-lg p-0.5 sm:p-2 max-h-[80vh] lg:max-h-[85vh] flex flex-col box-border min-w-0"
+          className="fixed bottom-20 sm:bottom-24 lg:bottom-6 right-2.5 sm:right-4 z-50 w-[calc(100vw-20px)] sm:w-full max-w-lg p-0.5 sm:p-2 max-h-[80vh] lg:max-h-[85vh] flex flex-col box-border min-w-0"
         >
           <NutriaCopilot
             messages={nutriaMessages}
