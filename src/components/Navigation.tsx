@@ -86,7 +86,7 @@ export const Navigation: React.FC<NavigationProps> = ({
     },
     {
       id: 'nutria_hub' as ActiveTab,
-      label: 'Copiloto NUTRIA (IA)',
+      label: 'Copiloto NÚTRIA (IA)',
       icon: Bot,
       isSpecial: true
     },

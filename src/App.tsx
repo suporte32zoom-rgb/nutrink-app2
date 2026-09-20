@@ -20,6 +20,7 @@ import { LoginModal } from './components/LoginModal';
 import { TelemedicineView } from './components/TelemedicineView';
 import { MercadoPagoSubscriptionsView } from './components/MercadoPagoSubscriptionsView';
 import { OnboardingView } from './components/OnboardingView';
+import { BottomNavigation } from './components/BottomNavigation';
 import { 
   INITIAL_PATIENTS, 
   INITIAL_APPOINTMENTS, 
@@ -1259,8 +1260,8 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         isSubscribed={Boolean(effectiveUserAccount.isSubscribed || effectiveUserAccount.plan === 'premium_mensal' || effectiveUserAccount.plan === 'premium_anual')}
       />
 
-      {/* Main Content Area with 90px bottom padding to prevent FAB overlap */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-[90px]" style={{ paddingBottom: '90px' }}>
+      {/* Main Content Area with bottom padding to prevent bottom bar overlap */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 sm:pb-32">
         
         {currentTab === 'plans' && (
           <MercadoPagoSubscriptionsView
@@ -1436,28 +1437,42 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         onOpenLogin={handleOpenLoginModal}
       />
 
-      {/* Floating NUTRIA Action Button (when not on nutria_hub and drawer is closed) */}
+      {/* PWA Fixed Responsive Bottom Navigation Bar */}
+      <BottomNavigation
+        currentTab={currentTab}
+        onChangeTab={(tab) => {
+          setCurrentTab(tab);
+          if (tab !== 'patients' && tab !== 'nutricalc' && tab !== 'telemedicine') {
+            setSelectedPatientId(null);
+          }
+        }}
+        onOpenNutriaChat={() => setIsFloatingChatOpen(true)}
+        unreadNutriaAlerts={2}
+        todayAppointmentsCount={appointments.filter(a => a.date === new Date().toISOString().split('T')[0]).length}
+      />
+
+      {/* Floating NÚTRIA Action Button (when not on nutria_hub and drawer is closed) */}
       {currentTab !== 'nutria_hub' && !isFloatingChatOpen && (
         <button
           onClick={() => setIsFloatingChatOpen(true)}
-          className="fixed bottom-4 right-4 z-50 px-3.5 py-2.5 sm:px-4 sm:py-2.5 max-w-[180px] sm:max-w-none bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-full shadow-2xl hover:shadow-fuchsia-500/40 flex items-center justify-center gap-2 font-bold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 border border-fuchsia-400/50 group shadow-purple-950/90 cursor-pointer"
+          className="fixed bottom-20 sm:bottom-24 lg:bottom-6 right-4 lg:right-6 z-40 px-3.5 py-2.5 sm:px-4 sm:py-2.5 max-w-[180px] sm:max-w-none bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-full shadow-2xl hover:shadow-fuchsia-500/40 flex items-center justify-center gap-2 font-bold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 border border-fuchsia-400/50 group shadow-purple-950/90 cursor-pointer"
           id="btn-open-nutria-floating"
-          title="Falar com Copiloto NUTRIA AI"
+          title="Falar com Copiloto NÚTRIA AI"
         >
           <div className="relative shrink-0">
             <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-fuchsia-300 rounded-full animate-ping"></span>
           </div>
           <span className="truncate text-xs sm:text-sm font-bold tracking-tight">
-            Falar com NUTRIA
+            Falar com NÚTRIA
           </span>
         </button>
       )}
 
-      {/* Floating NUTRIA Chat Drawer */}
+      {/* Floating NÚTRIA Chat Drawer */}
       {isFloatingChatOpen && (
         <div 
-          className="fixed bottom-2.5 sm:bottom-4 right-2.5 sm:right-4 z-50 w-[calc(100vw-20px)] sm:w-full max-w-lg p-0.5 sm:p-2 max-h-[92vh] flex flex-col box-border min-w-0"
+          className="fixed bottom-20 sm:bottom-24 lg:bottom-6 right-2.5 sm:right-4 lg:right-6 z-50 w-[calc(100vw-20px)] sm:w-full max-w-lg p-0.5 sm:p-2 max-h-[80vh] lg:max-h-[85vh] flex flex-col box-border min-w-0"
         >
           <NutriaCopilot
             messages={nutriaMessages}

@@ -583,12 +583,12 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
               </button>
 
               <button
-                onClick={() => onOpenNutriaWithPrompt(`Nutria, analise o prontuário de ${selectedPatient.name} (ID: ${selectedPatient.id}, Objetivo: ${selectedPatient.objective}, Peso: ${selectedPatient.currentWeightKg}kg, Altura: ${selectedPatient.heightCm}cm, TMB: ${selectedPatient.tmb}kcal, GET: ${selectedPatient.get}kcal, Alergias: ${selectedPatient.anamnese?.foodAllergiesAndIntolerances || 'Nenhuma'}) e apresente recomendações clínicas para o atendimento.`)}
+                onClick={() => onOpenNutriaWithPrompt(`Nútria, analise o prontuário de ${selectedPatient.name} (ID: ${selectedPatient.id}, Objetivo: ${selectedPatient.objective}, Peso: ${selectedPatient.currentWeightKg}kg, Altura: ${selectedPatient.heightCm}cm, TMB: ${selectedPatient.tmb}kcal, GET: ${selectedPatient.get}kcal, Alergias: ${selectedPatient.anamnese?.foodAllergiesAndIntolerances || 'Nenhuma'}) e apresente recomendações clínicas para o atendimento.`)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 transition-all hover:scale-105"
                 id="btn-patient-nutria-copilot"
               >
                 <Bot className="w-3.5 h-3.5 text-fuchsia-200" />
-                <span>Copiloto NUTRIA neste Paciente</span>
+                <span>Copiloto NÚTRIA neste Paciente</span>
               </button>
             </div>
           </div>
@@ -1879,7 +1879,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
             <div className="max-w-md mx-auto space-y-1.5">
               <h3 className="text-lg font-bold text-white">Sua lista de pacientes está vazia</h3>
               <p className="text-xs sm:text-sm text-purple-200">
-                Cadastre seu primeiro paciente para iniciar o prontuário eletrônico integrado com 5 abas clínicas, prescrição de manipulados, exames e acompanhamento com o copiloto NUTRIA.
+                Cadastre seu primeiro paciente para iniciar o prontuário eletrônico integrado com 5 abas clínicas, prescrição de manipulados, exames e acompanhamento com o copiloto NÚTRIA.
               </p>
             </div>
             <div className="pt-2">

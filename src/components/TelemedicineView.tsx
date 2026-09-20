@@ -343,7 +343,7 @@ export const TelemedicineView: React.FC<TelemedicineViewProps> = ({
       {
         id: `tr-${Date.now()}-welcome`,
         speaker: 'nutria',
-        text: `Sala de Vídeoconsulta iniciada com ${currentPatientName}. A NUTRIA está ativa para transcrever, calcular métricas e gerar sugestões em tempo real.`,
+        text: `Sala de Vídeoconsulta iniciada com ${currentPatientName}. A NÚTRIA está ativa para transcrever, calcular métricas e gerar sugestões em tempo real.`,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       }
     ]);
@@ -1205,7 +1205,7 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
                 }`}
               >
                 <Bot className="w-3.5 h-3.5 text-fuchsia-400" />
-                <span>NUTRIA Ao Vivo</span>
+                <span>NÚTRIA Ao Vivo</span>
                 {liveInsights.length > 0 && (
                   <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400 animate-ping"></span>
                 )}
