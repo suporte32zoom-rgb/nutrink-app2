@@ -6,20 +6,35 @@ import {
   Video,
   DollarSign, 
   Calculator, 
-  Bot,
-  Crown,
-  Sparkles,
-  Radio,
-  Lock
+  Bot, 
+  Crown, 
+  Lock,
+  Apple,
+  Activity,
+  Pill,
+  Settings
 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-export type ActiveTab = 'dashboard' | 'patients' | 'calendar' | 'telemedicine' | 'finance' | 'nutricalc' | 'nutria_hub' | 'plans';
+export type ActiveTab = 
+  | 'dashboard' 
+  | 'patients' 
+  | 'calendar' 
+  | 'telemedicine' 
+  | 'finance' 
+  | 'nutricalc' 
+  | 'nutria_hub' 
+  | 'plans'
+  | 'meal_plans'
+  | 'exams'
+  | 'prescriptions'
+  | 'settings';
 
 interface NavigationProps {
-  activeTab?: ActiveTab;
-  currentTab?: ActiveTab;
-  setActiveTab?: (tab: ActiveTab) => void;
-  onChangeTab?: (tab: ActiveTab) => void;
+  activeTab?: string;
+  currentTab?: string;
+  setActiveTab?: (tab: any) => void;
+  onChangeTab?: (tab: any) => void;
   onOpenSubscriptionModal?: () => void;
   unreadNutriaAlerts?: number;
   todayAppointmentsCount?: number;
@@ -39,33 +54,69 @@ export const Navigation: React.FC<NavigationProps> = ({
   isTelemedicineActive,
   isSubscribed = false
 }) => {
-  const current = activeTab || currentTab || 'dashboard';
-  const handleSelect = (tab: ActiveTab) => {
-    if (setActiveTab) setActiveTab(tab);
-    if (onChangeTab) onChangeTab(tab);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Helper to determine active route
+  const path = location.pathname;
+  const isPathActive = (route: string) => {
+    if (route === '/dashboard') return path === '/' || path === '/dashboard';
+    return path.startsWith(route);
   };
 
   const navItems = [
     {
-      id: 'dashboard' as ActiveTab,
+      id: 'dashboard',
+      route: '/dashboard',
       label: 'Painel Clínico',
       icon: LayoutDashboard,
       badge: null
     },
     {
-      id: 'patients' as ActiveTab,
+      id: 'patients',
+      route: '/pacientes',
       label: 'Pacientes & Prontuários',
       icon: Users,
       badge: null
     },
     {
-      id: 'calendar' as ActiveTab,
+      id: 'calendar',
+      route: '/agenda',
       label: 'Agenda & Calendário',
       icon: CalendarDays,
       badge: (todayAppointmentsCount || pendingAppointmentsCount) ? (todayAppointmentsCount || pendingAppointmentsCount) : null
     },
     {
-      id: 'telemedicine' as ActiveTab,
+      id: 'meal_plans',
+      route: '/planos-alimentares',
+      label: 'Planos Alimentares',
+      icon: Apple,
+      badge: 'TACO'
+    },
+    {
+      id: 'nutricalc',
+      route: '/antropometria',
+      label: 'NutriCalc & Protocolos',
+      icon: Calculator,
+      badge: 'Cálculos'
+    },
+    {
+      id: 'exams',
+      route: '/exames',
+      label: 'Exames & Biomarcadores',
+      icon: Activity,
+      badge: null
+    },
+    {
+      id: 'prescriptions',
+      route: '/prescricoes',
+      label: 'Prescrições & Fórmulas',
+      icon: Pill,
+      badge: null
+    },
+    {
+      id: 'telemedicine',
+      route: '/telemedicina',
       label: 'Telemedicina & Vídeo',
       icon: Video,
       badge: isTelemedicineActive ? 'AO VIVO' : (!isSubscribed ? 'PRO' : 'HD'),
@@ -73,44 +124,54 @@ export const Navigation: React.FC<NavigationProps> = ({
       isProLocked: !isSubscribed
     },
     {
-      id: 'finance' as ActiveTab,
-      label: 'Financeiro & Faturamento',
+      id: 'finance',
+      route: '/financeiro',
+      label: 'Financeiro & Caixa',
       icon: DollarSign,
       badge: null
     },
     {
-      id: 'nutricalc' as ActiveTab,
-      label: 'NutriCalc & Protocolos',
-      icon: Calculator,
-      badge: 'Cálculos'
-    },
-    {
-      id: 'nutria_hub' as ActiveTab,
+      id: 'nutria_hub',
+      route: '/nutria',
       label: 'Copiloto NÚTRIA (IA)',
       icon: Bot,
       isSpecial: true
     },
     {
-      id: 'plans' as ActiveTab,
+      id: 'plans',
+      route: '/planos',
       label: 'Planos e Assinaturas',
       icon: Crown,
       badge: 'PRO'
+    },
+    {
+      id: 'settings',
+      route: '/configuracoes',
+      label: 'Configurações',
+      icon: Settings,
+      badge: null
     }
   ];
+
+  const handleItemClick = (item: typeof navItems[0]) => {
+    navigate(item.route);
+    if (onChangeTab) onChangeTab(item.id as any);
+    if (setActiveTab) setActiveTab(item.id as any);
+  };
 
   return (
     <nav className="bg-[#140327] border-b border-purple-900/40 px-3 sm:px-6 lg:px-8 shadow-inner">
       <div className="max-w-7xl mx-auto flex items-center space-x-1.5 sm:space-x-2 overflow-x-auto py-2 sm:py-2.5 scrollbar-none">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = current === item.id;
+          const isActive = isPathActive(item.route) || currentTab === item.id || activeTab === item.id;
           
           if (item.id === 'nutria_hub') {
             return (
               <button
                 key={item.id}
-                onClick={() => handleSelect(item.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${
+                onClick={() => handleItemClick(item)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
                   isActive 
                     ? 'bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 text-white shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/50' 
                     : 'bg-[#29094e] text-fuchsia-200 border border-purple-700/50 hover:bg-[#360d66] hover:text-white'
@@ -127,8 +188,8 @@ export const Navigation: React.FC<NavigationProps> = ({
             return (
               <button
                 key={item.id}
-                onClick={() => handleSelect(item.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all shadow-md ${
+                onClick={() => handleItemClick(item)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all shadow-md cursor-pointer ${
                   isActive 
                     ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-fuchsia-500 text-slate-950 border-2 border-amber-300 ring-2 ring-amber-400/50 shadow-amber-950/60 font-black' 
                     : 'bg-gradient-to-r from-amber-500/25 via-[#2b0852] to-fuchsia-950/70 hover:from-amber-500/40 hover:to-fuchsia-900/90 text-amber-200 hover:text-white border border-amber-400/60 shadow-purple-950/50'
@@ -146,10 +207,10 @@ export const Navigation: React.FC<NavigationProps> = ({
           return (
             <button
               key={item.id}
-              onClick={() => handleSelect(item.id)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${
+              onClick={() => handleItemClick(item)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-[#26084c] text-white border border-fuchsia-500/40 shadow-sm'
+                  ? 'bg-[#26084c] text-white border border-fuchsia-500/40 shadow-sm font-bold'
                   : 'text-purple-200 hover:text-white hover:bg-[#1f063e]'
               }`}
             >

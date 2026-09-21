@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Search, 
@@ -108,6 +109,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
   onUpdateAppointmentStatus,
   onOpenAppointmentDetails
 }) => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [objectiveFilter, setObjectiveFilter] = useState<string>('todos');
   
@@ -487,8 +489,11 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
         {/* Top Header do Prontuário com Dados do Paciente */}
         <div className="bg-[#150328] border border-purple-900/50 rounded-3xl p-5 sm:p-7 shadow-xl shadow-purple-950/40">
           <button
-            onClick={() => onSelectPatient(null)}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-200 hover:text-fuchsia-300 mb-4 transition-colors"
+            onClick={() => {
+              navigate('/pacientes');
+              onSelectPatient(null);
+            }}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-200 hover:text-fuchsia-300 mb-4 transition-colors cursor-pointer"
             id="btn-back-to-patients-list"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -1901,7 +1906,10 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
           filteredPatients.map((patient) => (
             <div
               key={patient.id}
-              onClick={() => onSelectPatient(patient.id)}
+              onClick={() => {
+                navigate(`/pacientes/${patient.id}`);
+                onSelectPatient(patient.id);
+              }}
               className="bg-[#150328] border border-purple-900/50 hover:border-fuchsia-500/60 rounded-3xl p-5 cursor-pointer transition-all hover:translate-y-[-2px] group relative shadow-md"
               id={`patient-card-${patient.id}`}
             >

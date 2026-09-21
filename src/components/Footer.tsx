@@ -18,10 +18,11 @@ import {
   ArrowUpRight,
   HeartPulse
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { NutrinKLogo } from './NutrinKLogo';
 
 interface FooterProps {
-  onOpenPage: (pageId: string) => void;
+  onOpenPage?: (pageId: string) => void;
   onOpenLoginModal?: () => void;
   onOpenLogin?: () => void;
   onOpenSubscriptionModal?: () => void;
@@ -39,18 +40,36 @@ export const Footer: React.FC<FooterProps> = ({
   onScrollToTop,
   onOpenNutriaPrompt
 }) => {
+  const navigate = useNavigate();
   const triggerLogin = onOpenLoginModal || onOpenLogin || (() => {});
   const triggerPlans = onOpenSubscriptionModal || onOpenPlans || (() => {});
+
   const handleLinkClick = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
-    if (id === 'inicio') {
-      if (onScrollToTop) onScrollToTop();
-      onOpenPage('inicio');
-    } else if (id === 'planos') {
-      onOpenPage('planos');
-    } else if (id === 'acessar') {
+    const routeMap: Record<string, string> = {
+      inicio: '/dashboard',
+      recursos: '/recursos',
+      planos: '/planos',
+      sobre: '/sobre',
+      metodologia: '/metodologia',
+      clientes: '/clientes',
+      faq: '/faq',
+      privacidade_lgpd: '/privacidade',
+      termos_servico: '/termos',
+      politica_uso_aceitavel: '/politica-uso-aceitavel',
+      fale_conosco: '/suporte',
+      acessar: '/login'
+    };
+
+    if (id === 'acessar') {
       triggerLogin();
-    } else {
+      return;
+    }
+
+    if (routeMap[id]) {
+      navigate(routeMap[id]);
+      if (onScrollToTop) onScrollToTop();
+    } else if (onOpenPage) {
       onOpenPage(id);
     }
   };
@@ -67,7 +86,12 @@ export const Footer: React.FC<FooterProps> = ({
           
           {/* Column 1: Brand & Copilot summary */}
           <div className="space-y-4">
-            <NutrinKLogo size="md" withGlow={true} />
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="cursor-pointer hover:opacity-90 transition-opacity text-left"
+            >
+              <NutrinKLogo size="md" withGlow={true} />
+            </button>
             <p className="text-xs text-purple-200/80 leading-relaxed">
               O ecossistema completo de inteligência clínica e operacional para nutricionistas e nutrólogos de alta performance.
             </p>
@@ -80,15 +104,16 @@ export const Footer: React.FC<FooterProps> = ({
               <p className="text-[11px] text-purple-300/70">
                 Prontuários estruturados, cálculos TMB/GET e protocolos clínicos baseados em evidências.
               </p>
-              {onOpenNutriaPrompt && (
-                <button
-                  onClick={() => onOpenNutriaPrompt("Quais são todos os recursos e diferenciais do NutrinK?")}
-                  className="text-[11px] text-fuchsia-400 hover:text-fuchsia-300 font-bold flex items-center gap-1 transition-colors"
-                >
-                  <span>Perguntar à Nútria</span>
-                  <ArrowUpRight className="w-3 h-3" />
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  navigate('/nutria');
+                  if (onOpenNutriaPrompt) onOpenNutriaPrompt("Quais são todos os recursos e diferenciais do NutrinK?");
+                }}
+                className="text-[11px] text-fuchsia-400 hover:text-fuchsia-300 font-bold flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <span>Perguntar à Nútria</span>
+                <ArrowUpRight className="w-3 h-3" />
+              </button>
             </div>
 
             <div className="flex items-center gap-2 text-[11px] text-emerald-400">
@@ -107,17 +132,17 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={(e) => handleLinkClick('inicio', e)}
-                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left"
+                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left cursor-pointer"
                   id="footer-link-inicio"
                 >
                   <Home className="w-3.5 h-3.5 text-purple-400 group-hover:text-fuchsia-400 transition-colors" />
-                  <span>Início (Topo)</span>
+                  <span>Início / Dashboard</span>
                 </button>
               </li>
               <li>
                 <button
                   onClick={(e) => handleLinkClick('recursos', e)}
-                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left"
+                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left cursor-pointer"
                   id="footer-link-recursos"
                 >
                   <Layers className="w-3.5 h-3.5 text-purple-400 group-hover:text-fuchsia-400 transition-colors" />
@@ -127,7 +152,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={(e) => handleLinkClick('planos', e)}
-                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left"
+                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left cursor-pointer"
                   id="footer-link-planos"
                 >
                   <CreditCard className="w-3.5 h-3.5 text-purple-400 group-hover:text-fuchsia-400 transition-colors" />
@@ -147,7 +172,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={(e) => handleLinkClick('sobre', e)}
-                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left"
+                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left cursor-pointer"
                   id="footer-link-sobre"
                 >
                   <Info className="w-3.5 h-3.5 text-purple-400 group-hover:text-fuchsia-400 transition-colors" />
@@ -157,7 +182,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={(e) => handleLinkClick('metodologia', e)}
-                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left"
+                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left cursor-pointer"
                   id="footer-link-metodologia"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-purple-400 group-hover:text-fuchsia-400 transition-colors" />
@@ -167,7 +192,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={(e) => handleLinkClick('clientes', e)}
-                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left"
+                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left cursor-pointer"
                   id="footer-link-clientes"
                 >
                   <Award className="w-3.5 h-3.5 text-purple-400 group-hover:text-fuchsia-400 transition-colors" />
@@ -177,7 +202,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={(e) => handleLinkClick('faq', e)}
-                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left"
+                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left cursor-pointer"
                   id="footer-link-faq"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-purple-400 group-hover:text-fuchsia-400 transition-colors" />
@@ -187,7 +212,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={(e) => handleLinkClick('acessar', e)}
-                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left"
+                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left cursor-pointer"
                   id="footer-link-acessar"
                 >
                   <LogIn className="w-3.5 h-3.5 text-emerald-400 group-hover:text-emerald-300 transition-colors" />
@@ -207,7 +232,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={(e) => handleLinkClick('privacidade_lgpd', e)}
-                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left"
+                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left cursor-pointer"
                   id="footer-link-lgpd"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 group-hover:text-emerald-300 transition-colors" />
@@ -217,7 +242,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={(e) => handleLinkClick('termos_servico', e)}
-                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left"
+                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left cursor-pointer"
                   id="footer-link-termos"
                 >
                   <FileText className="w-3.5 h-3.5 text-purple-400 group-hover:text-fuchsia-400 transition-colors" />
@@ -227,7 +252,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={(e) => handleLinkClick('politica_uso_aceitavel', e)}
-                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left"
+                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left cursor-pointer"
                   id="footer-link-uso-aceitavel"
                 >
                   <AlertTriangle className="w-3.5 h-3.5 text-purple-400 group-hover:text-fuchsia-400 transition-colors" />
@@ -237,7 +262,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={(e) => handleLinkClick('fale_conosco', e)}
-                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left"
+                  className="flex items-center gap-2 text-purple-200 hover:text-white transition-colors group text-left cursor-pointer"
                   id="footer-link-fale-conosco"
                 >
                   <Headphones className="w-3.5 h-3.5 text-purple-400 group-hover:text-fuchsia-400 transition-colors" />
@@ -268,22 +293,22 @@ export const Footer: React.FC<FooterProps> = ({
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => onOpenPage('privacidade_lgpd')}
-              className="text-purple-300 hover:text-white underline transition-colors"
+              onClick={() => navigate('/privacidade')}
+              className="text-purple-300 hover:text-white underline transition-colors cursor-pointer"
             >
               Privacidade
             </button>
             <span>•</span>
             <button
-              onClick={() => onOpenPage('termos_servico')}
-              className="text-purple-300 hover:text-white underline transition-colors"
+              onClick={() => navigate('/termos')}
+              className="text-purple-300 hover:text-white underline transition-colors cursor-pointer"
             >
               Termos
             </button>
             <span>•</span>
             <button
-              onClick={() => onOpenPage('fale_conosco')}
-              className="text-purple-300 hover:text-white underline transition-colors"
+              onClick={() => navigate('/suporte')}
+              className="text-purple-300 hover:text-white underline transition-colors cursor-pointer"
             >
               Suporte Técnico
             </button>

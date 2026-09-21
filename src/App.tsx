@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
@@ -8,6 +9,11 @@ import { CalendarView } from './components/CalendarView';
 import { FinanceView } from './components/FinanceView';
 import { NutriCalcView } from './components/NutriCalcView';
 import { NutriaCopilot } from './components/NutriaCopilot';
+import { MealPlansGlobalView } from './components/MealPlansGlobalView';
+import { ExamsGlobalView } from './components/ExamsGlobalView';
+import { PrescriptionsGlobalView } from './components/PrescriptionsGlobalView';
+import { SettingsGlobalView } from './components/SettingsGlobalView';
+import { InstitutionalPageView } from './components/InstitutionalPageView';
 import { NewPatientModal } from './components/NewPatientModal';
 import { NewAppointmentModal } from './components/NewAppointmentModal';
 import { AppointmentDetailsModal } from './components/AppointmentDetailsModal';
@@ -19,7 +25,6 @@ import { InstitutionalDocModal } from './components/InstitutionalDocModal';
 import { LoginModal } from './components/LoginModal';
 import { TelemedicineView } from './components/TelemedicineView';
 import { MercadoPagoSubscriptionsView } from './components/MercadoPagoSubscriptionsView';
-import { OnboardingView } from './components/OnboardingView';
 import { BottomNavigation } from './components/BottomNavigation';
 import { 
   INITIAL_PATIENTS, 
@@ -54,12 +59,72 @@ import {
   saveNutriaMessage,
   subscribeToAppointments,
   subscribeToTransactions,
-  subscribeToPatients,
-  handleGoogleProfileAuth
+  subscribeToPatients
 } from './services/databaseService';
 import { trackPageView, trackAppointmentEvent, trackEvent } from './services/analytics';
 
+// Subwrapper component for /pacientes/:id route
+function PatientDetailRouteWrapper({
+  patients,
+  onOpenNewPatient,
+  onOpenNewAppointmentWithPatient,
+  onOpenNutriaWithPrompt,
+  onUpdatePatient,
+  onDeletePatient,
+  foodDatabase,
+  userAccount,
+  onStartTelemedicine,
+  onNavigateToNutriCalc,
+  appointments,
+  onUpdateAppointmentStatus,
+  onOpenAppointmentDetails
+}: any) {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+
+  return (
+    <PatientsView
+      patients={patients}
+      selectedPatientId={id || null}
+      onSelectPatient={(selectedId) => {
+        if (selectedId) {
+          navigate(`/pacientes/${selectedId}`);
+        } else {
+          navigate('/pacientes');
+        }
+      }}
+      onOpenNewPatient={onOpenNewPatient}
+      onOpenNewAppointmentWithPatient={onOpenNewAppointmentWithPatient}
+      onOpenNutriaWithPrompt={onOpenNutriaWithPrompt}
+      onUpdatePatient={onUpdatePatient}
+      onDeletePatient={onDeletePatient}
+      foodDatabase={foodDatabase}
+      userAccount={userAccount}
+      onStartTelemedicine={onStartTelemedicine}
+      onNavigateToNutriCalc={onNavigateToNutriCalc}
+      appointments={appointments}
+      onUpdateAppointmentStatus={onUpdateAppointmentStatus}
+      onOpenAppointmentDetails={onOpenAppointmentDetails}
+    />
+  );
+}
+
+// Subwrapper component for /telemedicina/:roomName route
+function TelemedicineRouteWrapper(props: any) {
+  const { roomName } = useParams<{ roomName?: string }>();
+  return <TelemedicineView {...props} initialRoomName={roomName || props.initialRoomName} />;
+}
+
+// Subwrapper component for /docs/:pageId route
+function InstitutionalDocRouteWrapper(props: any) {
+  const { pageId } = useParams<{ pageId?: string }>();
+  return <InstitutionalPageView {...props} pageId={pageId || 'sobre'} />;
+}
+
 export function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // Check URL parameters for direct deep-linking (e.g. /telemedicina?room=xyz, ?tab=telemedicine)
   const [telemedRoomFromUrl, setTelemedRoomFromUrl] = useState<string | null>(() => {
     try {
@@ -77,22 +142,6 @@ export function App() {
     } catch {
       return null;
     }
-  });
-
-  // Navigation state with direct route support
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'patients' | 'calendar' | 'finance' | 'nutricalc' | 'telemedicine' | 'nutria_hub' | 'plans'>(() => {
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const pathname = window.location.pathname.toLowerCase();
-      const hasRoom = urlParams.has('room') || urlParams.has('r') || urlParams.has('sala');
-      const isTelemed = pathname.includes('/telemedicina') || urlParams.get('tab') === 'telemedicine' || hasRoom;
-      if (isTelemed) return 'telemedicine';
-      if (urlParams.get('tab') === 'patients') return 'patients';
-      if (urlParams.get('tab') === 'calendar') return 'calendar';
-      if (urlParams.get('tab') === 'finance') return 'finance';
-      if (urlParams.get('tab') === 'plans') return 'plans';
-    } catch {}
-    return 'dashboard';
   });
 
   // Application Data States (persistent in localStorage with initial empty/clean state)
@@ -125,46 +174,13 @@ export function App() {
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
-  // Listen to popstate for browser back/forward and deep link updates
+  // Track page views in Google Analytics whenever the active URL changes
   useEffect(() => {
-    const handlePopState = () => {
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const pathname = window.location.pathname.toLowerCase();
-        const room = urlParams.get('room') || urlParams.get('r') || urlParams.get('sala');
-        const patientName = urlParams.get('patient') || urlParams.get('paciente') || urlParams.get('name');
-        if (room) setTelemedRoomFromUrl(room);
-        if (patientName) setTelemedPatientFromUrl(patientName);
-        if (pathname.includes('/telemedicina') || urlParams.get('tab') === 'telemedicine' || !!room) {
-          setCurrentTab('telemedicine');
-        }
-      } catch {}
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+    const path = location.pathname;
+    trackPageView(`NutrinK - ${path}`, path);
+  }, [location.pathname]);
 
-  // Track page views in Google Analytics whenever the active tab/screen changes (SPA navigation)
-  useEffect(() => {
-    const tabTitles: Record<string, string> = {
-      dashboard: 'Painel Principal | NutrinK',
-      patients: selectedPatientId ? 'Prontuário do Paciente | NutrinK' : 'Prontuários de Pacientes | NutrinK',
-      calendar: 'Agenda de Consultas | NutrinK',
-      finance: 'Controle Financeiro | NutrinK',
-      nutricalc: 'NutriCalc & Protocolos | NutrinK',
-      telemedicine: 'Teleconsulta HD | NutrinK',
-      nutria_hub: 'Copiloto NÚTRIA AI | NutrinK',
-      plans: 'Planos e Assinaturas | NutrinK'
-    };
-
-    const path = currentTab === 'patients' && selectedPatientId
-      ? `/patients/${selectedPatientId}`
-      : `/${currentTab}`;
-
-    trackPageView(tabTitles[currentTab] || `NutrinK - ${currentTab}`, path);
-  }, [currentTab, selectedPatientId]);
-
-  // Sync state changes with localStorage and Cloud Database
+  // Sync state changes with localStorage
   useEffect(() => {
     try {
       localStorage.setItem('nutrink_patients', JSON.stringify(patients));
@@ -198,55 +214,42 @@ export function App() {
         const registeredUsersRaw = localStorage.getItem('nutrink_registered_users');
         if (registeredUsersRaw) {
           const registeredUsers = JSON.parse(registeredUsersRaw);
-          const match = registeredUsers.find((u: any) => u.email?.trim().toLowerCase() === parsed.email?.trim().toLowerCase());
-          if (match && match.name && match.name.trim()) {
-            parsed.name = match.name.trim();
+          const found = registeredUsers.find((u: any) => u.email?.toLowerCase() === parsed.email?.toLowerCase());
+          if (found) {
+            return { ...parsed, ...found };
           }
         }
         return parsed;
       }
-      const registered = localStorage.getItem('nutrink_registered_users');
-      if (registered) {
-        const users = JSON.parse(registered);
-        if (users.length > 0) {
-          const lastEmail = localStorage.getItem('nutrink_last_email');
-          const found = users.find((u: any) => u.email?.trim().toLowerCase() === lastEmail?.trim().toLowerCase());
-          return found || users[0];
-        }
-      }
+      return null;
     } catch {
       return null;
     }
-    return null;
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     try {
-      const storedSession = localStorage.getItem('nutrink_user_session');
-      if (storedSession) return true;
-      const registered = localStorage.getItem('nutrink_registered_users');
-      if (registered && JSON.parse(registered).length > 0) return true;
+      const saved = localStorage.getItem('nutrink_user_session');
+      return !!saved;
     } catch {
       return false;
     }
-    return false;
   });
 
-  // Modals
+  // Modal UI States
   const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
-  const [selectedAppointmentForDetails, setSelectedAppointmentForDetails] = useState<Appointment | null>(null);
   const [isAppointmentDetailsOpen, setIsAppointmentDetailsOpen] = useState(false);
+  const [selectedAppointmentForDetails, setSelectedAppointmentForDetails] = useState<Appointment | null>(null);
   const [isNewTransactionOpen, setIsNewTransactionOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isInstitutionalModalOpen, setIsInstitutionalModalOpen] = useState(false);
-  const [activeInstitutionalPageId, setActiveInstitutionalPageId] = useState<string>('inicio');
+  const [activeInstitutionalPageId, setActiveInstitutionalPageId] = useState<string>('sobre');
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isFloatingChatOpen, setIsFloatingChatOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState('');
 
-  // Open login modal ONLY when explicitly requested (not on app initial open)
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
-  
-  // If there is a registered user, ALWAYS default to 'login' (Entrar com e-mail e senha). Only 'register' if 0 users exist.
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register' | 'forgot_password'>(() => {
     try {
       const registeredUsersRaw = localStorage.getItem('nutrink_registered_users');
@@ -286,8 +289,7 @@ export function App() {
   };
 
   const handleOpenInstitutionalPage = (pageId: string) => {
-    setActiveInstitutionalPageId(pageId);
-    setIsInstitutionalModalOpen(true);
+    navigate(`/${pageId}`);
   };
 
   const handleOpenLoginModal = (tab: 'login' | 'register' | 'forgot_password' = 'login') => {
@@ -324,10 +326,10 @@ export function App() {
     setIsAuthenticated(true);
     setIsLoginModalOpen(false);
     setSelectedPatientId(null);
-    setCurrentTab('dashboard'); // Directs straight to the initial dashboard page
+    navigate('/dashboard');
     saveProfile(newUser).catch(err => console.warn('Erro ao salvar perfil no banco:', err));
 
-    // Personalized welcome message in NUTRIA copilot with the real registered professional's name
+    // Welcome message in NUTRIA copilot
     setNutriaMessages([
       {
         id: `msg-welcome-${Date.now()}`,
@@ -353,6 +355,7 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     setIsAuthenticated(false);
     setIsProfileModalOpen(false);
     setIsLoginModalOpen(false);
+    navigate('/dashboard');
   };
 
   // Real-time backend subscription sync (via Mercado Pago Webhook)
@@ -383,7 +386,6 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
             try {
               localStorage.setItem('nutrink_user_session', JSON.stringify(upgradedUser));
 
-              // Also update registered users list in local DB
               const registeredRaw = localStorage.getItem('nutrink_registered_users');
               if (registeredRaw) {
                 const regList = JSON.parse(registeredRaw);
@@ -412,91 +414,28 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     };
   }, [userAccount?.email, userAccount?.plan, userAccount?.isSubscribed]);
 
-  // Iframe Compatibility & Cross-Framework PostMessage Bridge (Hostinger, React, Next, Vue, Nuxt, Angular, Svelte, WordPress)
-  useEffect(() => {
-    // Notify parent window that NutrinK is loaded and ready
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({
-          type: 'NUTRINK_APP_READY',
-          version: '1.0.0',
-          compatibleFrameworks: ['Angular', 'Astro', 'Gatsby', 'Next.js', 'Nitro', 'Nuxt', 'Parcel', 'React', 'React Router', 'Svelte', 'SvelteKit', 'Vite', 'Vue.js'],
-          status: 'online'
-        }, '*');
-      }
-    } catch {
-      // Ignore cross-origin exceptions
-    }
-
-    const handleParentMessage = (event: MessageEvent) => {
-      try {
-        const data = event.data;
-        if (!data || typeof data !== 'object') return;
-
-        // Navigate tab from parent framework / CMS
-        if (data.type === 'NUTRINK_NAVIGATE' && data.tab) {
-          const validTabs = ['dashboard', 'patients', 'calendar', 'finance', 'nutricalc', 'telemedicine', 'nutria_hub', 'plans'];
-          if (validTabs.includes(data.tab)) {
-            setCurrentTab(data.tab);
-          }
-        }
-
-        // Open modals from parent framework
-        if (data.type === 'NUTRINK_OPEN_MODAL') {
-          if (data.modal === 'new_patient') setIsNewPatientOpen(true);
-          if (data.modal === 'new_appointment') setIsNewAppointmentOpen(true);
-          if (data.modal === 'new_transaction') setIsNewTransactionOpen(true);
-          if (data.modal === 'subscription' || data.modal === 'plans') setIsSubscriptionModalOpen(true);
-          if (data.modal === 'login') setIsLoginModalOpen(true);
-          if (data.modal === 'profile') setIsProfileModalOpen(true);
-        }
-
-        // Parent framework requesting app state/statistics
-        if (data.type === 'NUTRINK_REQUEST_STATE') {
-          if (window.parent && window.parent !== window) {
-            window.parent.postMessage({
-              type: 'NUTRINK_STATE_RESPONSE',
-              patientsCount: patients.length,
-              appointmentsCount: appointments.length,
-              transactionsCount: transactions.length,
-              isAuthenticated: !!userAccount,
-              user: userAccount ? { name: userAccount.name, email: userAccount.email, plan: userAccount.plan } : null
-            }, '*');
-          }
-        }
-      } catch (err) {
-        console.warn('Iframe message processing warning:', err);
-      }
-    };
-
-    window.addEventListener('message', handleParentMessage);
-    return () => window.removeEventListener('message', handleParentMessage);
-  }, [patients.length, appointments.length, transactions.length, userAccount]);
-
-  // Floating AI Chat
-  const [isFloatingChatOpen, setIsFloatingChatOpen] = useState(false);
-
+  // NUTRIA Copilot Conversation History State
   const DEFAULT_NUTRIA_WELCOME: NutriaMessage = {
     id: 'msg-init-1',
     role: 'assistant',
-    content: 'Olá, Doutor(a)! Como posso te apoiar agora?',
-    timestamp: '08:00'
+    content: `Olá! Eu sou a **NÚTRIA**, sua inteligência clínica e operacional no **NutrinK**.
+
+Posso te apoiar em tempo real com:
+- **Prescrições e Dietas**: Cálculo de TMB/GET, planos alimentares personalizados e fórmulas magistrais.
+- **Interpretação Laboratorial**: Análise de biomarcadores (Ferritina, B12, Vit D, Glicemia, Perfil Lipídico).
+- **Gestão do Consultório**: Cadastro de pacientes, agendamento de consultas e lançamentos financeiros.
+
+Como posso ajudar seu atendimento agora?`,
+    timestamp: 'Agora'
   };
 
-  // NUTRIA AI Conversation State (Sincronizado no estado local do React e LocalStorage para resposta imediata)
   const [nutriaMessages, setNutriaMessages] = useState<NutriaMessage[]>(() => {
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem('nutrink_nutria_conversation_history');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            // Atualiza saudação antiga prolixa para a nova saudação curta
-            if (parsed[0]?.role === 'assistant' && typeof parsed[0]?.content === 'string' && parsed[0].content.includes('Eu sou a **NUTRIA**')) {
-              parsed[0].content = 'Olá, Doutor(a)! Como posso te apoiar agora?';
-            }
-            return parsed;
-          }
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
       } catch (err) {
         console.warn('Erro ao restaurar histórico de conversas da NUTRIA:', err);
@@ -505,7 +444,6 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     return [DEFAULT_NUTRIA_WELCOME];
   });
 
-  // Sincronização automática contínua do estado de conversa no navegador
   useEffect(() => {
     if (typeof window !== 'undefined' && nutriaMessages.length > 0) {
       try {
@@ -523,11 +461,10 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
 
   const [isNutriaLoading, setIsNutriaLoading] = useState(false);
 
-  // Initial load and real-time live sync with Cloud Database (Firestore onSnapshot)
+  // Initial load and real-time live sync with Cloud Database
   useEffect(() => {
     const email = userAccount?.email ? userAccount.email.trim().toLowerCase() : undefined;
 
-    // One-time load for initial state
     const loadInitialCloudData = async () => {
       try {
         const cloudPatients = await getPatients(email);
@@ -558,7 +495,6 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     };
     loadInitialCloudData();
 
-    // Live Real-Time Subscriptions for instant synchronization without page reload
     const unsubApts = subscribeToAppointments((cloudApts) => {
       if (cloudApts && cloudApts.length > 0) {
         setAppointments(cloudApts);
@@ -587,10 +523,8 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     };
   }, [userAccount?.email]);
 
-  // Selected Patient object
   const activePatient = patients.find(p => p.id === selectedPatientId) || null;
 
-  // Automated Revenue computations (All appointments marked as "(Pago)" + standalone completed transactions)
   const paidAppointments = appointments.filter(a => 
     a.paymentStatus === 'pago' || (a.status === 'realizada' && a.paymentStatus !== 'cancelado')
   );
@@ -606,13 +540,11 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     .filter(t => t.type === 'despesa' && t.status === 'concluido')
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  // Open and manage appointment details
   const handleOpenAppointmentDetails = (apt: Appointment) => {
     setSelectedAppointmentForDetails(apt);
     setIsAppointmentDetailsOpen(true);
   };
 
-  // Save / Update appointment (Local + Firestore)
   const handleSaveAppointmentDetails = async (updated: Appointment) => {
     setAppointments(prev => {
       const exists = prev.some(a => a.id === updated.id);
@@ -626,7 +558,6 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     await saveAppointmentToDb(updated, userAccount?.email).catch(err => console.warn('Erro ao persistir agendamento no Firestore:', err));
   };
 
-  // Delete appointment (Local + Firestore)
   const handleDeleteAppointment = async (appointmentId: string) => {
     setAppointments(prev => {
       const updatedList = prev.filter(a => a.id !== appointmentId);
@@ -640,7 +571,6 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     await deleteAppointmentFromDb(appointmentId).catch(err => console.warn('Erro ao deletar agendamento do Firestore:', err));
   };
 
-  // Update appointment status with reactive payment calculation
   const handleUpdateAppointmentStatus = (aptId: string, newStatus: Appointment['status']) => {
     setAppointments(prev => {
       const updated = prev.map(a => {
@@ -662,13 +592,11 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     });
   };
 
-  // Open modal with preselected patient
   const handleOpenNewAppointmentWithPatient = (patient: Patient) => {
     setPreSelectedPatientForApt(patient);
     setIsNewAppointmentOpen(true);
   };
 
-  // Patient Updates
   const handleUpdatePatient = (updated: Patient) => {
     setPatients(prev => {
       const updatedList = prev.map(p => p.id === updated.id ? updated : p);
@@ -678,7 +606,6 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     savePatientToDb(updated, userAccount?.email).catch(err => console.warn('Erro ao salvar paciente na nuvem:', err));
   };
 
-  // Delete Patient (Cascade delete from patients, appointments, and clear active selection)
   const handleDeletePatient = (patientId: string) => {
     setPatients(prev => {
       const updated = prev.filter(p => p.id !== patientId);
@@ -693,16 +620,15 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     deletePatientFromDb(patientId).catch(err => console.warn('Erro ao deletar paciente na nuvem:', err));
     if (selectedPatientId === patientId) {
       setSelectedPatientId(null);
+      navigate('/pacientes');
     }
   };
 
-  // Open NUTRIA with a prompt
   const handleOpenNutriaWithPrompt = (prompt: string) => {
     setIsFloatingChatOpen(true);
     handleSendNutriaMessage(prompt);
   };
 
-  // Subscription plan selection
   const handleSelectPlan = (plan: SubscriptionPlan, registeredUser?: Partial<UserAccount>) => {
     let finalUser: UserAccount;
     setUserAccount(prev => {
@@ -724,13 +650,10 @@ Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.spec
     });
     setIsAuthenticated(true);
     setIsSubscriptionModalOpen(false);
-    
-    // Direct back to Dashboard
-    setCurrentTab('dashboard');
+    navigate('/dashboard');
 
     const userName = registeredUser?.name || userAccount?.name || 'Doutor(a)';
 
-    // Confirmation message in NUTRIA
     const upgradeMsg: NutriaMessage = {
       id: `msg-upg-${Date.now()}`,
       role: 'assistant',
@@ -741,15 +664,13 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
 ### 🌟 Seu Consultório Inteligente Desbloqueado:
 - **Copiloto NUTRIA ILIMITADO**: Sem restrições de mensagens, cálculos ou consultas.
 - **Relatórios & Prescrições Completas**: Prontas para impressão e envio aos pacientes.
-- **NutriCalc & Todos os Módulos**: Acesso irrestrito a todas as ferramentas clínicas e financeiras.
-
-> 🔑 **Credenciais de Acesso:** Sua senha foi configurada. Para seus próximos acessos ao sistema, basta utilizar seu e-mail cadastrado e sua senha.`,
+- **NutriCalc & Todos os Módulos**: Acesso irrestrito a todas as ferramentas clínicas e financeiras.`,
       timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     };
     setNutriaMessages(prev => [...prev, upgradeMsg]);
   };
 
-  // Intercept Mercado Pago return URL redirects (/sucesso, /erro, /pendente or ?payment_status=approved...)
+  // Intercept Mercado Pago return URL redirects
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -773,8 +694,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
           });
         } catch {}
 
-        // Clean query parameters and pathname back to root without reloading
-        window.history.replaceState({}, document.title, '/');
+        navigate('/dashboard');
       } else if (isPendingRoute) {
         setNutriaMessages(prev => [
           ...prev,
@@ -785,27 +705,25 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
             timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
           }
         ]);
-        window.history.replaceState({}, document.title, '/');
+        navigate('/dashboard');
       } else if (isErrorRoute) {
         setNutriaMessages(prev => [
           ...prev,
           {
             id: `msg-error-${Date.now()}`,
             role: 'assistant',
-            content: `⚠️ **Transação não concluída no Mercado Pago.**\n\nO pagamento não foi processado pela operadora. Você pode tentar novamente com outro cartão, saldo ou PIX instantâneo no menu **Minha Conta > Assinatura**.`,
+            content: `⚠️ **Transação não concluída no Mercado Pago.**\n\nO pagamento não foi processado pela operadora. Você pode tentar novamente com outro cartão, saldo ou PIX instantâneo na aba **Planos e Assinaturas**.`,
             timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
           }
         ]);
-        window.history.replaceState({}, document.title, '/');
+        navigate('/dashboard');
       }
     } catch (e) {
       console.warn('Erro ao processar retorno do Mercado Pago:', e);
     }
   }, []);
 
-  // Send message to NUTRIA Backend
   const handleSendNutriaMessage = async (userInput: string) => {
-    // Check if user is asking about plans directly
     const inputLower = userInput.toLowerCase();
     const isPlanInquiry = inputLower.includes('plano') || inputLower.includes('assinatura') || inputLower.includes('preço') || inputLower.includes('valor') || inputLower.includes('quanto custa') || inputLower.includes('upgrade');
 
@@ -814,7 +732,6 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
     const msgCount = effectiveUserAccount.dailyMessageCount;
     const msgLimit = effectiveUserAccount.dailyMessageLimit;
 
-    // Free tier message limit enforcement (unless inquiring about plans)
     if (isFree && msgCount >= msgLimit && !isPlanInquiry) {
       const userMsg: NutriaMessage = {
         id: `msg-${Date.now()}`,
@@ -829,15 +746,8 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         id: `msg-limit-${Date.now() + 1}`,
         role: 'assistant',
         content: isUnauthenticated
-          ? `🔒 Você atingiu o limite de **30 mensagens gratuitas** por dia com a NUTRIA. Para continuar enviando comandos, salvando prontuários e gerando prescrições clínicas completas, **crie sua conta gratuita** ou assine o **Plano Premium**!`
-          : `🔒 Você atingiu o limite de **30 mensagens diárias** do Plano Gratuito. Assine o **Plano Premium** (R$ 39,90/mês ou R$ 399,90/ano) para ter conversas ilimitadas e relatórios clínicos completos!
-
----
-
-### 📊 Conheça as Vantagens do Plano Premium NutrinK:
-- **NUTRIA Ilimitada**: Sem restrições de mensagens diárias.
-- **Relatórios Completos**: Tabelas de macronutrientes, micronutrientes e exames prontos para download.
-- **NutriCalc Avançado**: Cálculos metabólicos de Harris-Benedict, Cunningham e Mifflin-St Jeor.`,
+          ? `🔒 Você atingiu o limite de **30 mensagens gratuitas** por dia com a NUTRIA. Para continuar enviando comandos, salvando prontuários e gerando prescrições clínicas completas, crie sua conta gratuita ou assine o **Plano Premium**!`
+          : `🔒 Você atingiu o limite de **30 mensagens diárias** do Plano Gratuito. Assine o **Plano Premium** (R$ 39,00/mês ou R$ 399,00/ano via PIX) para ter conversas ilimitadas e relatórios clínicos completos!`,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         isLocked: true
       };
@@ -860,558 +770,634 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
     };
 
     setNutriaMessages(prev => [...prev, userMsg]);
-    if (effectiveUserAccount.email) {
-      saveNutriaMessage(effectiveUserAccount.email, userMsg).catch(err => console.warn('Erro ao salvar mensagem no banco:', err));
-    }
     setIsNutriaLoading(true);
 
-    // Increment message count for free users (both authenticated and guest)
-    if (isFree) {
-      if (userAccount) {
-        setUserAccount(prev => {
-          if (!prev) return null;
-          const updated = {
-            ...prev,
-            dailyMessageCount: prev.dailyMessageCount + 1
-          };
-          try {
-            localStorage.setItem('nutrink_user_session', JSON.stringify(updated));
-          } catch {}
-          return updated;
-        });
-      } else {
-        setGuestDailyCount(prevCount => {
-          const next = prevCount + 1;
-          try {
-            localStorage.setItem('nutrink_guest_msg_count', next.toString());
-          } catch {}
-          return next;
-        });
-      }
+    if (userAccount) {
+      setUserAccount(prev => {
+        if (!prev) return prev;
+        const updated = {
+          ...prev,
+          dailyMessageCount: (prev.dailyMessageCount || 0) + 1,
+          monthlyMessageCount: (prev.monthlyMessageCount || 0) + 1
+        };
+        try { localStorage.setItem('nutrink_user_session', JSON.stringify(updated)); } catch {}
+        return updated;
+      });
+    } else {
+      setGuestDailyCount(prev => {
+        const next = prev + 1;
+        try { localStorage.setItem('nutrink_guest_msg_count', String(next)); } catch {}
+        return next;
+      });
     }
 
     try {
-      const result = await callNutriaDirect({
-        message: userInput,
-        activePatient: activePatient,
-        patients: patients,
-        appointments: appointments,
-        transactions: transactions,
-        userAccount: effectiveUserAccount,
-        conversationHistory: nutriaMessages.slice(-8).map(m => ({
-          role: m.role,
-          content: m.content
+      const context = {
+        activePatient: activePatient ? {
+          id: activePatient.id,
+          name: activePatient.name,
+          age: activePatient.age,
+          gender: activePatient.gender,
+          weightKg: activePatient.currentWeightKg,
+          heightCm: activePatient.heightCm,
+          bmi: activePatient.bmi,
+          tmb: activePatient.tmb,
+          get: activePatient.get,
+          bodyFatPercentage: activePatient.bodyFatPercentage,
+          objective: activePatient.objective,
+          allergies: activePatient.anamnese?.foodAllergiesAndIntolerances,
+          medications: activePatient.anamnese?.currentMedicationsAndSupplements,
+          clinicalHistory: activePatient.anamnese?.clinicalHistory,
+          foodPlan: activePatient.foodPlan
+        } : null,
+        todayAppointments: appointments.filter(a => a.date === new Date().toISOString().split('T')[0]).map(a => ({
+          id: a.id,
+          patientName: a.patientName,
+          time: a.time,
+          status: a.status,
+          location: a.location,
+          price: a.price
         })),
-        appContext: {
-          patientsCount: patients.length,
-          todayAppointmentsCount: appointments.length,
-          monthlyRevenue: totalRevenue,
-          monthlyExpenses: totalExpenses,
-          userPlan: effectiveUserAccount.plan
+        patientsSummary: {
+          total: patients.length,
+          names: patients.slice(0, 10).map(p => ({ id: p.id, name: p.name, objective: p.objective }))
+        },
+        financialSummary: {
+          totalRevenue,
+          totalExpenses,
+          balance: totalRevenue - totalExpenses
+        },
+        userAccount: {
+          name: effectiveUserAccount.name,
+          plan: effectiveUserAccount.plan,
+          isSubscribed: effectiveUserAccount.isSubscribed,
+          crn: effectiveUserAccount.crn,
+          specialty: effectiveUserAccount.specialty
         }
-      });
+      };
 
-      // Check if NUTRIA executed an operational action
-      let actionExecuted: NutriaActionExecution | undefined = result.actionExecuted;
-
-      if (actionExecuted) {
-        const payload: any = actionExecuted.payload || {};
-
-        // 1. AÇÃO: CADASTRAR NOVO PACIENTE
-        if (actionExecuted.type === 'patient_created' || actionExecuted.type === 'ADD_PATIENT') {
-          const rawWeight = parseFloat(payload.currentWeightKg || payload.initialWeightKg || payload.weightKg || payload.pesoKg || 70);
-          const rawHeight = parseFloat(payload.heightCm || payload.alturaCm || 170);
-          const rawAge = parseInt(payload.age || payload.idade || 30, 10);
-          const rawGender: Gender = payload.gender === 'feminino' ? 'feminino' : 'masculino';
-          const heightM = rawHeight / 100;
-          const bmi = heightM > 0 ? parseFloat((rawWeight / (heightM * heightM)).toFixed(1)) : 22.5;
-          const tmb = rawGender === 'masculino'
-            ? Math.round(10 * rawWeight + 6.25 * rawHeight - 5 * rawAge + 5)
-            : Math.round(10 * rawWeight + 6.25 * rawHeight - 5 * rawAge - 161);
-          const getVal = Math.round(tmb * 1.4);
-
-          const newPat: Patient = {
-            id: payload.id || `pat-${Date.now()}`,
-            name: payload.name || payload.nome || 'Novo Paciente',
-            age: rawAge,
-            gender: rawGender,
-            heightCm: rawHeight,
-            initialWeightKg: rawWeight,
-            currentWeightKg: rawWeight,
-            targetWeightKg: parseFloat(payload.targetWeightKg || rawWeight),
-            bmi: bmi,
-            bodyFatPercentage: parseFloat(payload.bodyFatPercentage || payload.percentualGordura || 20),
-            objective: payload.objective || payload.objetivo || 'Acompanhamento Nutricional',
-            activityFactor: 1.4,
-            tmb: tmb,
-            get: getVal,
-            status: 'ativo',
-            phone: payload.phone || payload.telefone || '(11) 99999-0000',
-            email: payload.email || `${(payload.name || 'paciente').toLowerCase().replace(/\s+/g, '')}@email.com`,
-            notes: payload.notes || payload.observacoes || 'Cadastrado via copiloto autônomo NÚTRIA.',
-            tags: [payload.objective || 'nutricao_clinica'],
-            createdAt: new Date().toISOString().split('T')[0],
-            anamnese: {
-              clinicalHistory: payload.notes || 'Sem restrições relatadas.',
-              foodAllergiesAndIntolerances: 'Nenhuma alergia relatada.',
-              currentMedicationsAndSupplements: 'Nenhum medicamento informado.',
-              waterIntakeLiters: 2.5
-            },
-            evolutionHistory: [
-              {
-                id: `ev-${Date.now()}`,
-                date: new Date().toISOString().split('T')[0],
-                weightKg: rawWeight,
-                heightCm: rawHeight,
-                bmi: bmi,
-                bodyFatPercentage: parseFloat(payload.bodyFatPercentage || 20),
-                notes: 'Avaliação inicial cadastrada pela NÚTRIA.'
-              }
-            ]
-          };
-
-          setPatients(prev => {
-            const updated = [newPat, ...prev.filter(p => p.id !== newPat.id)];
-            try { localStorage.setItem('nutrink_patients_data', JSON.stringify(updated)); } catch {}
-            return updated;
-          });
-          setSelectedPatientId(newPat.id);
-        } 
-        
-        // 2. AÇÃO: ATUALIZAR PRONTUÁRIO DE PACIENTE
-        else if (actionExecuted.type === 'patient_updated' || actionExecuted.type === 'UPDATE_PATIENT') {
-          const pName = (payload.patientName || payload.nomePaciente || '').toLowerCase();
-          setPatients(prev => {
-            const updated = prev.map(p => {
-              if (p.id === payload.patientId || (pName && p.name.toLowerCase().includes(pName))) {
-                const newW = payload.weightKg ? parseFloat(payload.weightKg) : p.currentWeightKg;
-                const newH = payload.heightCm ? parseFloat(payload.heightCm) : p.heightCm;
-                const newBf = payload.bodyFatPercentage ? parseFloat(payload.bodyFatPercentage) : p.bodyFatPercentage;
-                const heightM = newH / 100;
-                const newBmi = heightM > 0 ? parseFloat((newW / (heightM * heightM)).toFixed(1)) : p.bmi;
-
-                const newHistory = [
-                  ...(p.evolutionHistory || []),
-                  {
-                    id: `ev-${Date.now()}`,
-                    date: new Date().toISOString().split('T')[0],
-                    weightKg: newW,
-                    heightCm: newH,
-                    bmi: newBmi,
-                    bodyFatPercentage: newBf,
-                    notes: payload.notes || payload.observacoes || 'Evolução registrada pela NÚTRIA'
-                  }
-                ];
-
-                return {
-                  ...p,
-                  currentWeightKg: newW,
-                  heightCm: newH,
-                  bodyFatPercentage: newBf,
-                  bmi: newBmi,
-                  objective: payload.objective || p.objective,
-                  notes: payload.notes ? `${p.notes}\n${payload.notes}` : p.notes,
-                  evolutionHistory: newHistory
-                };
-              }
-              return p;
-            });
-            try { localStorage.setItem('nutrink_patients_data', JSON.stringify(updated)); } catch {}
-            return updated;
-          });
-        }
-
-        // 3. AÇÃO: BUSCAR E SELECIONAR PACIENTE
-        else if (actionExecuted.type === 'patient_selected' || actionExecuted.type === 'SELECT_PATIENT') {
-          const pName = (payload.patientName || '').toLowerCase();
-          const found = patients.find(p => p.id === payload.patientId || (pName && p.name.toLowerCase().includes(pName)));
-          if (found) {
-            setSelectedPatientId(found.id);
-            setCurrentTab('patients');
-          }
-        }
-
-        // 4. AÇÃO: AGENDAR CONSULTA
-        else if (actionExecuted.type === 'appointment_scheduled' || actionExecuted.type === 'SCHEDULE_APPOINTMENT') {
-          const newApt: Appointment = {
-            id: payload.id || `apt-${Date.now()}`,
-            patientId: payload.patientId || (activePatient ? activePatient.id : 'pat-general'),
-            patientName: payload.patientName || (activePatient ? activePatient.name : 'Paciente NutrinK'),
-            date: payload.date || new Date().toISOString().split('T')[0],
-            time: payload.time || '14:00',
-            durationMinutes: payload.durationMinutes || 50,
-            type: payload.type || 'retorno',
-            status: payload.status || 'confirmada',
-            location: payload.location || 'presencial_consultorio',
-            modality: payload.location === 'online_video' ? 'online' : 'presencial',
-            price: payload.price || payload.value || 350,
-            notes: payload.notes || 'Agendamento registrado pelo copiloto NÚTRIA.'
-          };
-          setAppointments(prev => {
-            const updated = [...prev, newApt];
-            try { localStorage.setItem('nutrink_appointments_data', JSON.stringify(updated)); } catch {}
-            return updated;
-          });
-        }
-
-        // 5. AÇÃO: REMARCAR CONSULTA
-        else if (actionExecuted.type === 'appointment_rescheduled' || actionExecuted.type === 'RESCHEDULE_APPOINTMENT') {
-          const pName = (payload.patientName || '').toLowerCase();
-          setAppointments(prev => {
-            const updated = prev.map(a => {
-              if (pName && a.patientName && a.patientName.toLowerCase().includes(pName)) {
-                return {
-                  ...a,
-                  date: payload.newDate || a.date,
-                  time: payload.newTime || a.time,
-                  notes: payload.reason ? `${a.notes} (Remarcada: ${payload.reason})` : a.notes
-                };
-              }
-              return a;
-            });
-            try { localStorage.setItem('nutrink_appointments_data', JSON.stringify(updated)); } catch {}
-            return updated;
-          });
-        }
-
-        // 6. AÇÃO: CANCELAR CONSULTA
-        else if (actionExecuted.type === 'appointment_cancelled' || actionExecuted.type === 'CANCEL_APPOINTMENT') {
-          const pName = (payload.patientName || '').toLowerCase();
-          setAppointments(prev => {
-            const updated = prev.map(a => {
-              if (pName && a.patientName && a.patientName.toLowerCase().includes(pName)) {
-                return {
-                  ...a,
-                  status: 'cancelada' as any,
-                  notes: payload.reason ? `${a.notes} (Cancelada: ${payload.reason})` : a.notes
-                };
-              }
-              return a;
-            });
-            try { localStorage.setItem('nutrink_appointments_data', JSON.stringify(updated)); } catch {}
-            return updated;
-          });
-        }
-
-        // 7. AÇÃO: LANÇAR FINANCEIRO
-        else if (actionExecuted.type === 'transaction_logged' || actionExecuted.type === 'ADD_FINANCE_TRANSACTION') {
-          const newTx: FinancialTransaction = {
-            id: payload.id || `tx-${Date.now()}`,
-            description: payload.description || payload.descricao || 'Consulta Nutricional',
-            type: payload.type === 'despesa' ? 'despesa' : 'receita',
-            category: payload.category || payload.categoria || 'consultas',
-            amount: parseFloat(payload.amount || payload.valor || 350),
-            date: payload.date || payload.data || new Date().toISOString().split('T')[0],
-            status: 'pago',
-            paymentMethod: payload.paymentMethod || payload.metodoPagamento || 'pix',
-            patientName: payload.patientName || payload.nomePaciente || undefined
-          };
-          setTransactions(prev => {
-            const updated = [newTx, ...prev];
-            try { localStorage.setItem('nutrink_transactions_data', JSON.stringify(updated)); } catch {}
-            return updated;
-          });
-        }
-
-        // 8. AÇÃO: GERAR / ATUALIZAR PLANO ALIMENTAR
-        else if (actionExecuted.type === 'meal_plan_generated' || actionExecuted.type === 'GENERATE_MEAL_PLAN' || actionExecuted.type === 'UPDATE_MEAL_PLAN') {
-          const pName = (payload.patientName || '').toLowerCase();
-          const targetKcal = payload.targetCalories || 2000;
-          const newPlan = {
-            id: `mp-${Date.now()}`,
-            title: payload.title || `Plano Nutricional - ${targetKcal} kcal`,
-            createdAt: new Date().toISOString().split('T')[0],
-            targetCalories: targetKcal,
-            proteinGrams: payload.targetProteinGrams || Math.round((targetKcal * 0.25) / 4),
-            carbsGrams: payload.targetCarbsGrams || Math.round((targetKcal * 0.50) / 4),
-            fatGrams: payload.targetFatGrams || Math.round((targetKcal * 0.25) / 9),
-            hydrationGoalLiters: payload.hydrationGoalLiters || 3.0,
-            generalGuidelines: payload.generalGuidelines || 'Fracionar a ingestão hídrica. Mastigar calmamente.',
-            meals: []
-          };
-
-          setPatients(prev => {
-            const updated = prev.map(p => {
-              if (p.id === payload.patientId || (pName && p.name.toLowerCase().includes(pName)) || (activePatient && p.id === activePatient.id)) {
-                return { ...p, mealPlan: newPlan as any };
-              }
-              return p;
-            });
-            try { localStorage.setItem('nutrink_patients_data', JSON.stringify(updated)); } catch {}
-            return updated;
-          });
-        } 
-        
-        // 9. NAVEGAÇÃO E MODAIS
-        else if (actionExecuted.type === 'NAVIGATE_TAB' && payload?.tab) {
-          setCurrentTab(payload.tab);
-        } else if (actionExecuted.type === 'OPEN_SUBSCRIPTION_MODAL') {
-          setIsSubscriptionModalOpen(true);
-        } else if (actionExecuted.type === 'OPEN_INSTITUTIONAL_DOC' && payload?.pageId) {
-          setActiveInstitutionalPageId(payload.pageId);
-          setIsInstitutionalModalOpen(true);
-        } else if (actionExecuted.type === 'OPEN_LOGIN_MODAL') {
-          setIsLoginModalOpen(true);
-        }
-      }
-
-      const replyContent = result.reply || "Solicitação processada com sucesso no ecossistema NutrinK.";
+      const response = await callNutriaDirect(userInput, context);
 
       const assistantMsg: NutriaMessage = {
         id: `msg-${Date.now() + 1}`,
         role: 'assistant',
-        content: replyContent,
+        content: response.text,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        actionExecuted
+        actionExecuted: response.actionExecuted
       };
 
       setNutriaMessages(prev => [...prev, assistantMsg]);
-      if (effectiveUserAccount.email) {
-        saveNutriaMessage(effectiveUserAccount.email, assistantMsg).catch(err => console.warn('Erro ao salvar mensagem no banco:', err));
-      }
-    } catch (err: any) {
-      console.error('Erro ao consultar NUTRIA:', err);
 
-      const fallbackMsg: NutriaMessage = {
+      if (userAccount?.email) {
+        saveNutriaMessage(userAccount.email, userMsg).catch(err => console.warn('Erro ao salvar msg user no banco:', err));
+        saveNutriaMessage(userAccount.email, assistantMsg).catch(err => console.warn('Erro ao salvar msg assist no banco:', err));
+      }
+
+      if (response.actionExecuted) {
+        executeNutriaAction(response.actionExecuted);
+      }
+    } catch (error) {
+      console.error('Error in Nutria conversation:', error);
+      const errorMsg: NutriaMessage = {
         id: `msg-err-${Date.now()}`,
         role: 'assistant',
-        content: 'Desculpe, ocorreu uma instabilidade momentânea na conexão. Os dados da sua consulta foram mantidos com segurança.',
+        content: 'Desculpe, tive uma oscilação na conexão ao processar sua solicitação. Por favor, tente novamente.',
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       };
-      setNutriaMessages(prev => [...prev, fallbackMsg]);
+      setNutriaMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsNutriaLoading(false);
     }
   };
 
-  // Auth Guard: If user is not authenticated and not joining a telemedicine guest link, render the Onboarding flow
-  const isGuestTelemedSession = !!(telemedRoomFromUrl && currentTab === 'telemedicine');
+  const executeNutriaAction = (actionExecuted: NutriaActionExecution) => {
+    try {
+      const payload = actionExecuted.payload || {};
 
-  if (!isAuthenticated && !isGuestTelemedSession) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-fuchsia-500 selection:text-white">
-        <OnboardingView
-          onCompleteAuth={(user, destinationTab) => {
-            handleLoginAs(user);
-            if (destinationTab) {
-              setCurrentTab(destinationTab as any);
+      if (actionExecuted.type === 'patient_created' || actionExecuted.type === 'CREATE_PATIENT') {
+        const rawWeight = parseFloat(payload.weightKg || payload.currentWeightKg || payload.peso || 70);
+        const rawHeight = parseFloat(payload.heightCm || payload.altura || 170);
+        const heightM = rawHeight / 100;
+        const bmi = heightM > 0 ? parseFloat((rawWeight / (heightM * heightM)).toFixed(1)) : 24.2;
+
+        const newPat: Patient = {
+          id: payload.id || `pat-${Date.now()}`,
+          name: payload.name || payload.nome || 'Novo Paciente',
+          age: parseInt(payload.age || payload.idade || 30, 10),
+          gender: payload.gender || payload.genero || 'feminino',
+          objective: payload.objective || payload.objetivo || 'emagrecimento',
+          currentWeightKg: rawWeight,
+          heightCm: rawHeight,
+          bmi: bmi,
+          bodyFatPercentage: parseFloat(payload.bodyFatPercentage || 20),
+          status: 'ativo',
+          phone: payload.phone || '(11) 99999-0000',
+          email: payload.email || `${(payload.name || 'paciente').toLowerCase().replace(/\s+/g, '')}@email.com`,
+          notes: payload.notes || payload.observacoes || 'Cadastrado via copiloto autônomo NÚTRIA.',
+          tags: [payload.objective || 'nutricao_clinica'],
+          createdAt: new Date().toISOString().split('T')[0],
+          anamnese: {
+            clinicalHistory: payload.notes || 'Sem restrições relatadas.',
+            foodAllergiesAndIntolerances: 'Nenhuma alergia relatada.',
+            currentMedicationsAndSupplements: 'Nenhum medicamento informado.',
+            waterIntakeLiters: 2.5
+          },
+          evolutionHistory: [
+            {
+              id: `ev-${Date.now()}`,
+              date: new Date().toISOString().split('T')[0],
+              weightKg: rawWeight,
+              heightCm: rawHeight,
+              bmi: bmi,
+              bodyFatPercentage: parseFloat(payload.bodyFatPercentage || 20),
+              notes: 'Avaliação inicial cadastrada pela NÚTRIA.'
             }
-          }}
-          onOpenTermsDoc={(pageId) => handleOpenInstitutionalPage(pageId)}
-        />
+          ]
+        };
 
-        {/* Institutional Document Modal (Terms, Privacy, LGPD) */}
-        <InstitutionalDocModal
-          isOpen={isInstitutionalModalOpen}
-          onClose={() => setIsInstitutionalModalOpen(false)}
-          initialPageId={activeInstitutionalPageId}
-        />
-      </div>
-    );
-  }
+        setPatients(prev => [newPat, ...prev]);
+        setSelectedPatientId(newPat.id);
+        navigate(`/pacientes/${newPat.id}`);
+      } else if (actionExecuted.type === 'patient_selected' || actionExecuted.type === 'SELECT_PATIENT') {
+        const pName = (payload.patientName || '').toLowerCase();
+        const found = patients.find(p => p.id === payload.patientId || (pName && p.name.toLowerCase().includes(pName)));
+        if (found) {
+          setSelectedPatientId(found.id);
+          navigate(`/pacientes/${found.id}`);
+        }
+      } else if (actionExecuted.type === 'appointment_scheduled' || actionExecuted.type === 'SCHEDULE_APPOINTMENT') {
+        const newApt: Appointment = {
+          id: payload.id || `apt-${Date.now()}`,
+          patientId: payload.patientId || (activePatient ? activePatient.id : 'pat-general'),
+          patientName: payload.patientName || (activePatient ? activePatient.name : 'Paciente NutrinK'),
+          date: payload.date || new Date().toISOString().split('T')[0],
+          time: payload.time || '14:00',
+          durationMinutes: payload.durationMinutes || 50,
+          type: payload.type || 'retorno',
+          status: payload.status || 'confirmada',
+          location: payload.location || 'presencial_consultorio',
+          modality: payload.location === 'online_video' ? 'online' : 'presencial',
+          price: payload.price || payload.value || 350,
+          notes: payload.notes || 'Agendamento registrado pelo copiloto NÚTRIA.'
+        };
+        setAppointments(prev => [...prev, newApt]);
+        navigate('/agenda');
+      } else if (actionExecuted.type === 'transaction_logged' || actionExecuted.type === 'ADD_FINANCE_TRANSACTION') {
+        const newTx: FinancialTransaction = {
+          id: payload.id || `tx-${Date.now()}`,
+          description: payload.description || payload.descricao || 'Consulta Nutricional',
+          amount: parseFloat(payload.amount || payload.valor || 350),
+          type: payload.type || 'receita',
+          category: payload.category || 'Consultas',
+          date: payload.date || new Date().toISOString().split('T')[0],
+          paymentMethod: payload.paymentMethod || 'pix',
+          status: 'concluido'
+        };
+        setTransactions(prev => [newTx, ...prev]);
+        navigate('/financeiro');
+      }
+    } catch (e) {
+      console.warn('Erro ao executar ação local da NÚTRIA:', e);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-fuchsia-500 selection:text-white">
+    <div className="min-h-screen bg-[#0D0B18] text-white flex flex-col font-sans selection:bg-fuchsia-600 selection:text-white">
       
-      {/* Top Application Header */}
+      {/* Global Header with Brand and Quick Actions */}
       <Header
+        onOpenNutriaChat={() => setIsFloatingChatOpen(true)}
         onOpenNewPatient={() => setIsNewPatientOpen(true)}
         onOpenNewAppointment={() => {
           setPreSelectedPatientForApt(null);
           setIsNewAppointmentOpen(true);
         }}
         onOpenNewTransaction={() => setIsNewTransactionOpen(true)}
-        onOpenNutriaChat={() => setIsFloatingChatOpen(true)}
         onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
         onOpenProfileModal={() => setIsProfileModalOpen(true)}
         onOpenLoginModal={() => handleOpenLoginModal('login')}
-        userAccount={userAccount}
-        currentTab={currentTab}
-        onChangeTab={setCurrentTab}
+        userAccount={effectiveUserAccount}
+        globalSearch={globalSearch}
+        setGlobalSearch={setGlobalSearch}
+        activePatientCount={patients.length}
       />
 
-      {/* Navigation Sub-header / Tabs */}
+      {/* Global Navigation Bar */}
       <Navigation
-        currentTab={currentTab}
-        onChangeTab={(tab) => {
-          setCurrentTab(tab);
-          if (tab !== 'patients' && tab !== 'nutricalc' && tab !== 'telemedicine') {
-            setSelectedPatientId(null);
-          }
-        }}
         onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-        unreadNutriaAlerts={2}
         todayAppointmentsCount={appointments.filter(a => a.date === new Date().toISOString().split('T')[0]).length}
-        isSubscribed={Boolean(effectiveUserAccount.isSubscribed || effectiveUserAccount.plan === 'premium_mensal' || effectiveUserAccount.plan === 'premium_anual')}
+        pendingAppointmentsCount={appointments.filter(a => a.status === 'agendada').length}
+        isSubscribed={effectiveUserAccount.isSubscribed}
       />
 
-      {/* Main Content Area with bottom padding to prevent bottom bar overlap */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 sm:pb-32">
+      {/* Main Dynamic View with Browser URL Routing */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         
-        {currentTab === 'plans' && (
-          <MercadoPagoSubscriptionsView
-            userAccount={userAccount || undefined}
-            onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-            onSelectPlan={(plan, billingCycle) => {
-              if (userAccount) {
-                const planId = billingCycle === 'annual' ? 'premium_anual' : 'premium_mensal';
-                const upgradedUser: UserAccount = {
-                  ...userAccount,
-                  plan: planId,
-                  isSubscribed: true,
-                  dailyMessageLimit: 99999,
-                  monthlyMessageLimit: 99999
-                };
-                setUserAccount(upgradedUser);
-                localStorage.setItem('nutrink_user_session', JSON.stringify(upgradedUser));
-              }
-            }}
-          />
-        )}
-        
-        {currentTab === 'dashboard' && (
-          <DashboardView
-            patients={patients}
-            appointments={appointments}
-            transactions={transactions}
-            userAccount={userAccount}
-            onSelectPatient={(id) => {
-              setSelectedPatientId(id);
-              setCurrentTab('patients');
-            }}
-            onOpenNewPatient={() => setIsNewPatientOpen(true)}
-            onOpenNewAppointment={() => {
-              setPreSelectedPatientForApt(null);
-              setIsNewAppointmentOpen(true);
-            }}
-            onOpenNewTransaction={() => setIsNewTransactionOpen(true)}
-            onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
-            onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
-            onOpenProfileModal={() => setIsProfileModalOpen(true)}
-            onOpenAppointmentDetails={handleOpenAppointmentDetails}
-          />
-        )}
-
-        {currentTab === 'patients' && (
-          <PatientsView
-            patients={patients}
-            selectedPatientId={selectedPatientId}
-            onSelectPatient={setSelectedPatientId}
-            onOpenNewPatient={() => setIsNewPatientOpen(true)}
-            onOpenNewAppointmentWithPatient={handleOpenNewAppointmentWithPatient}
-            onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
-            onUpdatePatient={handleUpdatePatient}
-            onDeletePatient={handleDeletePatient}
-            foodDatabase={INITIAL_FOOD_DATABASE}
-            userAccount={userAccount || undefined}
-            onStartTelemedicine={(patientId) => {
-              setSelectedPatientId(patientId);
-              setCurrentTab('telemedicine');
-            }}
-            onNavigateToNutriCalc={(patientId) => {
-              setSelectedPatientId(patientId);
-              setCurrentTab('nutricalc');
-            }}
-            appointments={appointments}
-            onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
-            onOpenAppointmentDetails={handleOpenAppointmentDetails}
-          />
-        )}
-
-        {currentTab === 'calendar' && (
-          <CalendarView
-            appointments={appointments}
-            patients={patients}
-            onOpenNewAppointment={() => {
-              setPreSelectedPatientForApt(null);
-              setIsNewAppointmentOpen(true);
-            }}
-            onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
-            onSelectPatient={(id) => {
-              setSelectedPatientId(id);
-              setCurrentTab('patients');
-            }}
-            onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
-            onStartTelemedicine={(patientId) => {
-              setSelectedPatientId(patientId);
-              setCurrentTab('telemedicine');
-            }}
-            onOpenAppointmentDetails={handleOpenAppointmentDetails}
-          />
-        )}
-
-        {currentTab === 'finance' && (
-          <FinanceView
-            transactions={transactions}
-            patients={patients}
-            appointments={appointments}
-            onOpenNewTransaction={() => setIsNewTransactionOpen(true)}
-            onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
-          />
-        )}
-
-        {currentTab === 'nutricalc' && (
-          <NutriCalcView
-            patients={patients}
-            selectedPatientId={selectedPatientId}
-            onSelectPatient={setSelectedPatientId}
-            onUpdatePatient={handleUpdatePatient}
-            userAccount={effectiveUserAccount}
-            onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
-          />
-        )}
-
-        {currentTab === 'telemedicine' && (
-          <TelemedicineView
-            patients={patients}
-            appointments={appointments}
-            userAccount={effectiveUserAccount}
-            initialRoomName={telemedRoomFromUrl || undefined}
-            initialPatientName={telemedPatientFromUrl || undefined}
-            isGuestPatient={!isAuthenticated && Boolean(telemedRoomFromUrl)}
-            onUpdatePatient={handleUpdatePatient}
-            onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
-            onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-            onNavigateTab={(tab) => {
-              if (tab === 'patients' && selectedPatientId) {
-                setCurrentTab('patients');
-              } else {
-                setCurrentTab(tab);
-              }
-            }}
-          />
-        )}
-
-        {currentTab === 'nutria_hub' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-2">
-              <div>
-                <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Bot className="w-5 h-5 text-fuchsia-400" />
-                  Central NUTRIA • Assistente & Copiloto Clínico
-                </h1>
-                <p className="text-xs text-purple-300">
-                  Gerencie prontuários, planos alimentares, exames e rotinas por texto ou voz.
-                </p>
-              </div>
-            </div>
-
-            <NutriaCopilot
-              messages={nutriaMessages}
-              onSendMessage={handleSendNutriaMessage}
-              isLoading={isNutriaLoading}
-              activePatient={activePatient}
-              todayAppointments={appointments.filter(a => a.date === '2026-08-15')}
-              patientsCount={patients.length}
-              monthlyRevenue={totalRevenue}
-              monthlyExpenses={totalExpenses}
-              userAccount={effectiveUserAccount}
-              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-              onOpenLoginModal={(tab) => handleOpenLoginModal(tab || 'register')}
-              onClearMessages={handleClearNutriaHistory}
+        <Routes>
+          
+          {/* Dashboard / Painel Principal */}
+          <Route path="/" element={
+            <DashboardView
+              patients={patients}
+              appointments={appointments}
+              transactions={transactions}
+              userAccount={userAccount}
+              onSelectPatient={(id) => {
+                setSelectedPatientId(id);
+                navigate(`/pacientes/${id}`);
+              }}
+              onOpenNewPatient={() => setIsNewPatientOpen(true)}
+              onOpenNewAppointment={() => {
+                setPreSelectedPatientForApt(null);
+                setIsNewAppointmentOpen(true);
+              }}
+              onOpenNewTransaction={() => setIsNewTransactionOpen(true)}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+              onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
+              onOpenProfileModal={() => setIsProfileModalOpen(true)}
+              onOpenAppointmentDetails={handleOpenAppointmentDetails}
             />
-          </div>
-        )}
+          } />
+
+          <Route path="/dashboard" element={
+            <DashboardView
+              patients={patients}
+              appointments={appointments}
+              transactions={transactions}
+              userAccount={userAccount}
+              onSelectPatient={(id) => {
+                setSelectedPatientId(id);
+                navigate(`/pacientes/${id}`);
+              }}
+              onOpenNewPatient={() => setIsNewPatientOpen(true)}
+              onOpenNewAppointment={() => {
+                setPreSelectedPatientForApt(null);
+                setIsNewAppointmentOpen(true);
+              }}
+              onOpenNewTransaction={() => setIsNewTransactionOpen(true)}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+              onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
+              onOpenProfileModal={() => setIsProfileModalOpen(true)}
+              onOpenAppointmentDetails={handleOpenAppointmentDetails}
+            />
+          } />
+
+          {/* Pacientes & Prontuários (Lista e Detalhes) */}
+          <Route path="/pacientes" element={
+            <PatientsView
+              patients={patients}
+              selectedPatientId={null}
+              onSelectPatient={(id) => {
+                if (id) navigate(`/pacientes/${id}`);
+              }}
+              onOpenNewPatient={() => setIsNewPatientOpen(true)}
+              onOpenNewAppointmentWithPatient={handleOpenNewAppointmentWithPatient}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+              onUpdatePatient={handleUpdatePatient}
+              onDeletePatient={handleDeletePatient}
+              foodDatabase={INITIAL_FOOD_DATABASE}
+              userAccount={userAccount || undefined}
+              onStartTelemedicine={(patientId) => {
+                setSelectedPatientId(patientId);
+                navigate('/telemedicina');
+              }}
+              onNavigateToNutriCalc={(patientId) => {
+                setSelectedPatientId(patientId);
+                navigate('/antropometria');
+              }}
+              appointments={appointments}
+              onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
+              onOpenAppointmentDetails={handleOpenAppointmentDetails}
+            />
+          } />
+
+          <Route path="/pacientes/:id" element={
+            <PatientDetailRouteWrapper
+              patients={patients}
+              onOpenNewPatient={() => setIsNewPatientOpen(true)}
+              onOpenNewAppointmentWithPatient={handleOpenNewAppointmentWithPatient}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+              onUpdatePatient={handleUpdatePatient}
+              onDeletePatient={handleDeletePatient}
+              foodDatabase={INITIAL_FOOD_DATABASE}
+              userAccount={userAccount || undefined}
+              onStartTelemedicine={(patientId: string) => {
+                setSelectedPatientId(patientId);
+                navigate('/telemedicina');
+              }}
+              onNavigateToNutriCalc={(patientId: string) => {
+                setSelectedPatientId(patientId);
+                navigate('/antropometria');
+              }}
+              appointments={appointments}
+              onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
+              onOpenAppointmentDetails={handleOpenAppointmentDetails}
+            />
+          } />
+
+          {/* Agenda de Consultas */}
+          <Route path="/agenda" element={
+            <CalendarView
+              appointments={appointments}
+              patients={patients}
+              onOpenNewAppointment={() => {
+                setPreSelectedPatientForApt(null);
+                setIsNewAppointmentOpen(true);
+              }}
+              onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
+              onSelectPatient={(id) => {
+                setSelectedPatientId(id);
+                navigate(`/pacientes/${id}`);
+              }}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+              onStartTelemedicine={(patientId) => {
+                setSelectedPatientId(patientId);
+                navigate('/telemedicina');
+              }}
+              onOpenAppointmentDetails={handleOpenAppointmentDetails}
+            />
+          } />
+          <Route path="/consultas" element={<Navigate to="/agenda" replace />} />
+
+          {/* Planos Alimentares (Dieta & TACO) */}
+          <Route path="/planos-alimentares" element={
+            <MealPlansGlobalView
+              patients={patients}
+              onUpdatePatient={handleUpdatePatient}
+              foodDatabase={INITIAL_FOOD_DATABASE}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+              userAccount={effectiveUserAccount}
+            />
+          } />
+          <Route path="/dietas" element={<Navigate to="/planos-alimentares" replace />} />
+
+          {/* Antropometria & NutriCalc */}
+          <Route path="/antropometria" element={
+            <NutriCalcView
+              patients={patients}
+              selectedPatientId={selectedPatientId}
+              onSelectPatient={setSelectedPatientId}
+              onUpdatePatient={handleUpdatePatient}
+              userAccount={effectiveUserAccount}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+            />
+          } />
+          <Route path="/nutricalc" element={<Navigate to="/antropometria" replace />} />
+          <Route path="/calculos" element={<Navigate to="/antropometria" replace />} />
+
+          {/* Exames & Biomarcadores */}
+          <Route path="/exames" element={
+            <ExamsGlobalView
+              patients={patients}
+              onUpdatePatient={handleUpdatePatient}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+              userAccount={effectiveUserAccount}
+              initialSelectedPatientId={selectedPatientId}
+            />
+          } />
+
+          {/* Prescrições & Fórmulas */}
+          <Route path="/prescricoes" element={
+            <PrescriptionsGlobalView
+              patients={patients}
+              onUpdatePatient={handleUpdatePatient}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+              userAccount={effectiveUserAccount}
+              initialSelectedPatientId={selectedPatientId}
+            />
+          } />
+
+          {/* Telemedicina & Vídeo */}
+          <Route path="/telemedicina" element={
+            <TelemedicineView
+              patients={patients}
+              appointments={appointments}
+              userAccount={effectiveUserAccount}
+              initialRoomName={telemedRoomFromUrl || undefined}
+              initialPatientName={telemedPatientFromUrl || undefined}
+              isGuestPatient={!isAuthenticated && Boolean(telemedRoomFromUrl)}
+              onUpdatePatient={handleUpdatePatient}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onNavigateTab={(tab) => {
+                if (tab === 'patients' && selectedPatientId) {
+                  navigate(`/pacientes/${selectedPatientId}`);
+                } else if (tab === 'patients') {
+                  navigate('/pacientes');
+                } else if (tab === 'calendar') {
+                  navigate('/agenda');
+                } else if (tab === 'finance') {
+                  navigate('/financeiro');
+                } else if (tab === 'nutricalc') {
+                  navigate('/antropometria');
+                } else {
+                  navigate('/dashboard');
+                }
+              }}
+            />
+          } />
+          <Route path="/telemedicina/:roomName" element={
+            <TelemedicineRouteWrapper
+              patients={patients}
+              appointments={appointments}
+              userAccount={effectiveUserAccount}
+              initialPatientName={telemedPatientFromUrl || undefined}
+              isGuestPatient={!isAuthenticated && Boolean(telemedRoomFromUrl)}
+              onUpdatePatient={handleUpdatePatient}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onNavigateTab={(tab: string) => navigate(`/${tab}`)}
+            />
+          } />
+
+          {/* Financeiro */}
+          <Route path="/financeiro" element={
+            <FinanceView
+              transactions={transactions}
+              patients={patients}
+              appointments={appointments}
+              onOpenNewTransaction={() => setIsNewTransactionOpen(true)}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+            />
+          } />
+          <Route path="/financas" element={<Navigate to="/financeiro" replace />} />
+
+          {/* Copiloto NÚTRIA IA Hub */}
+          <Route path="/nutria" element={
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-2">
+                <div>
+                  <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Bot className="w-5 h-5 text-fuchsia-400" />
+                    Central NUTRIA • Assistente & Copiloto Clínico
+                  </h1>
+                  <p className="text-xs text-purple-300">
+                    Gerencie prontuários, planos alimentares, exames e rotinas por texto ou voz.
+                  </p>
+                </div>
+              </div>
+
+              <NutriaCopilot
+                messages={nutriaMessages}
+                onSendMessage={handleSendNutriaMessage}
+                isLoading={isNutriaLoading}
+                activePatient={activePatient}
+                todayAppointments={appointments.filter(a => a.date === new Date().toISOString().split('T')[0])}
+                patientsCount={patients.length}
+                monthlyRevenue={totalRevenue}
+                monthlyExpenses={totalExpenses}
+                userAccount={effectiveUserAccount}
+                onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+                onOpenLoginModal={(tab) => handleOpenLoginModal(tab || 'register')}
+                onClearMessages={handleClearNutriaHistory}
+              />
+            </div>
+          } />
+          <Route path="/copiloto" element={<Navigate to="/nutria" replace />} />
+          <Route path="/nutria_hub" element={<Navigate to="/nutria" replace />} />
+
+          {/* Planos e Assinaturas */}
+          <Route path="/planos" element={
+            <MercadoPagoSubscriptionsView
+              userAccount={userAccount || undefined}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onSelectPlan={(plan, billingCycle) => {
+                if (userAccount) {
+                  const planId = billingCycle === 'annual' ? 'premium_anual' : 'premium_mensal';
+                  const upgradedUser: UserAccount = {
+                    ...userAccount,
+                    plan: planId,
+                    isSubscribed: true,
+                    dailyMessageLimit: 99999,
+                    monthlyMessageLimit: 99999
+                  };
+                  setUserAccount(upgradedUser);
+                  localStorage.setItem('nutrink_user_session', JSON.stringify(upgradedUser));
+                }
+              }}
+            />
+          } />
+          <Route path="/assinatura" element={<Navigate to="/planos" replace />} />
+          <Route path="/assinaturas" element={<Navigate to="/planos" replace />} />
+          <Route path="/precos" element={<Navigate to="/planos" replace />} />
+
+          {/* Configurações & Perfil */}
+          <Route path="/configuracoes" element={
+            <SettingsGlobalView
+              userAccount={effectiveUserAccount}
+              onSaveProfile={(updated) => {
+                const updatedFull: UserAccount = { ...effectiveUserAccount, ...updated };
+                setUserAccount(updatedFull);
+                try {
+                  localStorage.setItem('nutrink_user_session', JSON.stringify(updatedFull));
+                } catch {}
+                saveProfile(updatedFull).catch(err => console.warn('Erro ao salvar:', err));
+              }}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onLogout={handleLogout}
+            />
+          } />
+          <Route path="/perfil" element={<Navigate to="/configuracoes" replace />} />
+
+          {/* Páginas Institucionais & Legais com URLs próprias */}
+          <Route path="/sobre" element={
+            <InstitutionalPageView
+              pageId="sobre"
+              onOpenNutriaPrompt={handleOpenNutriaWithPrompt}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onOpenLoginModal={() => handleOpenLoginModal('login')}
+            />
+          } />
+
+          <Route path="/recursos" element={
+            <InstitutionalPageView
+              pageId="recursos"
+              onOpenNutriaPrompt={handleOpenNutriaWithPrompt}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onOpenLoginModal={() => handleOpenLoginModal('login')}
+            />
+          } />
+
+          <Route path="/metodologia" element={
+            <InstitutionalPageView
+              pageId="metodologia"
+              onOpenNutriaPrompt={handleOpenNutriaWithPrompt}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onOpenLoginModal={() => handleOpenLoginModal('login')}
+            />
+          } />
+
+          <Route path="/clientes" element={
+            <InstitutionalPageView
+              pageId="clientes"
+              onOpenNutriaPrompt={handleOpenNutriaWithPrompt}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onOpenLoginModal={() => handleOpenLoginModal('login')}
+            />
+          } />
+
+          <Route path="/faq" element={
+            <InstitutionalPageView
+              pageId="faq"
+              onOpenNutriaPrompt={handleOpenNutriaWithPrompt}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onOpenLoginModal={() => handleOpenLoginModal('login')}
+            />
+          } />
+
+          <Route path="/privacidade" element={
+            <InstitutionalPageView
+              pageId="privacidade_lgpd"
+              onOpenNutriaPrompt={handleOpenNutriaWithPrompt}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onOpenLoginModal={() => handleOpenLoginModal('login')}
+            />
+          } />
+          <Route path="/privacidade_lgpd" element={<Navigate to="/privacidade" replace />} />
+
+          <Route path="/termos" element={
+            <InstitutionalPageView
+              pageId="termos_servico"
+              onOpenNutriaPrompt={handleOpenNutriaWithPrompt}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onOpenLoginModal={() => handleOpenLoginModal('login')}
+            />
+          } />
+          <Route path="/termos_servico" element={<Navigate to="/termos" replace />} />
+
+          <Route path="/politica-uso-aceitavel" element={
+            <InstitutionalPageView
+              pageId="politica_uso_aceitavel"
+              onOpenNutriaPrompt={handleOpenNutriaWithPrompt}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onOpenLoginModal={() => handleOpenLoginModal('login')}
+            />
+          } />
+          <Route path="/politica_uso_aceitavel" element={<Navigate to="/politica-uso-aceitavel" replace />} />
+
+          <Route path="/suporte" element={
+            <InstitutionalPageView
+              pageId="fale_conosco"
+              onOpenNutriaPrompt={handleOpenNutriaWithPrompt}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onOpenLoginModal={() => handleOpenLoginModal('login')}
+            />
+          } />
+          <Route path="/fale_conosco" element={<Navigate to="/suporte" replace />} />
+          <Route path="/contato" element={<Navigate to="/suporte" replace />} />
+
+          <Route path="/docs/:pageId" element={
+            <InstitutionalDocRouteWrapper
+              onOpenNutriaPrompt={handleOpenNutriaWithPrompt}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onOpenLoginModal={() => handleOpenLoginModal('login')}
+            />
+          } />
+
+          {/* Catch-all fallback */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+        </Routes>
 
       </main>
 
@@ -1424,20 +1410,13 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
 
       {/* PWA Fixed Responsive Bottom Navigation Bar */}
       <BottomNavigation
-        currentTab={currentTab}
-        onChangeTab={(tab) => {
-          setCurrentTab(tab);
-          if (tab !== 'patients' && tab !== 'nutricalc' && tab !== 'telemedicine') {
-            setSelectedPatientId(null);
-          }
-        }}
         onOpenNutriaChat={() => setIsFloatingChatOpen(true)}
         unreadNutriaAlerts={2}
         todayAppointmentsCount={appointments.filter(a => a.date === new Date().toISOString().split('T')[0]).length}
       />
 
-      {/* Floating NÚTRIA Action Button (when not on nutria_hub and drawer is closed) */}
-      {currentTab !== 'nutria_hub' && !isFloatingChatOpen && (
+      {/* Floating NÚTRIA Action Button (when drawer is closed) */}
+      {!isFloatingChatOpen && (
         <button
           onClick={() => setIsFloatingChatOpen(true)}
           className="fixed bottom-20 sm:bottom-24 lg:bottom-6 right-4 lg:right-6 z-40 px-3.5 py-2.5 sm:px-4 sm:py-2.5 max-w-[180px] sm:max-w-none bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-full shadow-2xl hover:shadow-fuchsia-500/40 flex items-center justify-center gap-2 font-bold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 border border-fuchsia-400/50 group shadow-purple-950/90 cursor-pointer"
@@ -1464,7 +1443,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
             onSendMessage={handleSendNutriaMessage}
             isLoading={isNutriaLoading}
             activePatient={activePatient}
-            todayAppointments={appointments.filter(a => a.date === '2026-08-15')}
+            todayAppointments={appointments.filter(a => a.date === new Date().toISOString().split('T')[0])}
             patientsCount={patients.length}
             monthlyRevenue={totalRevenue}
             monthlyExpenses={totalExpenses}
@@ -1478,7 +1457,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         </div>
       )}
 
-      {/* Institutional Document Modal (Markdown viewer with copy, print, tabs) */}
+      {/* Institutional Document Modal (for quick popups if invoked) */}
       <InstitutionalDocModal
         isOpen={isInstitutionalModalOpen}
         initialPageId={activeInstitutionalPageId}
@@ -1506,7 +1485,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         }}
       />
 
-      {/* Login & Authentication Modal */}
+      {/* Login & Authentication Modal (Strictly preserved) */}
       <LoginModal
         isOpen={isLoginModalOpen}
         initialTab={authModalTab}
@@ -1515,7 +1494,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         onLoginAs={handleLoginAs}
         onOpenTermsDoc={(pageId) => {
           setIsLoginModalOpen(false);
-          handleOpenInstitutionalPage(pageId);
+          navigate(`/${pageId}`);
         }}
         isMandatoryAuth={false}
       />

@@ -8,11 +8,11 @@ import {
   CalendarDays,
   Activity
 } from 'lucide-react';
-import { ActiveTab } from './Navigation';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface BottomNavigationProps {
-  currentTab: ActiveTab;
-  onChangeTab: (tab: ActiveTab) => void;
+  currentTab?: string;
+  onChangeTab?: (tab: any) => void;
   onOpenNutriaChat?: () => void;
   unreadNutriaAlerts?: number;
   todayAppointmentsCount?: number;
@@ -26,51 +26,64 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   unreadNutriaAlerts = 0,
   todayAppointmentsCount = 0
 }) => {
-  const handleNavClick = (tab: ActiveTab) => {
-    onChangeTab(tab);
-  };
+  const navigate = useNavigate();
+  const location = useLocation();
+  const path = location.pathname;
 
-  const handleNutriaClick = () => {
-    // If already in nutria_hub, or user wants chat, we can switch to nutria_hub and trigger chat
-    onChangeTab('nutria_hub');
-    if (onOpenNutriaChat) {
-      onOpenNutriaChat();
-    }
+  const isPathActive = (route: string) => {
+    if (route === '/dashboard') return path === '/' || path === '/dashboard';
+    return path.startsWith(route);
   };
 
   const navItems = [
     {
-      id: 'dashboard' as ActiveTab,
+      id: 'dashboard',
+      route: '/dashboard',
       label: 'Painel',
       icon: LayoutDashboard,
       badge: null
     },
     {
-      id: 'patients' as ActiveTab,
+      id: 'patients',
+      route: '/pacientes',
       label: 'Pacientes',
       icon: Users,
       badge: null
     },
     {
-      id: 'nutria_hub' as ActiveTab,
+      id: 'nutria_hub',
+      route: '/nutria',
       label: 'NÚTRIA IA',
       icon: Bot,
       isCenterHighlight: true,
       badge: unreadNutriaAlerts > 0 ? unreadNutriaAlerts : null
     },
     {
-      id: 'nutricalc' as ActiveTab,
+      id: 'nutricalc',
+      route: '/antropometria',
       label: 'NutriCalc',
       icon: Calculator,
       badge: null
     },
     {
-      id: 'calendar' as ActiveTab,
+      id: 'calendar',
+      route: '/agenda',
       label: 'Agenda',
       icon: CalendarDays,
       badge: todayAppointmentsCount > 0 ? todayAppointmentsCount : null
     }
   ];
+
+  const handleItemClick = (item: typeof navItems[0]) => {
+    navigate(item.route);
+    if (onChangeTab) onChangeTab(item.id);
+  };
+
+  const handleNutriaClick = () => {
+    navigate('/nutria');
+    if (onChangeTab) onChangeTab('nutria_hub');
+    if (onOpenNutriaChat) onOpenNutriaChat();
+  };
 
   return (
     <nav 
@@ -83,7 +96,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 
       <div className="w-full md:max-w-[90%] lg:max-w-7xl mx-auto px-2 sm:px-6 md:px-12 lg:px-16 h-16 md:h-20 flex items-center justify-around md:justify-between relative">
         {navItems.map((item) => {
-          const isActive = currentTab === item.id;
+          const isActive = isPathActive(item.route) || currentTab === item.id;
           const IconComponent = item.icon;
 
           // Central Floating Highlight Button for NÚTRIA IA
@@ -135,7 +148,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
             <button
               key={item.id}
               type="button"
-              onClick={() => handleNavClick(item.id)}
+              onClick={() => handleItemClick(item)}
               className={`flex-1 max-w-[140px] md:max-w-[200px] flex flex-col items-center justify-center py-1.5 md:py-2 px-1 md:px-3 rounded-xl transition-all duration-200 relative group cursor-pointer ${
                 isActive ? 'text-fuchsia-400 font-bold' : 'text-slate-400 hover:text-purple-200'
               }`}

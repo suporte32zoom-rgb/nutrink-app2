@@ -18,8 +18,13 @@ import {
   Users,
   CalendarDays,
   Video,
-  Calculator
+  Calculator,
+  Apple,
+  Activity,
+  Pill,
+  Settings
 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { NutrinKLogo } from './NutrinKLogo';
 import { UserAccount } from '../types';
 
@@ -51,9 +56,11 @@ export const Header: React.FC<HeaderProps> = ({
   globalSearch = '',
   setGlobalSearch,
   activePatientCount,
-  currentTab = 'dashboard',
+  currentTab,
   onChangeTab
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isFree = !userAccount || userAccount.plan === 'free';
   const planLabel = userAccount?.plan === 'premium_anual' 
@@ -62,22 +69,27 @@ export const Header: React.FC<HeaderProps> = ({
     ? 'MENSAL PRO' 
     : 'FREE';
 
-  const handleNavClick = (tab: string) => {
+  const handleNavClick = (route: string, tabId: string) => {
+    navigate(route);
     if (onChangeTab) {
-      onChangeTab(tab);
+      onChangeTab(tabId);
     }
     setIsMobileMenuOpen(false);
   };
 
   const navMenuItems = [
-    { id: 'dashboard', label: 'Painel Clínico', icon: LayoutDashboard },
-    { id: 'patients', label: 'Pacientes & Prontuários', icon: Users },
-    { id: 'calendar', label: 'Agenda & Calendário', icon: CalendarDays },
-    { id: 'telemedicine', label: 'Telemedicina & Vídeo', icon: Video },
-    { id: 'finance', label: 'Financeiro & Faturamento', icon: DollarSign },
-    { id: 'nutricalc', label: 'NutriCalc & Protocolos', icon: Calculator },
-    { id: 'nutria_hub', label: 'Copiloto NÚTRIA (IA)', icon: Bot },
-    { id: 'plans', label: 'Planos & Assinaturas', icon: Crown }
+    { id: 'dashboard', route: '/dashboard', label: 'Painel Clínico', icon: LayoutDashboard },
+    { id: 'patients', route: '/pacientes', label: 'Pacientes & Prontuários', icon: Users },
+    { id: 'calendar', route: '/agenda', label: 'Agenda & Calendário', icon: CalendarDays },
+    { id: 'meal_plans', route: '/planos-alimentares', label: 'Planos Alimentares', icon: Apple },
+    { id: 'nutricalc', route: '/antropometria', label: 'NutriCalc & Protocolos', icon: Calculator },
+    { id: 'exams', route: '/exames', label: 'Exames & Biomarcadores', icon: Activity },
+    { id: 'prescriptions', route: '/prescricoes', label: 'Prescrições & Fórmulas', icon: Pill },
+    { id: 'telemedicine', route: '/telemedicina', label: 'Telemedicina & Vídeo', icon: Video },
+    { id: 'finance', route: '/financeiro', label: 'Financeiro & Faturamento', icon: DollarSign },
+    { id: 'nutria_hub', route: '/nutria', label: 'Copiloto NÚTRIA (IA)', icon: Bot },
+    { id: 'plans', route: '/planos', label: 'Planos & Assinaturas', icon: Crown },
+    { id: 'settings', route: '/configuracoes', label: 'Configurações', icon: Settings }
   ];
 
   return (
@@ -103,13 +115,19 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Official NutrinK Original Logo: [Ícone NK] [Nutrink] */}
           <div className="flex items-center gap-2 shrink-0 flex-shrink-0">
-            <NutrinKLogo size="md" withGlow={true} className="shrink-0 flex-shrink-0" />
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="cursor-pointer hover:opacity-90 transition-opacity flex items-center"
+              title="NutrinK • Ir para o Dashboard"
+            >
+              <NutrinKLogo size="md" withGlow={true} className="shrink-0 flex-shrink-0" />
+            </button>
             
             {/* Plan Badge (Desktop/Tablet) */}
             {isFree ? (
               <button
                 type="button"
-                onClick={onOpenSubscriptionModal}
+                onClick={() => navigate('/planos')}
                 className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-500/50 hover:bg-amber-900/80 transition-all cursor-pointer uppercase tracking-wider shadow-sm"
                 title="Plano Gratuito • Clique para fazer Upgrade"
                 id="header-plan-badge-free"
@@ -120,8 +138,8 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <button
                 type="button"
-                onClick={onOpenSubscriptionModal}
-                className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-fuchsia-950 via-purple-950 to-indigo-950 text-fuchsia-300 border border-fuchsia-500/50 hover:border-fuchsia-400 transition-all uppercase tracking-wider shadow-sm"
+                onClick={() => navigate('/planos')}
+                className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-fuchsia-950 via-purple-950 to-indigo-950 text-fuchsia-300 border border-fuchsia-500/50 hover:border-fuchsia-400 transition-all uppercase tracking-wider shadow-sm cursor-pointer"
                 title="Plano Premium Ativo • Clique para gerenciar"
                 id="header-plan-badge-premium"
               >
@@ -154,25 +172,23 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-1 sm:gap-2.5 shrink-0 flex-shrink-0">
             
             {/* Botão de Destaque Superior: FAZER UPGRADE / PLANOS E ASSINATURAS */}
-            {onOpenSubscriptionModal && (
-              <button
-                type="button"
-                onClick={onOpenSubscriptionModal}
-                className="inline-flex items-center justify-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm font-black rounded-lg sm:rounded-xl transition-all shadow-md active:scale-95 shrink-0 flex-shrink-0 border bg-gradient-to-r from-amber-400 via-amber-300 to-fuchsia-500 hover:from-amber-300 hover:to-fuchsia-400 text-slate-950 border-amber-200/90 shadow-amber-950/50 hover:shadow-amber-500/30 ring-1 sm:ring-2 ring-amber-400/60 animate-pulse hover:animate-none"
-                title="Ver Planos e Assinaturas - Fazer Upgrade"
-                id="btn-header-upgrade-cta"
-              >
-                <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-950 fill-slate-950 shrink-0" />
-                <span className="hidden sm:inline font-black tracking-tight">Fazer Upgrade</span>
-                <span className="sm:hidden font-black text-[11px] tracking-tight">Upgrade</span>
-                <Sparkles className="w-3.5 h-3.5 text-slate-950 hidden md:inline-block shrink-0" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => navigate('/planos')}
+              className="inline-flex items-center justify-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm font-black rounded-lg sm:rounded-xl transition-all shadow-md active:scale-95 shrink-0 flex-shrink-0 border bg-gradient-to-r from-amber-400 via-amber-300 to-fuchsia-500 hover:from-amber-300 hover:to-fuchsia-400 text-slate-950 border-amber-200/90 shadow-amber-950/50 hover:shadow-amber-500/30 ring-1 sm:ring-2 ring-amber-400/60 animate-pulse hover:animate-none cursor-pointer"
+              title="Ver Planos e Assinaturas - Fazer Upgrade"
+              id="btn-header-upgrade-cta"
+            >
+              <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-950 fill-slate-950 shrink-0" />
+              <span className="hidden sm:inline font-black tracking-tight">Fazer Upgrade</span>
+              <span className="sm:hidden font-black text-[11px] tracking-tight">Upgrade</span>
+              <Sparkles className="w-3.5 h-3.5 text-slate-950 hidden md:inline-block shrink-0" />
+            </button>
 
             <button
               type="button"
               onClick={onOpenNewPatient}
-              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-[#220743] hover:bg-[#2e0b59] text-purple-100 border border-purple-700/60 rounded-xl transition-all shadow-sm hover:border-fuchsia-400/50 shrink-0 flex-shrink-0"
+              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-[#220743] hover:bg-[#2e0b59] text-purple-100 border border-purple-700/60 rounded-xl transition-all shadow-sm hover:border-fuchsia-400/50 shrink-0 flex-shrink-0 cursor-pointer"
               title="Cadastrar Novo Paciente"
             >
               <UserPlus className="w-3.5 h-3.5 text-fuchsia-300" />
@@ -182,7 +198,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onOpenNewAppointment}
-              className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-[#220743] hover:bg-[#2e0b59] text-purple-100 border border-purple-700/60 rounded-xl transition-all shadow-sm hover:border-fuchsia-400/50 shrink-0 flex-shrink-0"
+              className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-[#220743] hover:bg-[#2e0b59] text-purple-100 border border-purple-700/60 rounded-xl transition-all shadow-sm hover:border-fuchsia-400/50 shrink-0 flex-shrink-0 cursor-pointer"
               title="Agendar Consulta"
             >
               <Calendar className="w-3.5 h-3.5 text-purple-300" />
@@ -193,7 +209,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onOpenNutriaChat}
-              className="relative inline-flex items-center justify-center gap-1 sm:gap-2 px-2 py-1 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-fuchsia-950/50 transition-all transform hover:scale-[1.03] active:scale-[0.98] border border-fuchsia-400/40 shrink-0 flex-shrink-0"
+              className="relative inline-flex items-center justify-center gap-1 sm:gap-2 px-2 py-1 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-fuchsia-950/50 transition-all transform hover:scale-[1.03] active:scale-[0.98] border border-fuchsia-400/40 shrink-0 flex-shrink-0 cursor-pointer"
               title="Falar com Copiloto IA NÚTRIA"
               id="btn-header-nutria-chat"
             >
@@ -209,8 +225,8 @@ export const Header: React.FC<HeaderProps> = ({
             {userAccount && userAccount.email && userAccount.id !== 'usr-unauthenticated' ? (
               <button
                 type="button"
-                onClick={onOpenProfileModal}
-                className="flex items-center gap-1 sm:gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-lg sm:rounded-xl bg-[#220743] hover:bg-[#2e0b59] border border-purple-700/60 text-purple-200 hover:text-white transition-all shadow-sm group shrink-0 flex-shrink-0"
+                onClick={() => navigate('/configuracoes')}
+                className="flex items-center gap-1 sm:gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-lg sm:rounded-xl bg-[#220743] hover:bg-[#2e0b59] border border-purple-700/60 text-purple-200 hover:text-white transition-all shadow-sm group shrink-0 flex-shrink-0 cursor-pointer"
                 title={`Profissional: ${userAccount.name} • ${userAccount.crn} • ${userAccount.specialty}`}
                 id="btn-header-user-profile"
               >
@@ -252,7 +268,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={onOpenLoginModal}
-                className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 border border-purple-500/50 transition-all shadow-md shrink-0 flex-shrink-0 active:scale-95"
+                className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 border border-purple-500/50 transition-all shadow-md shrink-0 flex-shrink-0 active:scale-95 cursor-pointer"
                 title="Cadastrar ou acessar sua conta profissional"
                 id="btn-header-login-prompt"
               >
@@ -261,19 +277,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="sm:hidden font-bold text-xs">Entrar</span>
               </button>
             ) : null}
-
-            {/* Quick Login / Switch Account Button for logged in users */}
-            {userAccount && userAccount.email && userAccount.id !== 'usr-unauthenticated' && onOpenLoginModal && (
-              <button
-                type="button"
-                onClick={onOpenLoginModal}
-                className="hidden 2xl:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-purple-300 hover:text-white bg-[#1b0537] hover:bg-[#27084e] border border-purple-800/50 transition-all shrink-0 flex-shrink-0"
-                title="Acessar outra conta / Cadastrar novo profissional"
-              >
-                <LogIn className="w-3.5 h-3.5 text-purple-400 shrink-0 flex-shrink-0" />
-                <span>Trocar</span>
-              </button>
-            )}
 
           </div>
 
@@ -302,13 +305,13 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="grid grid-cols-2 gap-1.5 text-xs">
             {navMenuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = currentTab === item.id;
+              const isActive = location.pathname.startsWith(item.route);
               return (
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => handleNavClick(item.id)}
-                  className={`flex items-center gap-2 p-2.5 rounded-xl font-medium transition-all text-left ${
+                  onClick={() => handleNavClick(item.route, item.id)}
+                  className={`flex items-center gap-2 p-2.5 rounded-xl font-medium transition-all text-left cursor-pointer ${
                     isActive 
                       ? 'bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white font-bold shadow-md shadow-fuchsia-950/40' 
                       : 'bg-[#220743]/80 hover:bg-[#2d0959] text-purple-200'
@@ -329,7 +332,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onOpenNewPatient();
                 setIsMobileMenuOpen(false);
               }}
-              className="flex-1 min-w-[120px] py-2 px-2.5 rounded-xl bg-[#220743] hover:bg-[#2d0959] text-purple-100 border border-purple-700/50 flex items-center justify-center gap-1.5 font-semibold"
+              className="flex-1 min-w-[120px] py-2 px-2.5 rounded-xl bg-[#220743] hover:bg-[#2d0959] text-purple-100 border border-purple-700/50 flex items-center justify-center gap-1.5 font-semibold cursor-pointer"
             >
               <UserPlus className="w-3.5 h-3.5 text-fuchsia-300" />
               <span>+ Paciente</span>
@@ -341,7 +344,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onOpenNewAppointment();
                 setIsMobileMenuOpen(false);
               }}
-              className="flex-1 min-w-[120px] py-2 px-2.5 rounded-xl bg-[#220743] hover:bg-[#2d0959] text-purple-100 border border-purple-700/50 flex items-center justify-center gap-1.5 font-semibold"
+              className="flex-1 min-w-[120px] py-2 px-2.5 rounded-xl bg-[#220743] hover:bg-[#2d0959] text-purple-100 border border-purple-700/50 flex items-center justify-center gap-1.5 font-semibold cursor-pointer"
             >
               <Calendar className="w-3.5 h-3.5 text-purple-300" />
               <span>+ Consulta</span>
@@ -353,7 +356,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onOpenNewTransaction();
                 setIsMobileMenuOpen(false);
               }}
-              className="flex-1 min-w-[120px] py-2 px-2.5 rounded-xl bg-[#220743] hover:bg-[#2d0959] text-purple-100 border border-purple-700/50 flex items-center justify-center gap-1.5 font-semibold"
+              className="flex-1 min-w-[120px] py-2 px-2.5 rounded-xl bg-[#220743] hover:bg-[#2d0959] text-purple-100 border border-purple-700/50 flex items-center justify-center gap-1.5 font-semibold cursor-pointer"
             >
               <DollarSign className="w-3.5 h-3.5 text-emerald-300" />
               <span>+ Receita</span>
