@@ -68,7 +68,7 @@ declare global {
 }
 
 // Configured or fallback Google Client ID
-export const DEFAULT_GOOGLE_CLIENT_ID = '193329003759-q76ctrdt6miks89qu3jdiovdd64e9stq.apps.googleusercontent.com';
+export const DEFAULT_GOOGLE_CLIENT_ID = '6780819654-pqcf9e20qnli1ld4h14rb788ilnftl85.apps.googleusercontent.com';
 
 export function getGoogleClientId(): string {
   const envId = (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
