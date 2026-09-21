@@ -44,6 +44,7 @@ import {
 } from './types';
 import { safeFetchJson } from './utils/api';
 import { callNutriaDirect } from './services/nutriaGeminiDirect';
+import { getNutriaGreeting } from './utils/nutriaGreeting';
 import { Bot, Sparkles, MessageSquare, X } from 'lucide-react';
 import { 
   getPatients, 
@@ -473,17 +474,11 @@ export function App() {
   }, [userAccount?.email, userAccount?.plan, userAccount?.isSubscribed]);
 
   // NUTRIA Copilot Conversation History State
+  const defaultNutriaWelcomeText = getNutriaGreeting(userAccount);
   const DEFAULT_NUTRIA_WELCOME: NutriaMessage = {
     id: 'msg-init-1',
     role: 'assistant',
-    content: `Olá! Eu sou a **NÚTRIA**, sua inteligência clínica e operacional no **NutrinK**.
-
-Posso te apoiar em tempo real com:
-- **Prescrições e Dietas**: Cálculo de TMB/GET, planos alimentares personalizados e fórmulas magistrais.
-- **Interpretação Laboratorial**: Análise de biomarcadores (Ferritina, B12, Vit D, Glicemia, Perfil Lipídico).
-- **Gestão do Consultório**: Cadastro de pacientes, agendamento de consultas e lançamentos financeiros.
-
-Como posso ajudar seu atendimento agora?`,
+    content: defaultNutriaWelcomeText,
     timestamp: 'Agora'
   };
 
@@ -498,7 +493,15 @@ Como posso ajudar seu atendimento agora?`,
             const saved = localStorage.getItem(`nutrink_nutria_conversation_history_${email}`);
             if (saved) {
               const parsedHistory = JSON.parse(saved);
-              if (Array.isArray(parsedHistory) && parsedHistory.length > 0) return parsedHistory;
+              if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
+                if (parsedHistory.length === 1 && parsedHistory[0]?.role === 'assistant') {
+                  return [{
+                    ...parsedHistory[0],
+                    content: getNutriaGreeting(parsed)
+                  }];
+                }
+                return parsedHistory;
+              }
             }
           }
         }
@@ -508,6 +511,28 @@ Como posso ajudar seu atendimento agora?`,
     }
     return [DEFAULT_NUTRIA_WELCOME];
   });
+
+  // Atualiza saudação inicial automaticamente quando o usuário logar ou atualizar seu perfil
+  useEffect(() => {
+    const greeting = getNutriaGreeting(userAccount);
+    setNutriaMessages(prev => {
+      if (!prev || prev.length === 0) {
+        return [{
+          id: 'msg-init-1',
+          role: 'assistant',
+          content: greeting,
+          timestamp: 'Agora'
+        }];
+      }
+      if (prev.length === 1 && prev[0].role === 'assistant') {
+        return [{
+          ...prev[0],
+          content: greeting
+        }];
+      }
+      return prev;
+    });
+  }, [userAccount?.name]);
 
   useEffect(() => {
     const email = userAccount?.email?.trim().toLowerCase();
@@ -519,11 +544,17 @@ Como posso ajudar seu atendimento agora?`,
   }, [nutriaMessages, userAccount?.email]);
 
   const handleClearNutriaHistory = () => {
-    setNutriaMessages([DEFAULT_NUTRIA_WELCOME]);
+    const freshWelcome: NutriaMessage = {
+      id: 'msg-init-1',
+      role: 'assistant',
+      content: getNutriaGreeting(userAccount),
+      timestamp: 'Agora'
+    };
+    setNutriaMessages([freshWelcome]);
     const email = userAccount?.email?.trim().toLowerCase();
     if (email) {
       try {
-        localStorage.setItem(`nutrink_nutria_conversation_history_${email}`, JSON.stringify([DEFAULT_NUTRIA_WELCOME]));
+        localStorage.setItem(`nutrink_nutria_conversation_history_${email}`, JSON.stringify([freshWelcome]));
       } catch {}
     }
   };

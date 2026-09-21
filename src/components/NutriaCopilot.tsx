@@ -32,6 +32,7 @@ import { speakText, stopSpeech } from '../utils/voiceUtils';
 import { callNutriaDirect } from '../services/nutriaGeminiDirect';
 import { cleanMathAndLatex } from '../utils/cleanMarkdown';
 import { trackNutriaInteraction } from '../services/analytics';
+import { getNutriaGreeting } from '../utils/nutriaGreeting';
 
 interface NutriaCopilotProps {
   messages?: NutriaMessage[];
@@ -52,13 +53,6 @@ interface NutriaCopilotProps {
   onClearMessages?: () => void;
 }
 
-const DEFAULT_WELCOME_MESSAGE: NutriaMessage = {
-  id: 'msg-init-1',
-  role: 'assistant',
-  content: 'Olá, Doutor(a)! Como posso te apoiar agora?',
-  timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-};
-
 export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
   messages: initialMessages,
   onSendMessage,
@@ -77,17 +71,24 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
   onActionExecuted,
   onClearMessages
 }) => {
+  const currentGreeting = getNutriaGreeting(userAccount);
+
   // Estado local gerenciado das mensagens da conversa
   const [messages, setMessages] = useState<NutriaMessage[]>(() => {
     if (initialMessages && initialMessages.length > 0) {
-      if (initialMessages[0]?.role === 'assistant' && typeof initialMessages[0]?.content === 'string' && initialMessages[0].content.includes('Eu sou a **NUTRIA**')) {
+      if (initialMessages.length === 1 && initialMessages[0]?.role === 'assistant') {
         const copy = [...initialMessages];
-        copy[0] = { ...copy[0], content: 'Olá, Doutor(a)! Como posso te apoiar agora?' };
+        copy[0] = { ...copy[0], content: currentGreeting };
         return copy;
       }
       return initialMessages;
     }
-    return [DEFAULT_WELCOME_MESSAGE];
+    return [{
+      id: 'msg-init-1',
+      role: 'assistant',
+      content: currentGreeting,
+      timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    }];
   });
 
   const [inputText, setInputText] = useState('');
@@ -103,15 +104,36 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
   // Sincroniza mensagens externas imediatamente com o estado local
   useEffect(() => {
     if (initialMessages) {
-      if (initialMessages.length > 0 && initialMessages[0]?.role === 'assistant' && typeof initialMessages[0]?.content === 'string' && initialMessages[0].content.includes('Eu sou a **NUTRIA**')) {
+      if (initialMessages.length === 1 && initialMessages[0]?.role === 'assistant') {
         const copy = [...initialMessages];
-        copy[0] = { ...copy[0], content: 'Olá, Doutor(a)! Como posso te apoiar agora?' };
+        copy[0] = { ...copy[0], content: currentGreeting };
         setMessages(copy);
       } else {
         setMessages(initialMessages);
       }
     }
-  }, [initialMessages]);
+  }, [initialMessages, currentGreeting]);
+
+  // Atualiza saudação quando o perfil do profissional logado mudar
+  useEffect(() => {
+    setMessages(prev => {
+      if (!prev || prev.length === 0) {
+        return [{
+          id: 'msg-init-1',
+          role: 'assistant',
+          content: currentGreeting,
+          timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        }];
+      }
+      if (prev.length === 1 && prev[0].role === 'assistant') {
+        return [{
+          ...prev[0],
+          content: currentGreeting
+        }];
+      }
+      return prev;
+    });
+  }, [userAccount?.name, currentGreeting]);
 
   const handleToggleSpeak = (msgId: string, content: string) => {
     if (speakingMessageId === msgId) {
@@ -420,7 +442,12 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
               if (onClearMessages) {
                 onClearMessages();
               } else {
-                setMessages([DEFAULT_WELCOME_MESSAGE]);
+                setMessages([{
+                  id: 'msg-init-1',
+                  role: 'assistant',
+                  content: currentGreeting,
+                  timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                }]);
               }
             }}
             className="p-1.5 text-purple-300 hover:text-white rounded-xl hover:bg-[#250847] text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all border border-purple-800/40"
