@@ -691,16 +691,16 @@ app.get("/api/health", (req: Request, res: Response) => {
   });
 });
 
-// Multi-model candidate list prioritizing ultra-fast models (gemini-3.8-flash, gemini-3.1-flash-lite)
+// Multi-model candidate list prioritizing gemini-3.7-flash official model
 const rawCustomModel = (process.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL || "").trim();
 const validCustomModel = isValidGeminiModelName(rawCustomModel) ? rawCustomModel : null;
 
-// Official models supported by @google/genai SDK (gemini-3.8-flash as primary for instant responses)
+// Official models supported by @google/genai SDK (gemini-3.7-flash as primary)
 const BASE_GEMINI_MODELS = [
+  "gemini-3.7-flash",
   ...(validCustomModel ? [validCustomModel] : []),
   "gemini-3.8-flash",
   "gemini-3.1-flash-lite",
-  "gemini-3.7-flash",
   "gemini-flash-latest"
 ].filter((m, idx, arr) => isValidGeminiModelName(m) && arr.indexOf(m) === idx);
 

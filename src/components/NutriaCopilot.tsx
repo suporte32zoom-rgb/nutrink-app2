@@ -325,12 +325,13 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
         onActionExecuted(result.actionExecuted);
       }
     } catch (err: any) {
-      console.error('Erro na comunicação com a NÚTRIA AI:', err);
+      console.error(err);
+      console.error('Erro na comunicação com a NÚTRIA AI (Gemini 3.7 Flash):', err?.message || err);
 
       const errorMessage: NutriaMessage = {
         id: `msg-${Date.now() + 1}`,
         role: 'assistant',
-        content: 'Desculpe, ocorreu uma instabilidade momentânea na conexão. Por favor, tente enviar sua mensagem novamente.',
+        content: `Desculpe, ocorreu uma instabilidade na comunicação com a IA: ${err?.message ? `(${err.message})` : 'verifique o console para detalhes'}. Por favor, tente enviar novamente.`,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       };
 

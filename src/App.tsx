@@ -955,12 +955,13 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
       if (response.actionExecuted) {
         executeNutriaAction(response.actionExecuted);
       }
-    } catch (error) {
-      console.error('Error in Nutria conversation:', error);
+    } catch (error: any) {
+      console.error(error);
+      console.error('Error in Nutria conversation (Gemini 3.7 Flash):', error?.message || error);
       const errorMsg: NutriaMessage = {
         id: `msg-err-${Date.now()}`,
         role: 'assistant',
-        content: 'Desculpe, tive uma oscilação na conexão ao processar sua solicitação. Por favor, tente novamente.',
+        content: `Desculpe, ocorreu uma oscilação na conexão ao processar sua solicitação: ${error?.message ? `(${error.message})` : 'consulte o console'}. Por favor, tente novamente.`,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       };
       setNutriaMessages(prev => [...prev, errorMsg]);
