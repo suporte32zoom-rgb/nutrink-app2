@@ -23,6 +23,7 @@ import { UserProfileModal } from './components/UserProfileModal';
 import { Footer } from './components/Footer';
 import { InstitutionalDocModal } from './components/InstitutionalDocModal';
 import { LoginModal } from './components/LoginModal';
+import { OnboardingView } from './components/OnboardingView';
 import { TelemedicineView } from './components/TelemedicineView';
 import { MercadoPagoSubscriptionsView } from './components/MercadoPagoSubscriptionsView';
 import { BottomNavigation } from './components/BottomNavigation';
@@ -960,6 +961,28 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
       console.warn('Erro ao executar ação local da NÚTRIA:', e);
     }
   };
+
+  // Render Onboarding and Presentation screen when not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 font-sans selection:bg-fuchsia-600 selection:text-white">
+        <OnboardingView
+          onCompleteAuth={(user, destinationTab) => {
+            handleLoginAs(user);
+          }}
+          onOpenTermsDoc={(pageId) => {
+            setActiveInstitutionalPageId(pageId);
+            setIsInstitutionalModalOpen(true);
+          }}
+        />
+        <InstitutionalDocModal
+          isOpen={isInstitutionalModalOpen}
+          onClose={() => setIsInstitutionalModalOpen(false)}
+          initialPageId={activeInstitutionalPageId}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0D0B18] text-white flex flex-col font-sans selection:bg-fuchsia-600 selection:text-white">

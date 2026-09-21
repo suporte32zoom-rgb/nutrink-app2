@@ -590,6 +590,14 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
               {currentSlide.description}
             </p>
 
+            {/* Mandatory Login Warning Banner */}
+            <div className="p-3 rounded-2xl bg-[#140428]/90 border border-fuchsia-700/50 flex items-center gap-2.5 text-xs text-purple-200 shadow-inner">
+              <Lock className="w-4 h-4 text-fuchsia-400 shrink-0" />
+              <span className="font-semibold text-fuchsia-200">
+                O login é obrigatório para acessar e utilizar a plataforma NutrinK.
+              </span>
+            </div>
+
             {/* Slide Feature Highlights */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
               {currentSlide.highlights.map((highlight, hIdx) => (
@@ -691,6 +699,12 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
               </p>
             </div>
 
+            {/* Notice: O login é obrigatório para acessar e utilizar a plataforma NutrinK */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/90 via-fuchsia-950/90 to-purple-950/90 border border-fuchsia-500/60 text-fuchsia-100 text-xs sm:text-sm font-semibold flex items-center justify-center gap-2.5 shadow-lg shadow-fuchsia-950/50 text-center">
+              <Lock className="w-4 h-4 text-fuchsia-400 shrink-0" />
+              <span>O login é obrigatório para acessar e utilizar a plataforma NutrinK.</span>
+            </div>
+
             {/* Feedback Messages */}
             {errorMsg && (
               <div className="p-3.5 rounded-2xl bg-rose-950/90 border border-rose-600/80 text-rose-200 text-xs flex items-center gap-2.5 animate-fadeIn">
@@ -706,7 +720,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
               </div>
             )}
 
-            {/* 1. DESTAQUE PRINCIPAL: Botão Continuar com o Google (1 Clique) */}
+            {/* 1. DESTAQUE PRINCIPAL: Botão Fazer login com o Google (1 Clique) */}
             <div className="space-y-3">
               <button
                 type="button"
@@ -738,7 +752,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                   </svg>
                 )}
                 <span className="group-hover:text-purple-950 transition-colors">
-                  {isGoogleLoading ? 'Autenticando com o Google...' : 'Continuar com o Google'}
+                  {isGoogleLoading ? 'Autenticando com o Google...' : 'Fazer login com o Google'}
                 </span>
               </button>
 
