@@ -145,81 +145,12 @@ export function App() {
     }
   });
 
-  // Application Data States (persistent in localStorage with initial empty/clean state)
-  const [patients, setPatients] = useState<Patient[]>(() => {
-    try {
-      const saved = localStorage.getItem('nutrink_patients');
-      return saved ? JSON.parse(saved) : INITIAL_PATIENTS;
-    } catch {
-      return INITIAL_PATIENTS;
-    }
-  });
-
-  const [appointments, setAppointments] = useState<Appointment[]>(() => {
-    try {
-      const saved = localStorage.getItem('nutrink_appointments');
-      return saved ? JSON.parse(saved) : INITIAL_APPOINTMENTS;
-    } catch {
-      return INITIAL_APPOINTMENTS;
-    }
-  });
-
-  const [transactions, setTransactions] = useState<FinancialTransaction[]>(() => {
-    try {
-      const saved = localStorage.getItem('nutrink_transactions');
-      return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
-    } catch {
-      return INITIAL_TRANSACTIONS;
-    }
-  });
-
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-
-  // Track page views in Google Analytics whenever the active URL changes
-  useEffect(() => {
-    const path = location.pathname;
-    trackPageView(`NutrinK - ${path}`, path);
-  }, [location.pathname]);
-
-  // Sync state changes with localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('nutrink_patients', JSON.stringify(patients));
-    } catch (e) {
-      console.error('Error saving patients:', e);
-    }
-  }, [patients]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('nutrink_appointments', JSON.stringify(appointments));
-    } catch (e) {
-      console.error('Error saving appointments:', e);
-    }
-  }, [appointments]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('nutrink_transactions', JSON.stringify(transactions));
-    } catch (e) {
-      console.error('Error saving transactions:', e);
-    }
-  }, [transactions]);
-
   // User Account & Session Management (restores active session or registered profile)
   const [userAccount, setUserAccount] = useState<UserAccount | null>(() => {
     try {
       const saved = localStorage.getItem('nutrink_user_session');
       if (saved) {
         const parsed: UserAccount = JSON.parse(saved);
-        const registeredUsersRaw = localStorage.getItem('nutrink_registered_users');
-        if (registeredUsersRaw) {
-          const registeredUsers = JSON.parse(registeredUsersRaw);
-          const found = registeredUsers.find((u: any) => u.email?.toLowerCase() === parsed.email?.toLowerCase());
-          if (found) {
-            return { ...parsed, ...found };
-          }
-        }
         return parsed;
       }
       return null;
@@ -236,6 +167,100 @@ export function App() {
       return false;
     }
   });
+
+  // Application Data States - Strictly isolated per user email
+  const [patients, setPatients] = useState<Patient[]>(() => {
+    try {
+      const savedUser = localStorage.getItem('nutrink_user_session');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        const email = parsed?.email?.trim().toLowerCase();
+        if (email) {
+          const saved = localStorage.getItem(`nutrink_patients_${email}`);
+          return saved ? JSON.parse(saved) : [];
+        }
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [appointments, setAppointments] = useState<Appointment[]>(() => {
+    try {
+      const savedUser = localStorage.getItem('nutrink_user_session');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        const email = parsed?.email?.trim().toLowerCase();
+        if (email) {
+          const saved = localStorage.getItem(`nutrink_appointments_${email}`);
+          return saved ? JSON.parse(saved) : [];
+        }
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>(() => {
+    try {
+      const savedUser = localStorage.getItem('nutrink_user_session');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        const email = parsed?.email?.trim().toLowerCase();
+        if (email) {
+          const saved = localStorage.getItem(`nutrink_transactions_${email}`);
+          return saved ? JSON.parse(saved) : [];
+        }
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+
+  // Track page views in Google Analytics whenever the active URL changes
+  useEffect(() => {
+    const path = location.pathname;
+    trackPageView(`NutrinK - ${path}`, path);
+  }, [location.pathname]);
+
+  // Sync state changes with email-scoped localStorage
+  useEffect(() => {
+    const email = userAccount?.email?.trim().toLowerCase();
+    if (email) {
+      try {
+        localStorage.setItem(`nutrink_patients_${email}`, JSON.stringify(patients));
+      } catch (e) {
+        console.error('Error saving patients:', e);
+      }
+    }
+  }, [patients, userAccount?.email]);
+
+  useEffect(() => {
+    const email = userAccount?.email?.trim().toLowerCase();
+    if (email) {
+      try {
+        localStorage.setItem(`nutrink_appointments_${email}`, JSON.stringify(appointments));
+      } catch (e) {
+        console.error('Error saving appointments:', e);
+      }
+    }
+  }, [appointments, userAccount?.email]);
+
+  useEffect(() => {
+    const email = userAccount?.email?.trim().toLowerCase();
+    if (email) {
+      try {
+        localStorage.setItem(`nutrink_transactions_${email}`, JSON.stringify(transactions));
+      } catch (e) {
+        console.error('Error saving transactions:', e);
+      }
+    }
+  }, [transactions, userAccount?.email]);
 
   // Modal UI States
   const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
@@ -299,10 +324,11 @@ export function App() {
   };
 
   const handleLoginAs = (updated: Partial<UserAccount>) => {
+    const cleanEmail = (updated.email || '').trim().toLowerCase();
     const newUser: UserAccount = {
       id: updated.id || `usr-${Date.now()}`,
       name: updated.name || 'Profissional de Saúde',
-      email: updated.email || '',
+      email: cleanEmail,
       crn: updated.crn || 'CRN Ativo',
       specialty: updated.specialty || 'Nutrição Clínica & Funcional',
       plan: updated.plan || 'free',
@@ -311,16 +337,46 @@ export function App() {
       dailyMessageLimit: updated.dailyMessageLimit || 30,
       monthlyMessageCount: updated.monthlyMessageCount || 0,
       monthlyMessageLimit: updated.monthlyMessageLimit || 50,
-      activeSince: updated.activeSince || '2026'
+      activeSince: updated.activeSince || '2026',
+      avatarUrl: updated.avatarUrl,
+      authProvider: updated.authProvider || 'google',
+      googleId: updated.googleId
     };
 
     try {
       localStorage.setItem('nutrink_user_session', JSON.stringify(newUser));
-      if (newUser.email) {
-        localStorage.setItem('nutrink_last_email', newUser.email.trim().toLowerCase());
+      if (cleanEmail) {
+        localStorage.setItem('nutrink_last_email', cleanEmail);
       }
     } catch (e) {
       console.error('Failed to save session:', e);
+    }
+
+    // Load account-specific cache or start clean (zerado) for this profile
+    if (cleanEmail) {
+      try {
+        const savedPatients = localStorage.getItem(`nutrink_patients_${cleanEmail}`);
+        setPatients(savedPatients ? JSON.parse(savedPatients) : []);
+
+        const savedApts = localStorage.getItem(`nutrink_appointments_${cleanEmail}`);
+        setAppointments(savedApts ? JSON.parse(savedApts) : []);
+
+        const savedTx = localStorage.getItem(`nutrink_transactions_${cleanEmail}`);
+        setTransactions(savedTx ? JSON.parse(savedTx) : []);
+
+        const savedNutria = localStorage.getItem(`nutrink_nutria_conversation_history_${cleanEmail}`);
+        setNutriaMessages(savedNutria ? JSON.parse(savedNutria) : [DEFAULT_NUTRIA_WELCOME]);
+      } catch {
+        setPatients([]);
+        setAppointments([]);
+        setTransactions([]);
+        setNutriaMessages([DEFAULT_NUTRIA_WELCOME]);
+      }
+    } else {
+      setPatients([]);
+      setAppointments([]);
+      setTransactions([]);
+      setNutriaMessages([DEFAULT_NUTRIA_WELCOME]);
     }
 
     setUserAccount(newUser);
@@ -328,34 +384,35 @@ export function App() {
     setIsLoginModalOpen(false);
     setSelectedPatientId(null);
     navigate('/dashboard');
-    saveProfile(newUser).catch(err => console.warn('Erro ao salvar perfil no banco:', err));
 
-    // Welcome message in NUTRIA copilot
-    setNutriaMessages([
-      {
-        id: `msg-welcome-${Date.now()}`,
-        role: 'assistant',
-        content: `Olá, **${newUser.name}**! Eu sou a **NUTRIA**, sua inteligência operacional e copiloto clínico no NutrinK.
-
-Seu consultório foi inicializado com sucesso (${newUser.crn} • ${newUser.specialty}). Como posso otimizar seus atendimentos hoje?
-- **Clínico**: *"Calcule a TMB e GET de um paciente"*, *"Sugira protocolo nutricional para hipertrofia ou emagrecimento"*, *"Interprete exames de ferritina e B12"*.
-- **Operacional**: *"Cadastre um novo paciente"*, *"Agende uma consulta"*, *"Lance uma receita financeira"*.
-- **Planos**: *"Quais são os diferenciais do Plano Premium?"*`,
-        timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-      }
-    ]);
+    if (cleanEmail) {
+      saveProfile(newUser).catch(err => console.warn('Erro ao salvar perfil no banco:', err));
+    }
   };
 
   const handleLogout = () => {
     try {
-      localStorage.removeItem('nutrink_user_session');
+      localStorage.clear();
+      sessionStorage.clear();
     } catch (e) {
-      console.error('Failed to clear session:', e);
+      console.error('Failed to clear storage on logout:', e);
     }
     setUserAccount(null);
     setIsAuthenticated(false);
+    setPatients([]);
+    setAppointments([]);
+    setTransactions([]);
+    setSelectedPatientId(null);
+    setNutriaMessages([DEFAULT_NUTRIA_WELCOME]);
     setIsProfileModalOpen(false);
     setIsLoginModalOpen(false);
+    setIsSubscriptionModalOpen(false);
+    setIsNewPatientOpen(false);
+    setIsNewAppointmentOpen(false);
+    setIsNewTransactionOpen(false);
+    setIsAppointmentDetailsOpen(false);
+    setSelectedAppointmentForDetails(null);
+    setGlobalSearch('');
     navigate('/dashboard');
   };
 
@@ -433,10 +490,17 @@ Como posso ajudar seu atendimento agora?`,
   const [nutriaMessages, setNutriaMessages] = useState<NutriaMessage[]>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('nutrink_nutria_conversation_history');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        const savedUser = localStorage.getItem('nutrink_user_session');
+        if (savedUser) {
+          const parsed = JSON.parse(savedUser);
+          const email = parsed?.email?.trim().toLowerCase();
+          if (email) {
+            const saved = localStorage.getItem(`nutrink_nutria_conversation_history_${email}`);
+            if (saved) {
+              const parsedHistory = JSON.parse(saved);
+              if (Array.isArray(parsedHistory) && parsedHistory.length > 0) return parsedHistory;
+            }
+          }
         }
       } catch (err) {
         console.warn('Erro ao restaurar histórico de conversas da NUTRIA:', err);
@@ -446,78 +510,95 @@ Como posso ajudar seu atendimento agora?`,
   });
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && nutriaMessages.length > 0) {
+    const email = userAccount?.email?.trim().toLowerCase();
+    if (email && nutriaMessages.length > 0) {
       try {
-        localStorage.setItem('nutrink_nutria_conversation_history', JSON.stringify(nutriaMessages));
+        localStorage.setItem(`nutrink_nutria_conversation_history_${email}`, JSON.stringify(nutriaMessages));
       } catch {}
     }
-  }, [nutriaMessages]);
+  }, [nutriaMessages, userAccount?.email]);
 
   const handleClearNutriaHistory = () => {
     setNutriaMessages([DEFAULT_NUTRIA_WELCOME]);
-    try {
-      localStorage.setItem('nutrink_nutria_conversation_history', JSON.stringify([DEFAULT_NUTRIA_WELCOME]));
-    } catch {}
+    const email = userAccount?.email?.trim().toLowerCase();
+    if (email) {
+      try {
+        localStorage.setItem(`nutrink_nutria_conversation_history_${email}`, JSON.stringify([DEFAULT_NUTRIA_WELCOME]));
+      } catch {}
+    }
   };
 
   const [isNutriaLoading, setIsNutriaLoading] = useState(false);
 
-  // Initial load and real-time live sync with Cloud Database
+  // Initial load and real-time live sync with Cloud Database for the active user account
   useEffect(() => {
     const email = userAccount?.email ? userAccount.email.trim().toLowerCase() : undefined;
+
+    if (!email) {
+      return;
+    }
+
+    let isSubscribed = true;
 
     const loadInitialCloudData = async () => {
       try {
         const cloudPatients = await getPatients(email);
-        if (cloudPatients && cloudPatients.length > 0) {
-          setPatients(cloudPatients);
-        }
+        if (!isSubscribed) return;
+        setPatients(cloudPatients || []);
+        try { localStorage.setItem(`nutrink_patients_${email}`, JSON.stringify(cloudPatients || [])); } catch {}
+
         const cloudApts = await getAppointments(email);
-        if (cloudApts && cloudApts.length > 0) {
-          setAppointments(cloudApts);
-        }
+        if (!isSubscribed) return;
+        setAppointments(cloudApts || []);
+        try { localStorage.setItem(`nutrink_appointments_${email}`, JSON.stringify(cloudApts || [])); } catch {}
+
         const cloudTx = await getTransactions(email);
-        if (cloudTx && cloudTx.length > 0) {
-          setTransactions(cloudTx);
+        if (!isSubscribed) return;
+        setTransactions(cloudTx || []);
+        try { localStorage.setItem(`nutrink_transactions_${email}`, JSON.stringify(cloudTx || [])); } catch {}
+
+        const profile = await getProfileByEmail(email);
+        if (!isSubscribed) return;
+        if (profile) {
+          setUserAccount(prev => (prev ? { ...prev, ...profile } : profile));
         }
-        if (email) {
-          const profile = await getProfileByEmail(email);
-          if (profile) {
-            setUserAccount(prev => ({ ...prev, ...profile }));
-          }
-          const cloudMsgs = await getNutriaMessages(email);
-          if (cloudMsgs && cloudMsgs.length > 0) {
-            setNutriaMessages(cloudMsgs);
-          }
+
+        const cloudMsgs = await getNutriaMessages(email);
+        if (!isSubscribed) return;
+        if (cloudMsgs && cloudMsgs.length > 0) {
+          setNutriaMessages(cloudMsgs);
+          try { localStorage.setItem(`nutrink_nutria_conversation_history_${email}`, JSON.stringify(cloudMsgs)); } catch {}
         }
       } catch (err) {
-        console.warn('Syncing local data with cloud store...', err);
+        console.warn('Syncing user cloud data with cloud store...', err);
       }
     };
+
     loadInitialCloudData();
 
     const unsubApts = subscribeToAppointments((cloudApts) => {
-      if (cloudApts && cloudApts.length > 0) {
-        setAppointments(cloudApts);
-        try { localStorage.setItem('nutrink_appointments', JSON.stringify(cloudApts)); } catch {}
+      if (isSubscribed) {
+        setAppointments(cloudApts || []);
+        try { localStorage.setItem(`nutrink_appointments_${email}`, JSON.stringify(cloudApts || [])); } catch {}
       }
     }, email);
 
     const unsubTx = subscribeToTransactions((cloudTx) => {
-      if (cloudTx && cloudTx.length > 0) {
-        setTransactions(cloudTx);
-        try { localStorage.setItem('nutrink_transactions', JSON.stringify(cloudTx)); } catch {}
+      if (isSubscribed) {
+        setTransactions(cloudTx || []);
+        try { localStorage.setItem(`nutrink_transactions_${email}`, JSON.stringify(cloudTx || [])); } catch {}
       }
     }, email);
 
     const unsubPatients = subscribeToPatients((cloudPatients) => {
-      if (cloudPatients && cloudPatients.length > 0) {
-        setPatients(cloudPatients);
-        try { localStorage.setItem('nutrink_patients', JSON.stringify(cloudPatients)); } catch {}
+      if (isSubscribed) {
+        setPatients(cloudPatients || []);
+        try { localStorage.setItem(`nutrink_patients_${email}`, JSON.stringify(cloudPatients || [])); } catch {}
       }
     }, email);
 
     return () => {
+      isSubscribed = false;
       unsubApts();
       unsubTx();
       unsubPatients();
@@ -547,12 +628,15 @@ Como posso ajudar seu atendimento agora?`,
   };
 
   const handleSaveAppointmentDetails = async (updated: Appointment) => {
+    const email = userAccount?.email?.trim().toLowerCase();
     setAppointments(prev => {
       const exists = prev.some(a => a.id === updated.id);
       const updatedList = exists 
         ? prev.map(a => a.id === updated.id ? updated : a)
         : [updated, ...prev];
-      try { localStorage.setItem('nutrink_appointments', JSON.stringify(updatedList)); } catch {}
+      if (email) {
+        try { localStorage.setItem(`nutrink_appointments_${email}`, JSON.stringify(updatedList)); } catch {}
+      }
       return updatedList;
     });
     setSelectedAppointmentForDetails(updated);
@@ -560,9 +644,12 @@ Como posso ajudar seu atendimento agora?`,
   };
 
   const handleDeleteAppointment = async (appointmentId: string) => {
+    const email = userAccount?.email?.trim().toLowerCase();
     setAppointments(prev => {
       const updatedList = prev.filter(a => a.id !== appointmentId);
-      try { localStorage.setItem('nutrink_appointments', JSON.stringify(updatedList)); } catch {}
+      if (email) {
+        try { localStorage.setItem(`nutrink_appointments_${email}`, JSON.stringify(updatedList)); } catch {}
+      }
       return updatedList;
     });
     if (selectedAppointmentForDetails?.id === appointmentId) {
@@ -573,6 +660,7 @@ Como posso ajudar seu atendimento agora?`,
   };
 
   const handleUpdateAppointmentStatus = (aptId: string, newStatus: Appointment['status']) => {
+    const email = userAccount?.email?.trim().toLowerCase();
     setAppointments(prev => {
       const updated = prev.map(a => {
         if (a.id === aptId) {
@@ -588,7 +676,9 @@ Como posso ajudar seu atendimento agora?`,
       if (targetApt) {
         saveAppointmentToDb(targetApt, userAccount?.email).catch(err => console.warn('Erro ao atualizar agendamento:', err));
       }
-      try { localStorage.setItem('nutrink_appointments', JSON.stringify(updated)); } catch {}
+      if (email) {
+        try { localStorage.setItem(`nutrink_appointments_${email}`, JSON.stringify(updated)); } catch {}
+      }
       return updated;
     });
   };
@@ -599,23 +689,31 @@ Como posso ajudar seu atendimento agora?`,
   };
 
   const handleUpdatePatient = (updated: Patient) => {
+    const email = userAccount?.email?.trim().toLowerCase();
     setPatients(prev => {
       const updatedList = prev.map(p => p.id === updated.id ? updated : p);
-      try { localStorage.setItem('nutrink_patients', JSON.stringify(updatedList)); } catch {}
+      if (email) {
+        try { localStorage.setItem(`nutrink_patients_${email}`, JSON.stringify(updatedList)); } catch {}
+      }
       return updatedList;
     });
     savePatientToDb(updated, userAccount?.email).catch(err => console.warn('Erro ao salvar paciente na nuvem:', err));
   };
 
   const handleDeletePatient = (patientId: string) => {
+    const email = userAccount?.email?.trim().toLowerCase();
     setPatients(prev => {
       const updated = prev.filter(p => p.id !== patientId);
-      try { localStorage.setItem('nutrink_patients', JSON.stringify(updated)); } catch {}
+      if (email) {
+        try { localStorage.setItem(`nutrink_patients_${email}`, JSON.stringify(updated)); } catch {}
+      }
       return updated;
     });
     setAppointments(prev => {
       const updated = prev.filter(a => a.patientId !== patientId);
-      try { localStorage.setItem('nutrink_appointments', JSON.stringify(updated)); } catch {}
+      if (email) {
+        try { localStorage.setItem(`nutrink_appointments_${email}`, JSON.stringify(updated)); } catch {}
+      }
       return updated;
     });
     deletePatientFromDb(patientId).catch(err => console.warn('Erro ao deletar paciente na nuvem:', err));
