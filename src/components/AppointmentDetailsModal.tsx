@@ -23,6 +23,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { Appointment, Patient, AppointmentType, LocationType, AppointmentStatus } from '../types';
+import { NutriaAvatar } from './NutriaAvatar';
 
 interface AppointmentDetailsModalProps {
   isOpen: boolean;
@@ -383,8 +384,8 @@ export const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = (
               }}
               className="px-3 py-2 rounded-xl bg-[#260849] hover:bg-[#340b64] text-purple-200 hover:text-white border border-purple-700/60 text-xs font-bold flex items-center gap-1.5 transition-all ml-auto"
             >
-              <Bot className="w-3.5 h-3.5 text-fuchsia-400" />
-              <span>Briefing com NUTRIA</span>
+              <NutriaAvatar size="xs" className="w-3.5 h-3.5 border-fuchsia-400/60 shadow" />
+              <span>Briefing com NÚTRIA</span>
             </button>
           )}
 

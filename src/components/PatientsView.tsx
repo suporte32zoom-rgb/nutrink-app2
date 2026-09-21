@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { NutriaAvatar } from './NutriaAvatar';
 import { 
   Users, 
   Search, 
@@ -592,7 +593,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 transition-all hover:scale-105"
                 id="btn-patient-nutria-copilot"
               >
-                <Bot className="w-3.5 h-3.5 text-fuchsia-200" />
+                <NutriaAvatar size="xs" className="w-4 h-4 border-white/60 shadow" />
                 <span>Copiloto NÚTRIA neste Paciente</span>
               </button>
             </div>

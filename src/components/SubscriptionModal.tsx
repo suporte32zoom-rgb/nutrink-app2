@@ -23,6 +23,7 @@ import {
 import confetti from 'canvas-confetti';
 import { SubscriptionPlan, UserAccount } from '../types';
 import { MercadoPagoLogo } from './MercadoPagoLogo';
+import { NutriaAvatar } from './NutriaAvatar';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -281,7 +282,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="flex items-start gap-2 text-purple-100 bg-[#210743] p-2.5 rounded-xl border border-purple-800/40">
-                <Bot className="w-4 h-4 text-fuchsia-400 shrink-0 mt-0.5" />
+                <NutriaAvatar size="xs" className="w-4 h-4 border-fuchsia-400/60 shadow shrink-0 mt-0.5" />
                 <div>
                   <strong className="text-white block">Copiloto NÚTRIA</strong>
                   <span className="text-purple-300 text-[11px]">IA clínica com análise avançada de exames e condutas.</span>

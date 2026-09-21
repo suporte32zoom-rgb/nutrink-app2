@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { NutriaAvatar } from './NutriaAvatar';
 import { 
   Calculator, 
   Flame, 
@@ -423,8 +424,8 @@ Data: ${new Date().toLocaleDateString('pt-BR')}`;
             onClick={() => onOpenNutriaWithPrompt(`Nutria, faça uma revisão dietoterápica detalhada para ${activePatient ? `o paciente ${activePatient.name}` : 'um paciente'} ${gender}, ${ageYears > 0 ? `${ageYears} anos` : 'idade a definir'}, ${weightKg > 0 ? `${weightKg}kg` : 'peso a definir'}, ${heightCm > 0 ? `${heightCm}cm` : 'altura a definir'} com GET de ${metabolicResults.get > 0 ? `${metabolicResults.get} kcal` : 'a calcular'} e meta proteica de ${calculatedProteinGrams}g (${customProteinGPerKg} g/kg).`)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-fuchsia-950/50 border border-fuchsia-400/40 transition-all hover:scale-105 cursor-pointer"
           >
-            <Bot className="w-4 h-4 text-fuchsia-200" />
-            <span>Consultar NUTRIA</span>
+            <NutriaAvatar size="xs" className="w-4 h-4 border-white/60 shadow" />
+            <span>Consultar NÚTRIA</span>
           </button>
         </div>
       </div>
@@ -1140,8 +1141,8 @@ Data: ${new Date().toLocaleDateString('pt-BR')}`;
                 onClick={() => onOpenNutriaWithPrompt(`Nutria, elabore uma conduta clínica baseada no protocolo de "${selectedProtocol.name}" ${activePatient ? `para o paciente ${activePatient.name} (GET: ${metabolicResults.get || activePatient.get} kcal)` : ''} incluindo exemplos práticos de cardápio.`)}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer"
               >
-                <Bot className="w-3.5 h-3.5" />
-                <span>Aplicar com NUTRIA</span>
+                <NutriaAvatar size="xs" className="w-3.5 h-3.5 border-white/60 shadow" />
+                <span>Aplicar com NÚTRIA</span>
               </button>
             </div>
 

@@ -45,6 +45,7 @@ import {
 import { safeFetchJson } from './utils/api';
 import { callNutriaDirect } from './services/nutriaGeminiDirect';
 import { getNutriaGreeting } from './utils/nutriaGreeting';
+import { NutriaAvatar } from './components/NutriaAvatar';
 import { Bot, Sparkles, MessageSquare, X } from 'lucide-react';
 import { 
   getPatients, 
@@ -1381,8 +1382,8 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
               <div className="flex items-center justify-between pb-2">
                 <div>
                   <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Bot className="w-5 h-5 text-fuchsia-400" />
-                    Central NUTRIA • Assistente & Copiloto Clínico
+                    <NutriaAvatar size="sm" className="w-6 h-6 border-fuchsia-400/60 inline-block shadow" />
+                    Central NÚTRIA • Assistente & Copiloto Clínico
                   </h1>
                   <p className="text-xs text-purple-300">
                     Gerencie prontuários, planos alimentares, exames e rotinas por texto ou voz.
@@ -1568,19 +1569,19 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         todayAppointmentsCount={appointments.filter(a => a.date === new Date().toISOString().split('T')[0]).length}
       />
 
-      {/* Floating NÚTRIA Action Button (when drawer is closed) */}
+      {/* Floating NÚTRIA Action Button (when drawer is closed - hidden on mobile screens) */}
       {!isFloatingChatOpen && (
         <button
           onClick={() => setIsFloatingChatOpen(true)}
-          className="fixed bottom-20 sm:bottom-24 lg:bottom-6 right-4 lg:right-6 z-40 px-3.5 py-2.5 sm:px-4 sm:py-2.5 max-w-[180px] sm:max-w-none bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-full shadow-2xl hover:shadow-fuchsia-500/40 flex items-center justify-center gap-2 font-bold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 border border-fuchsia-400/50 group shadow-purple-950/90 cursor-pointer"
+          className="hidden md:flex fixed bottom-6 right-6 z-40 px-4 py-2.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-full shadow-2xl hover:shadow-fuchsia-500/40 items-center justify-center gap-2.5 font-bold text-sm transition-all hover:scale-105 active:scale-95 border border-fuchsia-400/50 group shadow-purple-950/90 cursor-pointer"
           id="btn-open-nutria-floating"
           title="Falar com Copiloto NÚTRIA AI"
         >
           <div className="relative shrink-0">
-            <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <NutriaAvatar size="xs" className="w-5 h-5 border-white/60 shadow" />
             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-fuchsia-300 rounded-full animate-ping"></span>
           </div>
-          <span className="truncate text-xs sm:text-sm font-bold tracking-tight">
+          <span className="truncate text-sm font-bold tracking-tight">
             Falar com NÚTRIA
           </span>
         </button>

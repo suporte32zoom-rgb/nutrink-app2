@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { NutriaAvatar } from './NutriaAvatar';
 import { 
   X, 
   Bot, 
@@ -315,8 +316,8 @@ export const InstitutionalDocModal: React.FC<InstitutionalDocModalProps> = ({
                     className="px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-950/60 transition-all border border-fuchsia-400/40"
                     id="btn-open-in-nutria"
                   >
-                    <Bot className="w-3.5 h-3.5 text-fuchsia-200" />
-                    <span>Copiloto NUTRIA</span>
+                    <NutriaAvatar size="xs" className="w-3.5 h-3.5 border-fuchsia-200/60 shadow" />
+                    <span>Copiloto NÚTRIA</span>
                   </button>
                 )}
               </div>

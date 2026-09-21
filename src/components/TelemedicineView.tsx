@@ -52,6 +52,7 @@ import {
   AnthropometricRecord
 } from '../types';
 import { TeleconsultaPlayer } from './TeleconsultaPlayer';
+import { NutriaAvatar } from './NutriaAvatar';
 
 interface TelemedicineViewProps {
   patients: Patient[];
@@ -731,7 +732,7 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
 
             <div className="p-4 rounded-2xl bg-[#1e0538] border border-purple-800/40 space-y-2">
               <div className="w-9 h-9 rounded-xl bg-purple-900/60 border border-purple-500/40 flex items-center justify-center text-purple-300">
-                <Bot className="w-4 h-4" />
+                <NutriaAvatar size="xs" className="w-5 h-5 border-fuchsia-400/60 shadow" />
               </div>
               <h5 className="font-bold text-white text-sm">Copiloto NÚTRIA Ao Vivo</h5>
               <p className="text-xs text-purple-300">A IA escuta o diálogo da consulta com permissão, calcula TMB/GET, sugere protocolos e rascunha a conduta.</p>
@@ -1204,7 +1205,7 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
                     : 'border-transparent text-purple-300 hover:text-white'
                 }`}
               >
-                <Bot className="w-3.5 h-3.5 text-fuchsia-400" />
+                <NutriaAvatar size="xs" className="w-4 h-4 border-fuchsia-400/60 shadow" />
                 <span>NÚTRIA Ao Vivo</span>
                 {liveInsights.length > 0 && (
                   <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400 animate-ping"></span>

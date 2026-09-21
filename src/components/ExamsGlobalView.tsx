@@ -12,6 +12,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { NutriaAvatar } from './NutriaAvatar';
 import { Patient, UserAccount } from '../types';
 import { PatientBiomarkersSubcategory } from './patient-subcategories/PatientBiomarkersSubcategory';
 
@@ -69,7 +70,7 @@ export const ExamsGlobalView: React.FC<ExamsGlobalViewProps> = ({
             onClick={() => onOpenNutriaWithPrompt("Interprete os últimos exames laboratoriais do meu paciente e aponte desvios de Ferritina, Vitamina D, B12 e Glicemia")}
             className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md border border-fuchsia-400/40 cursor-pointer"
           >
-            <Bot className="w-4 h-4" />
+            <NutriaAvatar size="xs" className="w-4 h-4 border-white/60 shadow" />
             <span>Interpretar com NÚTRIA</span>
           </button>
         </div>

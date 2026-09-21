@@ -27,6 +27,7 @@ import {
 import confetti from 'canvas-confetti';
 import { UserAccount, SubscriptionPlan } from '../types';
 import { MercadoPagoLogo } from './MercadoPagoLogo';
+import { NutriaAvatar } from './NutriaAvatar';
 
 interface MercadoPagoSubscriptionsViewProps {
   userAccount?: UserAccount;
@@ -320,8 +321,8 @@ export const MercadoPagoSubscriptionsView: React.FC<MercadoPagoSubscriptionsView
           
           {/* Benefício 1 */}
           <div className="bg-[#1f073d] border border-purple-700/50 rounded-2xl p-5 space-y-3 hover:border-fuchsia-400/40 transition-all">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-fuchsia-600 to-purple-600 flex items-center justify-center text-white shadow-md">
-              <Bot className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-fuchsia-600 to-purple-600 p-0.5 flex items-center justify-center text-white shadow-md">
+              <NutriaAvatar size="md" className="w-full h-full border-white/60 shadow" />
             </div>
             <h3 className="text-sm font-bold text-white leading-snug">
               Copiloto NÚTRIA com IA Clínica de Alta Precisão

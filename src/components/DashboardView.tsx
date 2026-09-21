@@ -1,4 +1,5 @@
 import React from 'react';
+import { NutriaAvatar } from './NutriaAvatar';
 import { 
   Users, 
   Calendar, 
@@ -181,7 +182,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 transition-all hover:scale-[1.02]"
               id="btn-nutria-briefing-dashboard"
             >
-              <Bot className="w-4 h-4 text-fuchsia-200" />
+              <NutriaAvatar size="xs" className="w-4 h-4 border-white/60 shadow" />
               <span>{patients.length === 0 ? 'Iniciar com a NÚTRIA' : 'Briefing do Dia com NÚTRIA'}</span>
             </button>
           </div>
@@ -466,7 +467,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-purple-900/40">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Bot className="w-4 h-4 text-fuchsia-400" />
+                <NutriaAvatar size="xs" className="w-5 h-5 border-fuchsia-400/60 shadow" />
                 Insights Clínicos NÚTRIA
               </h2>
               <span className="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse"></span>

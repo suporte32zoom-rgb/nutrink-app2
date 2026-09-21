@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { NutrinKLogo } from './NutrinKLogo';
+import { NutriaAvatar } from './NutriaAvatar';
 
 interface FooterProps {
   onOpenPage?: (pageId: string) => void;
@@ -98,7 +99,7 @@ export const Footer: React.FC<FooterProps> = ({
 
             <div className="p-3 bg-purple-950/40 border border-purple-800/40 rounded-xl space-y-2">
               <div className="flex items-center gap-2 text-xs font-semibold text-fuchsia-300">
-                <Bot className="w-4 h-4 text-fuchsia-400" />
+                <NutriaAvatar size="xs" className="w-4 h-4 border-fuchsia-400/60 shadow" />
                 <span>NÚTRIA AI • Copiloto Ativo</span>
               </div>
               <p className="text-[11px] text-purple-300/70">

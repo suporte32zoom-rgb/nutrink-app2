@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Appointment, Patient } from '../types';
 import { getBrasiliaTodayISODate } from '../utils/dateUtils';
+import { NutriaAvatar } from './NutriaAvatar';
 
 interface CalendarViewProps {
   appointments: Appointment[];
@@ -76,8 +77,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             onClick={() => onOpenNutriaWithPrompt(`Nutria, quais os horários vagos e consultas pendentes na minha agenda de ${selectedDate}?`)}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-purple-100 border border-purple-700/60 rounded-xl text-xs font-bold transition-all shadow-sm"
           >
-            <Bot className="w-4 h-4 text-fuchsia-300" />
-            <span>Consultar Agenda com NUTRIA</span>
+            <NutriaAvatar size="xs" className="w-4 h-4 border-fuchsia-300/60 shadow" />
+            <span>Consultar Agenda com NÚTRIA</span>
           </button>
 
           <button

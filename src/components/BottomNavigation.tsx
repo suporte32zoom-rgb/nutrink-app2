@@ -9,6 +9,7 @@ import {
   Activity
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { NutriaAvatar } from './NutriaAvatar';
 
 interface BottomNavigationProps {
   currentTab?: string;
@@ -118,10 +119,8 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                   <span className="absolute inset-0 rounded-full bg-gradient-to-tr from-fuchsia-600 via-purple-600 to-teal-400 animate-gradient-x opacity-95" />
                   
                   {/* Subtle inner dark circle */}
-                  <span className="relative w-full h-full rounded-full bg-[#130728] flex items-center justify-center border border-fuchsia-400/40">
-                    <IconComponent className={`w-6 h-6 md:w-8 md:h-8 transition-all duration-200 ${
-                      isActive ? 'text-teal-300 drop-shadow-[0_0_8px_rgba(45,212,191,0.8)]' : 'text-fuchsia-300 group-hover:text-white'
-                    }`} />
+                  <span className="relative w-full h-full rounded-full bg-[#130728] flex items-center justify-center overflow-hidden border border-fuchsia-400/40">
+                    <NutriaAvatar size="custom" className="w-full h-full object-cover border-0" />
                     
                     {/* Tiny sparkling icon indicator */}
                     <Sparkles className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 text-teal-300 absolute top-1.5 md:top-2 right-1.5 md:right-2 animate-pulse" />

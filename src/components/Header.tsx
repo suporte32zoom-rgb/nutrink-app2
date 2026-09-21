@@ -28,6 +28,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { NutrinKLogo } from './NutrinKLogo';
 import { UserAccount } from '../types';
 
+import { NutriaAvatar } from './NutriaAvatar';
+
 interface HeaderProps {
   onOpenNutriaChat: () => void;
   onOpenNewPatient: () => void;
@@ -213,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Falar com Copiloto IA NÚTRIA"
               id="btn-header-nutria-chat"
             >
-              <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-fuchsia-100 shrink-0" />
+              <NutriaAvatar size="xs" className="w-4 h-4 border-white/60 shadow shrink-0" />
               <span className="hidden sm:inline">NÚTRIA</span>
               <span className="flex h-1.5 w-1.5 sm:h-2 sm:w-2 relative shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-300 opacity-75"></span>
@@ -317,7 +319,11 @@ export const Header: React.FC<HeaderProps> = ({
                       : 'bg-[#220743]/80 hover:bg-[#2d0959] text-purple-200'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-fuchsia-400'}`} />
+                  {item.id === 'nutria_hub' ? (
+                    <NutriaAvatar size="xs" className="w-4 h-4 border-white/60 shadow shrink-0" />
+                  ) : (
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-fuchsia-400'}`} />
+                  )}
                   <span className="truncate">{item.label}</span>
                 </button>
               );

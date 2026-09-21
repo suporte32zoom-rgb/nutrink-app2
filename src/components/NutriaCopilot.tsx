@@ -33,6 +33,7 @@ import { callNutriaDirect } from '../services/nutriaGeminiDirect';
 import { cleanMathAndLatex } from '../utils/cleanMarkdown';
 import { trackNutriaInteraction } from '../services/analytics';
 import { getNutriaGreeting } from '../utils/nutriaGreeting';
+import { NutriaAvatar } from './NutriaAvatar';
 
 interface NutriaCopilotProps {
   messages?: NutriaMessage[];
@@ -420,10 +421,9 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
       {/* Header Bar */}
       <div className="bg-[#1b0534] border-b border-purple-900/40 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img 
-            src="/icon-512.svg" 
-            alt="NÚTRIA NutrinK Logo" 
-            className="w-10 h-10 rounded-2xl shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 object-cover shrink-0" 
+          <NutriaAvatar
+            size="lg"
+            className="w-10 h-10 rounded-2xl shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 object-cover shrink-0"
           />
           <div>
             <div className="flex items-center gap-2">
@@ -532,9 +532,8 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
                 className={`flex gap-2 sm:gap-3 w-full max-w-full min-w-0 box-border ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 {!isUser && (
-                  <img
-                    src="/icon-512.svg"
-                    alt="NÚTRIA"
+                  <NutriaAvatar
+                    size="sm"
                     className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl shrink-0 shadow-md border border-fuchsia-400/40 mt-0.5 object-cover"
                   />
                 )}

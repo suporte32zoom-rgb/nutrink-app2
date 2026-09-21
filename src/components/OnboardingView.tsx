@@ -33,6 +33,7 @@ import { UserAccount } from '../types';
 import { getRegisteredUsers, saveRegisteredUser, SPECIALTY_OPTIONS, RegisteredProfessionalUser } from './LoginModal';
 import { GoogleProfile, initiateGoogleOAuthPopup } from '../services/googleAuth';
 import { handleGoogleProfileAuth } from '../services/databaseService';
+import { NutriaAvatar } from './NutriaAvatar';
 
 interface OnboardingViewProps {
   onCompleteAuth: (user: Partial<UserAccount>, destinationTab?: string) => void;
@@ -580,8 +581,12 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
               </div>
 
               {/* Icon Box */}
-              <div className={`w-14 h-14 rounded-2xl ${currentSlide.colorScheme.iconBg} ${currentSlide.colorScheme.iconColor} p-3.5 shadow-lg shadow-purple-950/60 flex items-center justify-center shrink-0`}>
-                <currentSlide.icon className="w-full h-full" />
+              <div className={`w-14 h-14 rounded-2xl ${currentSlide.colorScheme.iconBg} ${currentSlide.colorScheme.iconColor} p-1.5 shadow-lg shadow-purple-950/60 flex items-center justify-center shrink-0`}>
+                {currentSlide.id === 'nutria' ? (
+                  <NutriaAvatar size="lg" className="w-full h-full border-fuchsia-400/60 shadow" />
+                ) : (
+                  <currentSlide.icon className="w-8 h-8" />
+                )}
               </div>
             </div>
 
@@ -766,8 +771,8 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                 </div>
                 <div className="py-1.5 px-2 rounded-xl bg-purple-950/60 border border-purple-800/50 text-center">
                   <span className="text-[10px] font-semibold text-purple-200 flex items-center justify-center gap-1">
-                    <Bot className="w-3 h-3 text-fuchsia-400 shrink-0" />
-                    IA NUTRIA
+                    <NutriaAvatar size="xs" className="w-3.5 h-3.5 border-fuchsia-400/60 shadow shrink-0" />
+                    IA NÚTRIA
                   </span>
                 </div>
                 <div className="py-1.5 px-2 rounded-xl bg-purple-950/60 border border-purple-800/50 text-center">

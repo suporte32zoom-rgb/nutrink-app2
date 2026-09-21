@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { FinancialTransaction, Patient, Appointment } from '../types';
 import { NutrinKLogo } from './NutrinKLogo';
+import { NutriaAvatar } from './NutriaAvatar';
 
 interface FinanceViewProps {
   transactions: FinancialTransaction[];
@@ -124,8 +125,8 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
             onClick={() => onOpenNutriaWithPrompt("Nutria, faça um relatório financeiro do mês com total faturado, ticket médio e sugestões de precificação de planos de acompanhamento.")}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-purple-100 border border-purple-700/60 rounded-xl text-xs font-bold transition-all shadow-sm"
           >
-            <Bot className="w-4 h-4 text-fuchsia-300" />
-            <span>Auditoria Financeira NUTRIA</span>
+            <NutriaAvatar size="xs" className="w-4 h-4 border-fuchsia-300/60 shadow" />
+            <span>Auditoria Financeira NÚTRIA</span>
           </button>
 
           <button

@@ -13,6 +13,7 @@ import {
   Share2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { NutriaAvatar } from './NutriaAvatar';
 import { Patient, UserAccount } from '../types';
 import { PatientPrescriptionsSubcategory } from './patient-subcategories/PatientPrescriptionsSubcategory';
 
@@ -70,7 +71,7 @@ export const PrescriptionsGlobalView: React.FC<PrescriptionsGlobalViewProps> = (
             onClick={() => onOpenNutriaWithPrompt("Sugira uma prescrição completa de suplementação e fitoterapia para meu paciente ativo")}
             className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md border border-fuchsia-400/40 cursor-pointer"
           >
-            <Bot className="w-4 h-4" />
+            <NutriaAvatar size="xs" className="w-4 h-4 border-white/60 shadow" />
             <span>Prescrever com NÚTRIA</span>
           </button>
         </div>

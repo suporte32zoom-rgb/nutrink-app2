@@ -23,6 +23,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { NutriaAvatar } from './NutriaAvatar';
 import { INSTITUTIONAL_PAGES, InstitutionalPage } from '../data/institutionalPages';
 import { cleanMathAndLatex } from '../utils/cleanMarkdown';
 import { NutrinKLogo } from './NutrinKLogo';
@@ -227,7 +228,7 @@ export const InstitutionalPageView: React.FC<InstitutionalPageViewProps> = ({
               onClick={handleAskNutria}
               className="px-3 py-1.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer border border-fuchsia-400/40"
             >
-              <Bot className="w-3.5 h-3.5" />
+              <NutriaAvatar size="xs" className="w-3.5 h-3.5 border-white/60 shadow" />
               <span className="hidden sm:inline">Perguntar à NÚTRIA</span>
             </button>
           </div>

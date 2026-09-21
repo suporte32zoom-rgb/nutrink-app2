@@ -15,6 +15,7 @@ import {
   Settings
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { NutriaAvatar } from './NutriaAvatar';
 
 export type ActiveTab = 
   | 'dashboard' 
@@ -177,7 +178,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                     : 'bg-[#29094e] text-fuchsia-200 border border-purple-700/50 hover:bg-[#360d66] hover:text-white'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-fuchsia-400 animate-pulse'}`} />
+                <NutriaAvatar size="xs" className="w-4 h-4 border-fuchsia-300/80 shadow" />
                 <span>{item.label}</span>
                 <span className="flex h-2 w-2 rounded-full bg-fuchsia-400"></span>
               </button>
