@@ -52,6 +52,20 @@ export interface Meal {
   notes?: string;
 }
 
+export interface DigitalSignature {
+  signed: boolean;
+  signedAt: string;
+  signedAtIso?: string;
+  signedBy: string;
+  professionalCouncil: string;
+  cpf?: string;
+  ip?: string;
+  hash: string;
+  verificationCode?: string;
+  verificationUrl?: string;
+  qrCodeUrl?: string;
+}
+
 export interface MealPlan {
   id: string;
   title: string;
@@ -65,6 +79,7 @@ export interface MealPlan {
   generalGuidelines?: string;
   hydrationGoalLiters: number;
   supplements?: string[];
+  digitalSignature?: DigitalSignature;
 }
 
 export interface PrescriptionItem {
@@ -86,6 +101,7 @@ export interface ClinicalPrescription {
   instructions?: string;
   items: PrescriptionItem[];
   nutriaGenerated?: boolean;
+  digitalSignature?: DigitalSignature;
 }
 
 export interface LabMarker {
@@ -106,6 +122,7 @@ export interface LabExam {
   laboratory?: string;
   markers: LabMarker[];
   nutriaClinicalReview?: string;
+  digitalSignature?: DigitalSignature;
 }
 
 export interface AnthropometricRecord {

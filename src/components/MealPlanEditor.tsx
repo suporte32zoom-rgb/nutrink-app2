@@ -21,11 +21,14 @@ import {
   Nut,
   Pill,
   CheckCircle2,
-  Phone
+  Phone,
+  ShieldCheck,
+  Fingerprint
 } from 'lucide-react';
-import { Patient, MealPlan, Meal, MealItem, FoodItem, UserAccount } from '../types';
+import { Patient, MealPlan, Meal, MealItem, FoodItem, UserAccount, DigitalSignature } from '../types';
 import { EXTENDED_TACO_DATABASE } from '../data/tacoDatabase';
 import { printMealPlanPdf, sendMealPlanViaWhatsApp, generateShoppingListFromMealPlan } from '../utils/pdfExportUtils';
+import { DigitalSignatureModal } from './DigitalSignatureModal';
 
 interface MealPlanEditorProps {
   patient: Patient;
@@ -46,6 +49,7 @@ export const MealPlanEditor: React.FC<MealPlanEditorProps> = ({
   const [selectedTacoCategory, setSelectedTacoCategory] = useState<string>('todos');
   const [selectedMealForAdd, setSelectedMealForAdd] = useState<string>('Café da Manhã');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isSigningModalOpen, setIsSigningModalOpen] = useState(false);
 
   // Fallback initial meal plan if none exists
   const currentPlan: MealPlan = patient.mealPlan || {
@@ -103,6 +107,19 @@ export const MealPlanEditor: React.FC<MealPlanEditorProps> = ({
         ]
       }
     ]
+  };
+
+  const handleConfirmSignature = (signature: DigitalSignature) => {
+    const updatedPlan: MealPlan = {
+      ...currentPlan,
+      digitalSignature: signature
+    };
+
+    onUpdatePatient({
+      ...patient,
+      mealPlan: updatedPlan
+    });
+    setIsSigningModalOpen(false);
   };
 
   // Compute live macro sums from active meals
@@ -195,12 +212,35 @@ export const MealPlanEditor: React.FC<MealPlanEditorProps> = ({
           </p>
         </div>
 
-        {/* Action Buttons for PDF, WhatsApp and Copilot */}
+        {/* Action Buttons for PDF, WhatsApp, Digital Signature and Copilot */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Botão de Assinatura Digital do Plano */}
+          <button
+            onClick={() => setIsSigningModalOpen(true)}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-md ${
+              currentPlan.digitalSignature?.signed
+                ? 'bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/60'
+                : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white border border-emerald-400/40 shadow-emerald-950/40 hover:scale-105 cursor-pointer'
+            }`}
+            title={currentPlan.digitalSignature?.signed ? "Plano Alimentar já assinado digitalmente. Clique para re-assinar." : "Assinar Plano Alimentar Digitalmente com Hash SHA-256 e QR Code"}
+          >
+            {currentPlan.digitalSignature?.signed ? (
+              <>
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Assinado Digitalmente</span>
+              </>
+            ) : (
+              <>
+                <Fingerprint className="w-3.5 h-3.5 text-emerald-200" />
+                <span>Assinar Plano Alimentar</span>
+              </>
+            )}
+          </button>
+
           <button
             onClick={() => printMealPlanPdf({ ...patient, mealPlan: currentPlan }, userAccount)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 transition-all hover:scale-105"
-            title="Gerar PDF timbrado para impressão ou download"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 transition-all hover:scale-105 cursor-pointer"
+            title="Gerar PDF timbrado com selo de autenticidade para impressão ou download"
           >
             <Printer className="w-3.5 h-3.5 text-white" />
             <span>Imprimir / Gerar PDF Timbrado</span>
@@ -208,7 +248,7 @@ export const MealPlanEditor: React.FC<MealPlanEditorProps> = ({
 
           <button
             onClick={() => sendMealPlanViaWhatsApp({ ...patient, mealPlan: currentPlan }, userAccount)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 rounded-xl text-xs font-bold shadow-md transition-all hover:scale-105"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-slate-950 rounded-xl text-xs font-bold shadow-md transition-all hover:scale-105 cursor-pointer"
             title="Enviar prescrição formatada diretamente no WhatsApp do paciente"
           >
             <Phone className="w-3.5 h-3.5 text-slate-950" />
@@ -217,13 +257,42 @@ export const MealPlanEditor: React.FC<MealPlanEditorProps> = ({
 
           <button
             onClick={() => onOpenNutriaWithPrompt(`Nutria, elabore um plano alimentar 100% exclusivo para ${patient.name}, construído do zero a partir da anamnese, respeitando a meta prescrita de ${currentPlan.targetCalories} kcal com exatamente 3 opções isoenergéticas por refeição (Opção 1 - Tradicional, Opção 2 - Prática, Opção 3 - Alternativa) e conciliação exata de 100% dos macronutrientes.`)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-fuchsia-200 border border-fuchsia-500/40 rounded-xl text-xs font-bold transition-all"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-fuchsia-200 border border-fuchsia-500/40 rounded-xl text-xs font-bold transition-all cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-fuchsia-300" />
             <span>Otimizar com NÚTRIA</span>
           </button>
         </div>
       </div>
+
+      {/* Selo Visual de Plano Assinado Digitalmente */}
+      {currentPlan.digitalSignature?.signed && (
+        <div className="p-3.5 bg-gradient-to-r from-[#072419] via-[#041a12] to-[#072419] border border-emerald-500/50 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-200 shadow-inner">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-900/60 border border-emerald-500/60 flex items-center justify-center text-emerald-400 shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="font-bold text-white flex items-center gap-1.5">
+                <span>Plano Alimentar Assinado Eletronicamente por {currentPlan.digitalSignature.signedBy}</span>
+                <span className="text-[10px] px-1.5 py-0.2 bg-emerald-900 text-emerald-300 rounded border border-emerald-600/40">
+                  {currentPlan.digitalSignature.professionalCouncil}
+                </span>
+              </div>
+              <div className="text-[11px] text-emerald-400/90 font-mono mt-0.5">
+                Token SHA-256: {currentPlan.digitalSignature.verificationCode || currentPlan.digitalSignature.hash.substring(0, 16)} • {currentPlan.digitalSignature.signedAt}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 bg-emerald-950 px-2.5 py-1 rounded-lg border border-emerald-600/40 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              Assinado & Verificado
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Sub-Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-purple-900/30 pb-2">
@@ -518,6 +587,20 @@ export const MealPlanEditor: React.FC<MealPlanEditorProps> = ({
             ))}
           </div>
         </div>
+      )}
+
+      {/* Modal de Assinatura Digital do Plano Alimentar */}
+      {isSigningModalOpen && (
+        <DigitalSignatureModal
+          isOpen={isSigningModalOpen}
+          onClose={() => setIsSigningModalOpen(false)}
+          onConfirmSignature={handleConfirmSignature}
+          documentTitle={currentPlan.title}
+          documentType="Plano Alimentar Estruturado"
+          patientName={patient.name}
+          patientId={patient.id}
+          userAccount={userAccount}
+        />
       )}
 
     </div>

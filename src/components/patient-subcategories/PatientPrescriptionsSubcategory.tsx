@@ -15,10 +15,17 @@ import {
   Download,
   Calendar,
   Zap,
-  ShoppingBag
+  ShoppingBag,
+  ShieldCheck,
+  Lock,
+  CheckCircle2,
+  QrCode,
+  Fingerprint,
+  FileCheck2
 } from 'lucide-react';
-import { Patient, ClinicalPrescription, PrescriptionItem, UserAccount } from '../../types';
+import { Patient, ClinicalPrescription, PrescriptionItem, UserAccount, DigitalSignature } from '../../types';
 import { printPrescriptionPdf, sendPrescriptionViaWhatsApp } from '../../utils/pdfExportUtils';
+import { DigitalSignatureModal } from '../DigitalSignatureModal';
 
 interface PatientPrescriptionsSubcategoryProps {
   patient: Patient;
@@ -63,7 +70,7 @@ export const PatientPrescriptionsSubcategory: React.FC<PatientPrescriptionsSubca
       id: 'rx-3',
       title: 'Suplementação Esportiva & Performance Mitocondrial',
       date: new Date().toLocaleDateString('pt-BR'),
-      type: 'suplemento',
+      type: 'suplemento_esportivo',
       instructions: 'Consumir diariamente, inclusive em dias de descanso, preferencialmente junto a uma refeição com carboidratos.',
       items: [
         { id: 'item-7', name: 'Creatina Monohidratada 100% Pura Creapure', dosage: '5 g', form: 'po', posology: '5g dissolvidos em água ou shake pós-treino', indication: 'Ressíntese rápida de ATP e hipertrofia' },
@@ -81,6 +88,7 @@ export const PatientPrescriptionsSubcategory: React.FC<PatientPrescriptionsSubca
   const [newRxItems, setNewRxItems] = useState<PrescriptionItem[]>([
     { id: 'it-1', name: '', dosage: '', form: 'capsula', posology: '', indication: '' }
   ]);
+  const [signingPrescription, setSigningPrescription] = useState<ClinicalPrescription | null>(null);
 
   const handleAddItemRow = () => {
     setNewRxItems([
@@ -98,6 +106,27 @@ export const PatientPrescriptionsSubcategory: React.FC<PatientPrescriptionsSubca
     const updated = [...newRxItems];
     updated[index] = { ...updated[index], [field]: value };
     setNewRxItems(updated);
+  };
+
+  const handleConfirmSignature = (signature: DigitalSignature) => {
+    if (!signingPrescription) return;
+
+    const updatedList = prescriptionsList.map(rx => {
+      if (rx.id === signingPrescription.id) {
+        return {
+          ...rx,
+          digitalSignature: signature
+        };
+      }
+      return rx;
+    });
+
+    setPrescriptionsList(updatedList);
+    onUpdatePatient({
+      ...patient,
+      prescriptions: updatedList
+    });
+    setSigningPrescription(null);
   };
 
   const handleSavePrescription = () => {
@@ -420,11 +449,34 @@ export const PatientPrescriptionsSubcategory: React.FC<PatientPrescriptionsSubca
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
+                  {/* Botão Assinar Prescrição (exclusivo nas telas de prontuários/documentos) */}
+                  <button
+                    onClick={() => setSigningPrescription(rx)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
+                      rx.digitalSignature?.signed
+                        ? 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-600/60'
+                        : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white border border-emerald-400/40 shadow-emerald-950/40'
+                    }`}
+                    title={rx.digitalSignature?.signed ? "Documento já assinado digitalmente. Clique para re-assinar." : "Assinar Prescrição Digitalmente com Hash SHA-256 e QR Code"}
+                  >
+                    {rx.digitalSignature?.signed ? (
+                      <>
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Assinado Digitalmente</span>
+                      </>
+                    ) : (
+                      <>
+                        <Fingerprint className="w-3.5 h-3.5 text-emerald-200" />
+                        <span>Assinar Prescrição</span>
+                      </>
+                    )}
+                  </button>
+
                   {/* Botão Exportar PDF Limpo */}
                   <button
                     onClick={() => printPrescriptionPdf(patient, rx, userAccount)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#29094e] hover:bg-[#380b6a] text-purple-200 hover:text-white border border-purple-700/60 text-xs font-bold transition-all shadow-sm"
-                    title="Exportar Receituário em PDF limpo para impressão"
+                    title="Exportar Receituário em PDF com selo digital para impressão"
                   >
                     <Printer className="w-3.5 h-3.5 text-fuchsia-400" />
                     <span>Exportar PDF</span>
@@ -449,6 +501,35 @@ export const PatientPrescriptionsSubcategory: React.FC<PatientPrescriptionsSubca
                   </button>
                 </div>
               </div>
+
+              {/* Selo Visual de Documento Assinado Digitalmente */}
+              {rx.digitalSignature?.signed && (
+                <div className="p-3 bg-gradient-to-r from-[#072419] to-[#041a12] border border-emerald-500/50 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-200 shadow-inner">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-900/60 border border-emerald-500/60 flex items-center justify-center text-emerald-400 shrink-0">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        <span>Assinado Digitalmente por {rx.digitalSignature.signedBy}</span>
+                        <span className="text-[10px] px-1.5 py-0.2 bg-emerald-900 text-emerald-300 rounded border border-emerald-600/40">
+                          {rx.digitalSignature.professionalCouncil}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-emerald-400/90 font-mono mt-0.5">
+                        Autenticidade: {rx.digitalSignature.verificationCode || rx.digitalSignature.hash.substring(0, 16)} • {rx.digitalSignature.signedAt}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 bg-emerald-950 px-2 py-1 rounded-lg border border-emerald-600/40 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      ICP-Brasil / CFN
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Tabela de Compostos da Prescrição */}
               <div className="overflow-x-auto">
@@ -486,6 +567,20 @@ export const PatientPrescriptionsSubcategory: React.FC<PatientPrescriptionsSubca
           ))}
         </div>
       </div>
+
+      {/* Modal de Assinatura Digital do Documento */}
+      {signingPrescription && (
+        <DigitalSignatureModal
+          isOpen={!!signingPrescription}
+          onClose={() => setSigningPrescription(null)}
+          onConfirmSignature={handleConfirmSignature}
+          documentTitle={signingPrescription.title}
+          documentType={`Prescrição (${signingPrescription.type})`}
+          patientName={patient.name}
+          patientId={patient.id}
+          userAccount={userAccount}
+        />
+      )}
     </div>
   );
 };

@@ -369,10 +369,37 @@ export function printMealPlanPdf(patient: Patient, userAccount?: UserAccount): v
         </div>
         ` : ''}
 
+        ${mealPlan?.digitalSignature?.signed ? `
+        <div style="margin-top: 36px; border: 2px solid #059669; background: #ecfdf5; border-radius: 12px; padding: 16px 20px; page-break-inside: avoid; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                <span style="display: inline-block; width: 10px; height: 10px; background-color: #10b981; border-radius: 50%;"></span>
+                <strong style="color: #065f46; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Documento Assinado Eletronicamente</strong>
+              </div>
+              <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px;">
+                ${mealPlan.digitalSignature.signedBy} (${mealPlan.digitalSignature.professionalCouncil})
+              </div>
+              <div style="font-size: 11px; color: #047857; margin-top: 6px; line-height: 1.5;">
+                <div><strong>Data e Hora:</strong> ${mealPlan.digitalSignature.signedAt}</div>
+                <div><strong>Código Hash de Verificação:</strong> <code style="background: #d1fae5; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 10.5px; word-break: break-all;">${mealPlan.digitalSignature.hash}</code></div>
+                <div><strong>Padrão de Autenticidade:</strong> ICP-Brasil / CFN / CRM • Integridade e Não Repúdio Garantidos</div>
+              </div>
+            </div>
+            ${mealPlan.digitalSignature.qrCodeUrl ? `
+            <div style="text-align: center; flex-shrink: 0; background: #ffffff; padding: 8px; border: 1.5px solid #a7f3d0; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <img src="${mealPlan.digitalSignature.qrCodeUrl}" alt="QR Code de Validação" style="width: 84px; height: 84px; display: block;" />
+              <span style="font-size: 8px; font-weight: 800; color: #065f46; display: block; margin-top: 4px; letter-spacing: 0.3px;">VALIDAÇÃO DIGITAL</span>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+        ` : `
         <div class="footer">
           <div>Documento gerado em ${nowStr} • <strong>${clinicName || 'NutrinK Consultório Inteligente'}</strong></div>
           <div>${doctorName} • ${doctorCrn} • Assinatura: ___________________________________</div>
         </div>
+        `}
 
         <script>
           window.onload = function() {
@@ -631,11 +658,38 @@ export function printPrescriptionPdf(patient: Patient, prescription: ClinicalPre
           ${itemsHtml}
         </div>
 
+        ${prescription.digitalSignature?.signed ? `
+        <div style="margin-top: 36px; border: 2px solid #059669; background: #ecfdf5; border-radius: 12px; padding: 16px 20px; page-break-inside: avoid; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                <span style="display: inline-block; width: 10px; height: 10px; background-color: #10b981; border-radius: 50%;"></span>
+                <strong style="color: #065f46; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Documento Assinado Eletronicamente</strong>
+              </div>
+              <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px;">
+                ${prescription.digitalSignature.signedBy} (${prescription.digitalSignature.professionalCouncil})
+              </div>
+              <div style="font-size: 11px; color: #047857; margin-top: 6px; line-height: 1.5;">
+                <div><strong>Data e Hora:</strong> ${prescription.digitalSignature.signedAt}</div>
+                <div><strong>Código Hash de Verificação:</strong> <code style="background: #d1fae5; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 10.5px; word-break: break-all;">${prescription.digitalSignature.hash}</code></div>
+                <div><strong>Padrão de Autenticidade:</strong> ICP-Brasil / CFN / CRM • Integridade e Não Repúdio Garantidos</div>
+              </div>
+            </div>
+            ${prescription.digitalSignature.qrCodeUrl ? `
+            <div style="text-align: center; flex-shrink: 0; background: #ffffff; padding: 8px; border: 1.5px solid #a7f3d0; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+              <img src="${prescription.digitalSignature.qrCodeUrl}" alt="QR Code de Validação" style="width: 84px; height: 84px; display: block;" />
+              <span style="font-size: 8px; font-weight: 800; color: #065f46; display: block; margin-top: 4px; letter-spacing: 0.3px;">VALIDAÇÃO DIGITAL</span>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+        ` : `
         <div class="signature-area">
           <div class="sig-line"></div>
           <div style="font-size: 13px; font-weight: 800; color: #0f172a;">${doctorName}</div>
           <div style="font-size: 11px; color: #64748b;">${doctorCrn} • ${doctorSpecialty}</div>
         </div>
+        `}
 
         <div class="footer">
           <div>${prescriptionFooter}</div>

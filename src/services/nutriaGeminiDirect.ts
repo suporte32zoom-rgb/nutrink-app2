@@ -1205,7 +1205,6 @@ export async function callNutriaDirect(
     const candidateModels = [
       'gemini-3.7-flash',
       targetModel,
-      'gemini-3.8-flash',
       'gemini-3.1-flash-lite',
       'gemini-flash-latest'
     ].filter((m, idx, arr) => isValidGeminiModelName(m) && arr.indexOf(m) === idx);

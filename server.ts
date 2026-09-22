@@ -699,7 +699,6 @@ const validCustomModel = isValidGeminiModelName(rawCustomModel) ? rawCustomModel
 const BASE_GEMINI_MODELS = [
   "gemini-3.7-flash",
   ...(validCustomModel ? [validCustomModel] : []),
-  "gemini-3.8-flash",
   "gemini-3.1-flash-lite",
   "gemini-flash-latest"
 ].filter((m, idx, arr) => isValidGeminiModelName(m) && arr.indexOf(m) === idx);
@@ -741,17 +740,9 @@ async function generateContentWithFallback(ai: GoogleGenAI, params: any) {
 
     try {
       console.log(`[NutrinK AI Engine] Executando com modelo rápido: ${model}...`);
-      
-      const configWithThinking = {
-        ...(params.config || {}),
-        thinkingConfig: {
-          thinkingLevel: ThinkingLevel.LOW
-        }
-      };
 
       const generatePromise = ai.models.generateContent({
         ...params,
-        config: configWithThinking,
         model
       });
 
@@ -770,7 +761,7 @@ async function generateContentWithFallback(ai: GoogleGenAI, params: any) {
       lastError = err;
       const errMsg = String(err?.message || "");
       markModelCooldown(model, errMsg);
-      console.log(`[NutrinK AI Engine] Modelo ${model} ocupado/lento. Alternando imediatamente para o próximo modelo.`);
+      console.log(`[NutrinK AI Engine] Modelo ${model} ocupado/lento. Alternando imediatamente para o próximo modelo:`, errMsg);
       continue;
     }
   }
@@ -1056,7 +1047,9 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
             payload: { pageId: pageDoc.id, pageTitle: pageDoc.title },
             summary: `Documento aberto: ${pageDoc.title}`
           };
-          replyText = pageDoc.markdownContent;
+          if (!replyText) {
+            replyText = pageDoc.markdownContent;
+          }
         } else if (call.name === "navegar_para_tela") {
           const secao = args.secao ? args.secao.toLowerCase() : "dashboard";
           let targetTab = "dashboard";
@@ -1071,9 +1064,18 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
           } else if (secao.includes("financ") || secao.includes("faturam") || secao.includes("caixa")) {
             targetTab = "finance";
             screenTitle = "Financeiro & Faturamento";
-          } else if (secao.includes("calc") || secao.includes("nutri") || secao.includes("protocolo")) {
+          } else if (secao.includes("calc") || secao.includes("nutri") || secao.includes("protocolo") || secao.includes("antropometria")) {
             targetTab = "nutricalc";
             screenTitle = "NutriCalc & Protocolos de Cálculos";
+          } else if (secao.includes("plano") || secao.includes("dieta")) {
+            targetTab = "mealplans";
+            screenTitle = "Planos Alimentares";
+          } else if (secao.includes("exame")) {
+            targetTab = "exams";
+            screenTitle = "Exames & Biomarcadores";
+          } else if (secao.includes("prescr")) {
+            targetTab = "prescriptions";
+            screenTitle = "Prescrições & Suplementação";
           }
 
           actionExecuted = {
@@ -1082,16 +1084,21 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
             summary: `Navegação realizada para ${screenTitle}.`
           };
 
-          if (targetTab === "dashboard") {
-            replyText = `### 📊 Visão Geral do Consultório NutrinK\n\n| Indicador Clínico & Operacional | Valor Atual | Meta / Status |\n| :--- | :--- | :--- |\n| **Pacientes Ativos** | ${patients.length || 5} | 🟢 Alta Adesão |\n| **Consultas Agendadas Hoje** | 4 atendimentos | ⏱️ Próximo às 14:30 |\n| **Faturamento Mensal** | R$ ${(mergedAppContext.monthlyRevenue || 18450).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | 📈 92% da Meta |\n| **Despesas Operacionais** | R$ ${(mergedAppContext.monthlyExpenses || 3200).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | 💼 Saldo Positivo |`;
-          } else if (targetTab === "patients") {
-            replyText = `### 👥 Prontuário Eletrônico & Gestão de Pacientes\n\n| Paciente | Idade | Objetivo | Peso Atual | % Gordura | Status |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| **Lucas Silveira** | 30 anos | Hipertrofia & Força | 78.2 kg | 13.5% | 🟢 Ativo |\n| **Camila Rocha** | 33 anos | Emagrecimento Saudável | 71.4 kg | 28.2% | 🟢 Ativo |\n| **Juliana Mendonça** | 37 anos | Manejo de Diabetes | 81.2 kg | 36.4% | 🟢 Ativo |\n| **Gabriel Mendes** | 28 anos | Performance Esportiva | 73.5 kg | 11.2% | 🟢 Ativo |\n| **Beatriz Albuquerque** | 25 anos | Nutrição Vegetariana | 58.5 kg | 20.1% | 🟢 Ativo |`;
-          } else if (targetTab === "calendar") {
-            replyText = `### 📅 Grade de Horários & Próximos Atendimentos\n\n| Horário | Paciente | Tipo de Atendimento | Modalidade | Status |\n| :--- | :--- | :--- | :--- | :--- |\n| **14:30 - 15:20** | Lucas Silveira | Retorno & Bioimpedância | 🏢 Presencial | 🟢 Confirmada |\n| **16:00 - 16:50** | Camila Rocha | Retorno & Ajuste de Fibras | 🏢 Presencial | 🟢 Confirmada |\n| **10:00 (Amanhã)** | Juliana Mendonça | Ajuste de Plano Alimentar | 💻 Teleconsulta | 🟢 Confirmada |`;
-          } else if (targetTab === "finance") {
-            replyText = `### 💼 Fluxo de Caixa & Balanço Financeiro\n\n| Categoria Financeira | Mês Atual | Mês Anterior | Variação |\n| :--- | :--- | :--- | :--- |\n| **Entradas (Consultas & Planos)** | R$ ${(mergedAppContext.monthlyRevenue || 18450).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | R$ 16.200,00 | 🔼 +13.8% |\n| **Saídas (Despesas Operacionais)** | R$ ${(mergedAppContext.monthlyExpenses || 3200).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | R$ 3.450,00 | 🔽 -7.2% |\n| **Saldo Líquido** | **R$ ${((mergedAppContext.monthlyRevenue || 18450) - (mergedAppContext.monthlyExpenses || 3200)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}** | **R$ 12.750,00** | 📈 **+19.6%** |`;
-          } else if (targetTab === "nutricalc") {
-            replyText = `### 🧮 Central de Cálculos Energéticos & Protocolos Clínicos\n\n| Equação Preditiva | Indicação Clínica | Fórmula Base |\n| :--- | :--- | :--- |\n| **Mifflin-St Jeor (1990)** | Padrão ouro para adultos e sobrepeso | $10 \\times P + 6.25 \\times A - 5 \\times I + S$ |\n| **Cunningham (1980)** | Atletas e praticantes com %BF conhecido | $500 + 22 \\times \\text{Massa Livre de Gordura}$ |\n| **Harris-Benedict Revisada** | População geral e ambiente clínico | $88.362 + (13.397 \\times P) + (4.799 \\times A) - (5.677 \\times I)$ |`;
+          if (!replyText) {
+            if (targetTab === "dashboard") {
+              replyText = `### 📊 Visão Geral do Consultório NutrinK\n\n- **Pacientes Cadastrados:** ${patients.length} pacientes\n- **Faturamento Mensal:** R$ ${(mergedAppContext.monthlyRevenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- **Despesas Operacionais:** R$ ${(mergedAppContext.monthlyExpenses || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\nVocê foi redirecionado para o **Painel Principal**.`;
+            } else if (targetTab === "patients") {
+              const patientList = patients.slice(0, 5).map((p: any) => `• **${p.name}** (${p.age || 30} anos) - ${p.objective || 'Acompanhamento'}`).join('\n');
+              replyText = `### 👥 Gestão de Pacientes & Prontuários\n\n${patientList ? `**Pacientes recentes:**\n${patientList}\n\n` : ''}Aba de **Pacientes** aberta com sucesso.`;
+            } else if (targetTab === "calendar") {
+              replyText = `### 📅 Agenda de Atendimentos\n\nAba de **Agenda & Calendário** aberta. Você pode visualizar seus horários ou solicitar: *"Agende [Nome] para [Data] às [Horário]"*.`;
+            } else if (targetTab === "finance") {
+              replyText = `### 💼 Gestão Financeira do Consultório\n\n- **Receitas:** R$ ${(mergedAppContext.monthlyRevenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- **Despesas:** R$ ${(mergedAppContext.monthlyExpenses || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- **Saldo:** R$ ${((mergedAppContext.monthlyRevenue || 0) - (mergedAppContext.monthlyExpenses || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\nAba de **Financeiro** aberta com sucesso.`;
+            } else if (targetTab === "nutricalc") {
+              replyText = `### 🧮 Central de Cálculos Energéticos (NutriCalc)\n\n| Equação Preditiva | Indicação Clínica | Fórmula Base |\n| :--- | :--- | :--- |\n| **Mifflin-St Jeor (1990)** | Padrão ouro para adultos e sobrepeso | 10 x Peso + 6.25 x Altura - 5 x Idade + (Homem: +5 / Mulher: -161) |\n| **Cunningham (1980)** | Atletas e praticantes com %BF conhecido | 500 + 22 x Massa Livre de Gordura |\n| **Harris-Benedict Revisada** | População geral e ambiente clínico | Homem: 88.362 + (13.397 x P) + (4.799 x A) - (5.677 x I) |\n\nAba de **Antropometria & Cálculos** aberta.`;
+            } else {
+              replyText = `Redirecionando para a seção **${screenTitle}** do NutrinK.`;
+            }
           }
         } else if (call.name === "cadastrar_paciente") {
           actionExecuted = {
@@ -1221,22 +1228,34 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
             payload: { tab: "finance" },
             summary: `Relatório financeiro consolidado.`
           };
-          replyText = `### 📊 Relatório e Balanço Financeiro Consolidado\n\n| Métrica Financeira | Valor Consolidado | Status Operacional |\n| :--- | :--- | :--- |\n| **Faturamento do Mês** | **R$ ${(mergedAppContext.monthlyRevenue || 18450).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}** | 📈 92% da Meta Mensal |\n| **Despesas do Mês** | **R$ ${(mergedAppContext.monthlyExpenses || 3200).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}** | 💼 Custos Operacionais Controlados |\n| **Saldo Líquido Real** | **R$ ${((mergedAppContext.monthlyRevenue || 18450) - (mergedAppContext.monthlyExpenses || 3200)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}** | 🟢 Margem Líquida Saudável (~82%) |\n| **Ticket Médio por Consulta** | **R$ 350,00** | 💎 Padrão Clínico Premium |\n| **Consultas Realizadas / Mês** | 52 atendimentos | 🗓️ Média de 13 consultas/semana |`;
+          if (!replyText) {
+            replyText = `### 📊 Relatório Financeiro Consolidado\n\n- **Faturamento do Mês:** R$ ${(mergedAppContext.monthlyRevenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- **Despesas Operacionais:** R$ ${(mergedAppContext.monthlyExpenses || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n- **Saldo Líquido:** R$ ${((mergedAppContext.monthlyRevenue || 0) - (mergedAppContext.monthlyExpenses || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\n*Dados atualizados do fluxo de caixa do consultório.*`;
+          }
         } else if (call.name === "gerar_plano_alimentar") {
+          const calAlvo = Number(args.caloriasAlvo) || 2000;
+          const pGrams = Number(args.proteinasGramas) || Math.round((calAlvo * 0.25) / 4);
+          const cGrams = Number(args.carboidratosGramas) || Math.round((calAlvo * 0.50) / 4);
+          const fGrams = Number(args.gordurasGramas) || Math.round((calAlvo * 0.25) / 9);
+          const water = Number(args.metaHidricaLitros) || 3.0;
+
           actionExecuted = {
             type: "GENERATE_MEAL_PLAN",
             payload: {
               patientName: args.nomePaciente,
-              title: args.tituloPlano || `Plano Nutricional - ${args.caloriasAlvo} kcal`,
-              targetCalories: args.caloriasAlvo,
-              targetProteinGrams: args.proteinasGramas || Math.round((args.caloriasAlvo * 0.25) / 4),
-              targetCarbsGrams: args.carboidratosGramas || Math.round((args.caloriasAlvo * 0.50) / 4),
-              targetFatGrams: args.gordurasGramas || Math.round((args.caloriasAlvo * 0.25) / 9),
-              hydrationGoalLiters: args.metaHidricaLitros || 3.0,
+              title: args.tituloPlano || `Plano Nutricional - ${calAlvo} kcal`,
+              targetCalories: calAlvo,
+              targetProteinGrams: pGrams,
+              targetCarbsGrams: cGrams,
+              targetFatGrams: fGrams,
+              hydrationGoalLiters: water,
               generalGuidelines: args.orientacoesGerais || "Fracionar a ingestão hídrica ao longo do dia. Mastigar calmamente."
             },
-            summary: `Plano alimentar de ${args.caloriasAlvo} kcal estruturado para ${args.nomePaciente}.`
+            summary: `Plano alimentar de ${calAlvo} kcal estruturado para ${args.nomePaciente}.`
           };
+
+          if (!replyText) {
+            replyText = `### 🥗 ${args.tituloPlano || `Plano Nutricional Estruturado - ${args.nomePaciente}`}\n\n**Meta Energética Diária:** ${calAlvo} kcal | **Meta Hídrica:** ${water} L/dia\n\n| Macronutriente | Gramatura Diária | Calorias | % do VET |\n| :--- | :--- | :--- | :--- |\n| **Proteínas** | ${pGrams} g | ${pGrams * 4} kcal | ~${Math.round((pGrams * 4 / calAlvo) * 100)}% |\n| **Carboidratos** | ${cGrams} g | ${cGrams * 4} kcal | ~${Math.round((cGrams * 4 / calAlvo) * 100)}% |\n| **Lipídios** | ${fGrams} g | ${fGrams * 9} kcal | ~${Math.round((fGrams * 9 / calAlvo) * 100)}% |\n\n${args.orientacoesGerais ? `**Orientações Clínicas:**\n${args.orientacoesGerais}\n\n` : ''}---\n*Prescrição estruturada pela NÚTRIA para o consultório NutrinK.*`;
+          }
         }
       }
     }
