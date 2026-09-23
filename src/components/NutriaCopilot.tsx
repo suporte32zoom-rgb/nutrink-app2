@@ -14,6 +14,7 @@ import {
   Download, 
   Printer, 
   Calendar, 
+  User,
   UserPlus, 
   DollarSign, 
   Calculator, 
@@ -319,9 +320,19 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
 
     trackNutriaInteraction('send_message', { length: input.length });
 
+    // 1. Adiciona imediatamente a mensagem do usuário ao estado local de mensagens
+    const userMsg: NutriaMessage = {
+      id: `msg-${Date.now()}`,
+      role: 'user',
+      content: input,
+      timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    setInputText('');
+
     // Se o componente pai fornecer callback onSendMessage, delega para a gestão central
     if (onSendMessage) {
-      setInputText('');
       try {
         await onSendMessage(input);
         const updated = getDailyNutriaUsage(userAccount);
@@ -338,17 +349,6 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
     // Incrementa cota diária persistente no armazenamento local
     const nextQuota = incrementDailyNutriaUsage(userAccount);
     setQuotaStatus(nextQuota);
-
-    // 1. Adiciona imediatamente a mensagem do usuário ao estado local de mensagens
-    const userMsg: NutriaMessage = {
-      id: `msg-${Date.now()}`,
-      role: 'user',
-      content: input,
-      timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setMessages(prev => [...prev, userMsg]);
-    setInputText('');
     setInternalLoading(true);
 
     try {

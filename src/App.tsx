@@ -575,6 +575,14 @@ export function App() {
               }
             }
           }
+        } else {
+          const guestSaved = localStorage.getItem('nutrink_guest_nutria_conversation');
+          if (guestSaved) {
+            const parsedGuestHistory = JSON.parse(guestSaved);
+            if (Array.isArray(parsedGuestHistory) && parsedGuestHistory.length > 0) {
+              return parsedGuestHistory;
+            }
+          }
         }
       } catch (err) {
         console.warn('Erro ao restaurar histórico de conversas da NUTRIA:', err);
@@ -583,7 +591,7 @@ export function App() {
     return [DEFAULT_NUTRIA_WELCOME];
   });
 
-  // Atualiza saudação inicial automaticamente quando o usuário logar ou atualizar seu perfil
+  // Atualiza saudação inicial automaticamente apenas se houver apenas a mensagem de boas-vindas inicial
   useEffect(() => {
     const greeting = getNutriaGreeting(userAccount);
     setNutriaMessages(prev => {
@@ -595,7 +603,7 @@ export function App() {
           timestamp: 'Agora'
         }];
       }
-      if (prev.length === 1 && prev[0].role === 'assistant') {
+      if (prev.length === 1 && prev[0].role === 'assistant' && prev[0].id === 'msg-init-1') {
         return [{
           ...prev[0],
           content: greeting
@@ -603,14 +611,20 @@ export function App() {
       }
       return prev;
     });
-  }, [userAccount?.name]);
+  }, [userAccount?.name, userAccount?.crn]);
 
   useEffect(() => {
     const email = userAccount?.email?.trim().toLowerCase();
-    if (email && nutriaMessages.length > 0) {
+    if (nutriaMessages && nutriaMessages.length > 0) {
       try {
-        localStorage.setItem(`nutrink_nutria_conversation_history_${email}`, JSON.stringify(nutriaMessages));
-      } catch {}
+        if (email) {
+          localStorage.setItem(`nutrink_nutria_conversation_history_${email}`, JSON.stringify(nutriaMessages));
+        } else {
+          localStorage.setItem('nutrink_guest_nutria_conversation', JSON.stringify(nutriaMessages));
+        }
+      } catch (err) {
+        console.warn('Erro ao salvar histórico do chat:', err);
+      }
     }
   }, [nutriaMessages, userAccount?.email]);
 
@@ -623,11 +637,13 @@ export function App() {
     };
     setNutriaMessages([freshWelcome]);
     const email = userAccount?.email?.trim().toLowerCase();
-    if (email) {
-      try {
+    try {
+      if (email) {
         localStorage.setItem(`nutrink_nutria_conversation_history_${email}`, JSON.stringify([freshWelcome]));
-      } catch {}
-    }
+      } else {
+        localStorage.setItem('nutrink_guest_nutria_conversation', JSON.stringify([freshWelcome]));
+      }
+    } catch {}
   };
 
   const [isNutriaLoading, setIsNutriaLoading] = useState(false);
