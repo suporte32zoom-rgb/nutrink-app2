@@ -1,32 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { Header } from './components/Header';
 import { Navigation } from './components/Navigation';
-import { DashboardView } from './components/DashboardView';
-import { PatientsView } from './components/PatientsView';
-import { CalendarView } from './components/CalendarView';
-import { FinanceView } from './components/FinanceView';
-import { NutriCalcView } from './components/NutriCalcView';
-import { NutriaCopilot } from './components/NutriaCopilot';
-import { MealPlansGlobalView } from './components/MealPlansGlobalView';
-import { ExamsGlobalView } from './components/ExamsGlobalView';
-import { PrescriptionsGlobalView } from './components/PrescriptionsGlobalView';
-import { SettingsGlobalView } from './components/SettingsGlobalView';
-import { InstitutionalPageView } from './components/InstitutionalPageView';
 import { NewPatientModal } from './components/NewPatientModal';
 import { NewAppointmentModal } from './components/NewAppointmentModal';
 import { AppointmentDetailsModal } from './components/AppointmentDetailsModal';
 import { NewTransactionModal } from './components/NewTransactionModal';
-import { SubscriptionModal } from './components/SubscriptionModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { Footer } from './components/Footer';
-import { InstitutionalDocModal } from './components/InstitutionalDocModal';
 import { LoginModal } from './components/LoginModal';
-import { OnboardingView } from './components/OnboardingView';
-import { TelemedicineView } from './components/TelemedicineView';
-import { MercadoPagoSubscriptionsView } from './components/MercadoPagoSubscriptionsView';
 import { BottomNavigation } from './components/BottomNavigation';
+
+// Code Splitting (React.lazy) para otimização PageSpeed (carregamento sob demanda)
+const DashboardView = lazy(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
+const PatientsView = lazy(() => import('./components/PatientsView').then(m => ({ default: m.PatientsView })));
+const CalendarView = lazy(() => import('./components/CalendarView').then(m => ({ default: m.CalendarView })));
+const FinanceView = lazy(() => import('./components/FinanceView').then(m => ({ default: m.FinanceView })));
+const NutriCalcView = lazy(() => import('./components/NutriCalcView').then(m => ({ default: m.NutriCalcView })));
+const NutriaCopilot = lazy(() => import('./components/NutriaCopilot').then(m => ({ default: m.NutriaCopilot })));
+const MealPlansGlobalView = lazy(() => import('./components/MealPlansGlobalView').then(m => ({ default: m.MealPlansGlobalView })));
+const ExamsGlobalView = lazy(() => import('./components/ExamsGlobalView').then(m => ({ default: m.ExamsGlobalView })));
+const PrescriptionsGlobalView = lazy(() => import('./components/PrescriptionsGlobalView').then(m => ({ default: m.PrescriptionsGlobalView })));
+const SettingsGlobalView = lazy(() => import('./components/SettingsGlobalView').then(m => ({ default: m.SettingsGlobalView })));
+const InstitutionalPageView = lazy(() => import('./components/InstitutionalPageView').then(m => ({ default: m.InstitutionalPageView })));
+const TelemedicineView = lazy(() => import('./components/TelemedicineView').then(m => ({ default: m.TelemedicineView })));
+const MercadoPagoSubscriptionsView = lazy(() => import('./components/MercadoPagoSubscriptionsView').then(m => ({ default: m.MercadoPagoSubscriptionsView })));
+const OnboardingView = lazy(() => import('./components/OnboardingView').then(m => ({ default: m.OnboardingView })));
+const SubscriptionModal = lazy(() => import('./components/SubscriptionModal').then(m => ({ default: m.SubscriptionModal })));
+const InstitutionalDocModal = lazy(() => import('./components/InstitutionalDocModal').then(m => ({ default: m.InstitutionalDocModal })));
+
+// Componente elegante de fallback de carregamento de rotas (Dark Mode)
+const RouteLoadingFallback = () => (
+  <div className="flex flex-col items-center justify-center min-h-[45vh] py-16 text-center animate-fadeIn">
+    <div className="w-10 h-10 border-2 border-fuchsia-500/20 border-t-fuchsia-400 rounded-full animate-spin mb-3"></div>
+    <span className="text-xs font-semibold text-purple-300/80 tracking-wide">Carregando módulo NutrinK...</span>
+  </div>
+);
 import { 
   INITIAL_PATIENTS, 
   INITIAL_APPOINTMENTS, 
@@ -1147,31 +1157,32 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
       {/* Main Dynamic View with Browser URL Routing */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         
-        <Routes>
-          
-          {/* Dashboard / Painel Principal */}
-          <Route path="/" element={
-            <DashboardView
-              patients={patients}
-              appointments={appointments}
-              transactions={transactions}
-              userAccount={userAccount}
-              onSelectPatient={(id) => {
-                setSelectedPatientId(id);
-                navigate(`/pacientes/${id}`);
-              }}
-              onOpenNewPatient={() => setIsNewPatientOpen(true)}
-              onOpenNewAppointment={() => {
-                setPreSelectedPatientForApt(null);
-                setIsNewAppointmentOpen(true);
-              }}
-              onOpenNewTransaction={() => setIsNewTransactionOpen(true)}
-              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
-              onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
-              onOpenProfileModal={() => setIsProfileModalOpen(true)}
-              onOpenAppointmentDetails={handleOpenAppointmentDetails}
-            />
-          } />
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Routes>
+            
+            {/* Dashboard / Painel Principal */}
+            <Route path="/" element={
+              <DashboardView
+                patients={patients}
+                appointments={appointments}
+                transactions={transactions}
+                userAccount={userAccount}
+                onSelectPatient={(id) => {
+                  setSelectedPatientId(id);
+                  navigate(`/pacientes/${id}`);
+                }}
+                onOpenNewPatient={() => setIsNewPatientOpen(true)}
+                onOpenNewAppointment={() => {
+                  setPreSelectedPatientForApt(null);
+                  setIsNewAppointmentOpen(true);
+                }}
+                onOpenNewTransaction={() => setIsNewTransactionOpen(true)}
+                onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+                onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
+                onOpenProfileModal={() => setIsProfileModalOpen(true)}
+                onOpenAppointmentDetails={handleOpenAppointmentDetails}
+              />
+            } />
 
           <Route path="/dashboard" element={
             <DashboardView
@@ -1552,6 +1563,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
 
         </Routes>
+      </Suspense>
 
       </main>
 
@@ -1592,52 +1604,63 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         <div 
           className="fixed bottom-20 sm:bottom-24 lg:bottom-6 right-2.5 sm:right-4 lg:right-6 z-50 w-[calc(100vw-20px)] sm:w-full max-w-lg p-0.5 sm:p-2 max-h-[80vh] lg:max-h-[85vh] flex flex-col box-border min-w-0"
         >
-          <NutriaCopilot
-            messages={nutriaMessages}
-            onSendMessage={handleSendNutriaMessage}
-            isLoading={isNutriaLoading}
-            activePatient={activePatient}
-            todayAppointments={appointments.filter(a => a.date === new Date().toISOString().split('T')[0])}
-            patientsCount={patients.length}
-            monthlyRevenue={totalRevenue}
-            monthlyExpenses={totalExpenses}
-            isFloating={true}
-            onCloseFloating={() => setIsFloatingChatOpen(false)}
-            userAccount={effectiveUserAccount}
-            onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-            onOpenLoginModal={(tab) => handleOpenLoginModal(tab || 'register')}
-            onClearMessages={handleClearNutriaHistory}
-          />
+          <Suspense fallback={
+            <div className="bg-[#120326] border border-purple-800/60 rounded-3xl p-6 flex flex-col items-center justify-center min-h-[300px] shadow-2xl">
+              <div className="w-8 h-8 border-2 border-fuchsia-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+              <span className="text-xs text-purple-200">Iniciando NÚTRIA Copiloto...</span>
+            </div>
+          }>
+            <NutriaCopilot
+              messages={nutriaMessages}
+              onSendMessage={handleSendNutriaMessage}
+              isLoading={isNutriaLoading}
+              activePatient={activePatient}
+              todayAppointments={appointments.filter(a => a.date === new Date().toISOString().split('T')[0])}
+              patientsCount={patients.length}
+              monthlyRevenue={totalRevenue}
+              monthlyExpenses={totalExpenses}
+              isFloating={true}
+              onCloseFloating={() => setIsFloatingChatOpen(false)}
+              userAccount={effectiveUserAccount}
+              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              onOpenLoginModal={(tab) => handleOpenLoginModal(tab || 'register')}
+              onClearMessages={handleClearNutriaHistory}
+            />
+          </Suspense>
         </div>
       )}
 
       {/* Institutional Document Modal (for quick popups if invoked) */}
-      <InstitutionalDocModal
-        isOpen={isInstitutionalModalOpen}
-        initialPageId={activeInstitutionalPageId}
-        onClose={() => setIsInstitutionalModalOpen(false)}
-        onOpenNutriaPrompt={(prompt) => {
-          setIsInstitutionalModalOpen(false);
-          setIsFloatingChatOpen(true);
-          handleSendNutriaMessage(prompt);
-        }}
-        onOpenSubscriptionModal={() => {
-          setIsInstitutionalModalOpen(false);
-          setIsSubscriptionModalOpen(true);
-        }}
-        onSelectPlan={() => {
-          setIsInstitutionalModalOpen(false);
-          setIsSubscriptionModalOpen(true);
-        }}
-        onOpenLoginModal={() => {
-          setIsInstitutionalModalOpen(false);
-          handleOpenLoginModal('login');
-        }}
-        onOpenLogin={() => {
-          setIsInstitutionalModalOpen(false);
-          handleOpenLoginModal('login');
-        }}
-      />
+      <Suspense fallback={null}>
+        {isInstitutionalModalOpen && (
+          <InstitutionalDocModal
+            isOpen={isInstitutionalModalOpen}
+            initialPageId={activeInstitutionalPageId}
+            onClose={() => setIsInstitutionalModalOpen(false)}
+            onOpenNutriaPrompt={(prompt) => {
+              setIsInstitutionalModalOpen(false);
+              setIsFloatingChatOpen(true);
+              handleSendNutriaMessage(prompt);
+            }}
+            onOpenSubscriptionModal={() => {
+              setIsInstitutionalModalOpen(false);
+              setIsSubscriptionModalOpen(true);
+            }}
+            onSelectPlan={() => {
+              setIsInstitutionalModalOpen(false);
+              setIsSubscriptionModalOpen(true);
+            }}
+            onOpenLoginModal={() => {
+              setIsInstitutionalModalOpen(false);
+              handleOpenLoginModal('login');
+            }}
+            onOpenLogin={() => {
+              setIsInstitutionalModalOpen(false);
+              handleOpenLoginModal('login');
+            }}
+          />
+        )}
+      </Suspense>
 
       {/* Login & Authentication Modal (Strictly preserved) */}
       <LoginModal
@@ -1654,14 +1677,18 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
       />
 
       {/* Subscription Plans Modal */}
-      <SubscriptionModal
-        isOpen={isSubscriptionModalOpen}
-        onClose={() => setIsSubscriptionModalOpen(false)}
-        userAccount={effectiveUserAccount}
-        onSelectPlan={(plan, billingCycle, registeredUser) => handleSelectPlan(plan, registeredUser)}
-        isAuthenticated={isAuthenticated}
-        onOpenLoginModal={(tab) => handleOpenLoginModal(tab || 'register')}
-      />
+      <Suspense fallback={null}>
+        {isSubscriptionModalOpen && (
+          <SubscriptionModal
+            isOpen={isSubscriptionModalOpen}
+            onClose={() => setIsSubscriptionModalOpen(false)}
+            userAccount={effectiveUserAccount}
+            onSelectPlan={(plan, billingCycle, registeredUser) => handleSelectPlan(plan, registeredUser)}
+            isAuthenticated={isAuthenticated}
+            onOpenLoginModal={(tab) => handleOpenLoginModal(tab || 'register')}
+          />
+        )}
+      </Suspense>
 
       {/* User Account / Profile Modal */}
       <UserProfileModal

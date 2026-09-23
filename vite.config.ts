@@ -28,5 +28,23 @@ export default defineConfig(() => {
       port: 3000,
       host: '0.0.0.0',
     },
+    build: {
+      target: 'esnext',
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              if (id.includes('firebase')) {
+                return 'vendor-firebase';
+              }
+              if (id.includes('@google/genai')) {
+                return 'vendor-gemini';
+              }
+            }
+          }
+        }
+      }
+    },
   };
 });

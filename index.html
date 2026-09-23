@@ -13,6 +13,10 @@
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="https://nutrink.com.br/" />
 
+    <!-- Preconnect domínios de terceiros para otimização de performance (PageSpeed) -->
+    <link rel="preconnect" href="https://sdk.mercadopago.com" />
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+
     <!-- Open Graph / Redes Sociais -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="NutrinK — Sistema de Gestão e Inteligência Clínica Digital" />
@@ -134,8 +138,8 @@
       ]
     }
     </script>
-    <!-- Mercado Pago SDK v2 Oficial para Checkout Transparente -->
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <!-- Mercado Pago SDK v2 Oficial para Checkout Transparente (defer para não bloquear renderização FCP/LCP) -->
+    <script src="https://sdk.mercadopago.com/js/v2" defer></script>
     <!-- Google Identity Services (GSI) para Login Oficial com o Google -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <!-- Google tag (gtag.js) -->
@@ -147,9 +151,9 @@
 
       gtag('config', 'G-33RTJ85RGN');
     </script>
-    <!-- Jitsi as a Service (JaaS / 8x8.vc) SDK Oficial de Produção para Teleconsulta -->
-    <script src="https://8x8.vc/vpaas-magic-cookie-4f86a9af8ef14d28b178e66905790bac/external_api.js" async></script>
-    <script src="https://8x8.vc/v1/external_api.js" async></script>
+    <!-- Jitsi as a Service (JaaS / 8x8.vc) SDK Oficial de Produção para Teleconsulta (async defer) -->
+    <script src="https://8x8.vc/vpaas-magic-cookie-4f86a9af8ef14d28b178e66905790bac/external_api.js" async defer></script>
+    <script src="https://8x8.vc/v1/external_api.js" async defer></script>
   </head>
   <body>
     <div id="root"></div>
