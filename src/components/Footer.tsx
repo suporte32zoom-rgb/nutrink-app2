@@ -48,7 +48,7 @@ export const Footer: React.FC<FooterProps> = ({
   const handleLinkClick = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     const routeMap: Record<string, string> = {
-      inicio: '/dashboard',
+      inicio: '/',
       recursos: '/recursos',
       planos: '/planos',
       sobre: '/sobre',
@@ -88,7 +88,7 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Column 1: Brand & Copilot summary */}
           <div className="space-y-4">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/')}
               className="cursor-pointer hover:opacity-90 transition-opacity text-left"
             >
               <NutrinKLogo size="md" withGlow={true} />
@@ -137,7 +137,7 @@ export const Footer: React.FC<FooterProps> = ({
                   id="footer-link-inicio"
                 >
                   <Home className="w-3.5 h-3.5 text-purple-400 group-hover:text-fuchsia-400 transition-colors" />
-                  <span>Início / Dashboard</span>
+                  <span>Painel Clínico</span>
                 </button>
               </li>
               <li>

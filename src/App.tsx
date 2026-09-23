@@ -1160,7 +1160,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
             
-            {/* Dashboard / Painel Principal */}
+            {/* Painel Clínico Principal */}
             <Route path="/" element={
               <DashboardView
                 patients={patients}
@@ -1183,29 +1183,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
                 onOpenAppointmentDetails={handleOpenAppointmentDetails}
               />
             } />
-
-          <Route path="/dashboard" element={
-            <DashboardView
-              patients={patients}
-              appointments={appointments}
-              transactions={transactions}
-              userAccount={userAccount}
-              onSelectPatient={(id) => {
-                setSelectedPatientId(id);
-                navigate(`/pacientes/${id}`);
-              }}
-              onOpenNewPatient={() => setIsNewPatientOpen(true)}
-              onOpenNewAppointment={() => {
-                setPreSelectedPatientForApt(null);
-                setIsNewAppointmentOpen(true);
-              }}
-              onOpenNewTransaction={() => setIsNewTransactionOpen(true)}
-              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
-              onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
-              onOpenProfileModal={() => setIsProfileModalOpen(true)}
-              onOpenAppointmentDetails={handleOpenAppointmentDetails}
-            />
-          } />
+            <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
           {/* Pacientes & Prontuários (Lista e Detalhes) */}
           <Route path="/pacientes" element={
@@ -1356,7 +1334,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
                 } else if (tab === 'nutricalc') {
                   navigate('/antropometria');
                 } else {
-                  navigate('/dashboard');
+                  navigate('/');
                 }
               }}
             />
@@ -1560,7 +1538,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
           } />
 
           {/* Catch-all fallback */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
 
         </Routes>
       </Suspense>

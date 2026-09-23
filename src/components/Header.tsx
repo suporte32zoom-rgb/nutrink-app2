@@ -80,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const navMenuItems = [
-    { id: 'dashboard', route: '/dashboard', label: 'Painel Clínico', icon: LayoutDashboard },
+    { id: 'dashboard', route: '/', label: 'Painel Clínico', icon: LayoutDashboard },
     { id: 'patients', route: '/pacientes', label: 'Pacientes & Prontuários', icon: Users },
     { id: 'calendar', route: '/agenda', label: 'Agenda & Calendário', icon: CalendarDays },
     { id: 'meal_plans', route: '/planos-alimentares', label: 'Planos Alimentares', icon: Apple },
@@ -118,10 +118,10 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Official NutrinK Original Logo: [Ícone NK] [Nutrink] */}
           <div className="flex items-center gap-2 shrink-0 flex-shrink-0">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/')}
               className="cursor-pointer hover:opacity-90 transition-opacity flex items-center min-h-[44px]"
-              title="NutrinK • Ir para o Dashboard"
-              aria-label="NutrinK - Ir para o Painel Principal"
+              title="NutrinK • Ir para o Painel Clínico"
+              aria-label="NutrinK - Ir para o Painel Clínico"
             >
               <NutrinKLogo size="md" withGlow={true} className="shrink-0 flex-shrink-0" />
             </button>

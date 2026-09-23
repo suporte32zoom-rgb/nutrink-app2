@@ -61,14 +61,14 @@ export const Navigation: React.FC<NavigationProps> = ({
   // Helper to determine active route
   const path = location.pathname;
   const isPathActive = (route: string) => {
-    if (route === '/dashboard') return path === '/' || path === '/dashboard';
+    if (route === '/') return path === '/';
     return path.startsWith(route);
   };
 
   const navItems = [
     {
       id: 'dashboard',
-      route: '/dashboard',
+      route: '/',
       label: 'Painel Clínico',
       icon: LayoutDashboard,
       badge: null

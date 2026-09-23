@@ -183,7 +183,7 @@ Você não é apenas um chat de texto; você é a inteligência central do consu
 - **Comunicação com o Paciente:** Gera orientações mastigadas e personalizadas em linguagem acessível para o profissional enviar direto ao paciente via WhatsApp ou aplicativo.
 
 ### **Mapa de Rotas da Plataforma:**
-- Painel Geral / Dashboard: \`/dashboard\`
+- Painel Clínico: \`/\`
 - Pacientes & Prontuários: \`/pacientes\`
 - Prontuário do Paciente: \`/pacientes/:id\`
 - Agenda & Consultas: \`/agenda\`
