@@ -144,8 +144,37 @@ export function calculateWaterRecommendation(weightKg: number): { ml: number; li
     return { ml: 0, liters: 0 };
   }
   const ml = Math.round(weightKg * 35);
-  const liters = Number((ml / 1000).toFixed(1));
+  const liters = Number((ml / 1000).toFixed(2));
   return { ml, liters };
+}
+
+/**
+ * Formata números com padrão brasileiro (pt-BR) e casas decimais controladas
+ */
+export function formatPtBrNumber(val: number | string | undefined, maxDecimals = 2): string {
+  if (val === undefined || val === null || isNaN(Number(val))) return '0';
+  const num = Number(val);
+  return Number(num.toFixed(maxDecimals)).toLocaleString('pt-BR', {
+    maximumFractionDigits: maxDecimals
+  });
+}
+
+/**
+ * Formata consumo de água em Litros com sufixo "L" limpo
+ */
+export function formatWaterLiters(liters: number | string | undefined): string {
+  if (liters === undefined || liters === null || isNaN(Number(liters))) return '0 L';
+  const num = Number(liters);
+  return `${formatPtBrNumber(num, 2)} L`;
+}
+
+/**
+ * Formata volume de água em mL com sufixo "mL" limpo
+ */
+export function formatWaterMl(ml: number | string | undefined): string {
+  if (ml === undefined || ml === null || isNaN(Number(ml))) return '0 mL';
+  const num = Math.round(Number(ml));
+  return `${num.toLocaleString('pt-BR')} mL`;
 }
 
 /**

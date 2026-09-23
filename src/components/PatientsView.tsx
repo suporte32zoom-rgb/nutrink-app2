@@ -72,7 +72,10 @@ import {
   calculateBMI, 
   calculateMifflinTMB, 
   calculateGET, 
-  calculateWaterRecommendation 
+  calculateWaterRecommendation,
+  formatPtBrNumber,
+  formatWaterLiters,
+  formatWaterMl
 } from '../utils/nutritionCalculations';
 
 interface PatientsViewProps {
@@ -606,27 +609,27 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 <Scale className="w-3 h-3 text-fuchsia-400" /> Peso Atual
               </span>
               <p className="text-lg font-black text-white mt-0.5">
-                {selectedPatient.currentWeightKg > 0 ? `${selectedPatient.currentWeightKg} kg` : '-'}
+                {selectedPatient.currentWeightKg > 0 ? `${formatPtBrNumber(selectedPatient.currentWeightKg, 1)} kg` : '-'}
               </p>
               <span className="text-[10px] text-purple-200">
-                Meta: {selectedPatient.targetWeightKg > 0 ? `${selectedPatient.targetWeightKg} kg` : '-'}
+                Meta: {selectedPatient.targetWeightKg > 0 ? `${formatPtBrNumber(selectedPatient.targetWeightKg, 1)} kg` : '-'}
               </span>
             </div>
 
             <div className="bg-[#1d0637] p-3.5 rounded-2xl border border-purple-800/40">
               <span className="text-[11px] text-purple-200 uppercase font-bold">Altura</span>
               <p className="text-lg font-black text-white mt-0.5">
-                {selectedPatient.heightCm > 0 ? `${heightCm} cm` : '-'}
+                {selectedPatient.heightCm > 0 ? `${formatPtBrNumber(heightCm, 0)} cm` : '-'}
               </p>
               <span className="text-[10px] text-purple-200">
-                {selectedPatient.heightCm > 0 ? `(${heightM.toFixed(2)} m)` : '-'}
+                {selectedPatient.heightCm > 0 ? `(${formatPtBrNumber(heightM, 2)} m)` : '-'}
               </span>
             </div>
 
             <div className="bg-[#1d0637] p-3.5 rounded-2xl border border-purple-800/40">
               <span className="text-[11px] text-purple-200 uppercase font-bold">IMC Atual</span>
               <p className="text-lg font-black text-white mt-0.5">
-                {bmiData.bmi > 0 ? bmiData.bmi : '-'}
+                {bmiData.bmi > 0 ? formatPtBrNumber(bmiData.bmi, 1) : '-'}
               </p>
               <span className="text-[10px] text-fuchsia-300 font-bold">
                 {bmiData.bmi > 0 ? bmiData.classification.split(' ')[0] : 'Aguardando'}
@@ -636,10 +639,10 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
             <div className="bg-[#1d0637] p-3.5 rounded-2xl border border-purple-800/40">
               <span className="text-[11px] text-purple-200 uppercase font-bold">% Gordura</span>
               <p className="text-lg font-black text-white mt-0.5">
-                {selectedPatient.bodyFatPercentage > 0 ? `${selectedPatient.bodyFatPercentage}%` : '-'}
+                {selectedPatient.bodyFatPercentage > 0 ? `${formatPtBrNumber(selectedPatient.bodyFatPercentage, 1)}%` : '-'}
               </p>
               <span className="text-[10px] text-purple-200">
-                Músculo: {selectedPatient.muscleMassPercentage ? `${selectedPatient.muscleMassPercentage}%` : '-'}
+                Músculo: {selectedPatient.muscleMassPercentage ? `${formatPtBrNumber(selectedPatient.muscleMassPercentage, 1)}%` : '-'}
               </span>
             </div>
 
@@ -648,7 +651,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 <Flame className="w-3 h-3 text-amber-400" /> TMB (Basal)
               </span>
               <p className="text-lg font-black text-white mt-0.5">
-                {tmb > 0 ? `${tmb} kcal` : '-'}
+                {tmb > 0 ? `${formatPtBrNumber(tmb, 0)} kcal` : '-'}
               </p>
               <span className="text-[10px] text-purple-200">Mifflin-St Jeor</span>
             </div>
@@ -658,9 +661,9 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 <Activity className="w-3 h-3 text-fuchsia-400" /> GET Total
               </span>
               <p className="text-lg font-black text-fuchsia-300 mt-0.5">
-                {getVal > 0 ? `${getVal} kcal` : '-'}
+                {getVal > 0 ? `${formatPtBrNumber(getVal, 0)} kcal` : '-'}
               </p>
-              <span className="text-[10px] text-purple-200">NAF: {selectedPatient.activityFactor || 1.2}</span>
+              <span className="text-[10px] text-purple-200">NAF: {formatPtBrNumber(selectedPatient.activityFactor || 1.2, 2)}</span>
             </div>
           </div>
 
@@ -1949,19 +1952,19 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                 <div className="bg-[#1d0637] p-2 rounded-xl">
                   <span className="text-[10px] text-purple-200 font-semibold block">Peso</span>
                   <span className="text-xs font-black text-white">
-                    {patient.currentWeightKg > 0 ? `${patient.currentWeightKg} kg` : '-'}
+                    {patient.currentWeightKg > 0 ? `${formatPtBrNumber(patient.currentWeightKg, 1)} kg` : '-'}
                   </span>
                 </div>
                 <div className="bg-[#1d0637] p-2 rounded-xl">
                   <span className="text-[10px] text-purple-200 font-semibold block">IMC</span>
                   <span className="text-xs font-black text-fuchsia-300">
-                    {patient.bmi > 0 ? patient.bmi : '-'}
+                    {patient.bmi > 0 ? formatPtBrNumber(patient.bmi, 1) : '-'}
                   </span>
                 </div>
                 <div className="bg-[#1d0637] p-2 rounded-xl">
                   <span className="text-[10px] text-purple-200 font-semibold block">% Gordura</span>
                   <span className="text-xs font-black text-white">
-                    {patient.bodyFatPercentage > 0 ? `${patient.bodyFatPercentage}%` : '-'}
+                    {patient.bodyFatPercentage > 0 ? `${formatPtBrNumber(patient.bodyFatPercentage, 1)}%` : '-'}
                   </span>
                 </div>
               </div>

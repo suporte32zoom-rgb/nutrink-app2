@@ -21,7 +21,12 @@ import {
   Trash2
 } from 'lucide-react';
 import { Patient, HabitItem } from '../../types';
-import { calculateWaterRecommendation } from '../../utils/nutritionCalculations';
+import { 
+  calculateWaterRecommendation, 
+  formatPtBrNumber, 
+  formatWaterLiters, 
+  formatWaterMl 
+} from '../../utils/nutritionCalculations';
 
 interface PatientHabitsSubcategoryProps {
   patient: Patient;
@@ -60,10 +65,14 @@ export const PatientHabitsSubcategory: React.FC<PatientHabitsSubcategoryProps> =
   });
 
   const [waterTarget, setWaterTarget] = useState<number>(
-    patient.habits?.waterLitersTarget || waterRec.liters || 2.5
+    patient.habits?.waterLitersTarget 
+      ? Number(patient.habits.waterLitersTarget.toFixed(2)) 
+      : Number(waterRec.liters.toFixed(2)) || 2.5
   );
   const [waterCurrent, setWaterCurrent] = useState<number>(
-    patient.habits?.waterLitersCurrent || (waterRec.liters * 0.8) || 2.0
+    patient.habits?.waterLitersCurrent !== undefined
+      ? Number(patient.habits.waterLitersCurrent.toFixed(2))
+      : Number((waterRec.liters * 0.8).toFixed(2)) || 2.0
   );
 
   // Lista de hábitos customizados
@@ -150,7 +159,9 @@ export const PatientHabitsSubcategory: React.FC<PatientHabitsSubcategoryProps> =
   };
 
   const handleAddWater = (amountLiters: number) => {
-    const newVal = Math.min(Math.round((waterCurrent + amountLiters) * 10) / 10, waterTarget * 1.5);
+    const rawVal = Number((waterCurrent + amountLiters).toFixed(2));
+    const maxVal = Number((waterTarget * 1.5).toFixed(2));
+    const newVal = Math.min(rawVal, maxVal);
     setWaterCurrent(newVal);
     persistHabits(habitsList, newVal, sleepCurrent);
   };
@@ -196,7 +207,7 @@ export const PatientHabitsSubcategory: React.FC<PatientHabitsSubcategoryProps> =
   // Cálculo do Score Geral de Consistência
   const workoutsDone = Object.values(workoutDays).filter(Boolean).length;
   const workoutScore = Math.min(100, Math.round((workoutsDone / workoutTarget) * 100));
-  const waterScore = Math.min(100, Math.round((waterCurrent / waterTarget) * 100));
+  const waterScore = waterTarget > 0 ? Math.min(100, Math.round((waterCurrent / waterTarget) * 100)) : 0;
   const sleepScore = Math.min(100, Math.round((sleepCurrent / sleepTarget) * 100));
   const overallScore = Math.round((workoutScore + waterScore + sleepScore) / 3);
 
@@ -232,7 +243,7 @@ export const PatientHabitsSubcategory: React.FC<PatientHabitsSubcategoryProps> =
             </button>
 
             <button
-              onClick={() => onOpenNutriaWithPrompt(`Nutria, avalie o cumprimento de hábitos de ${patient.name} (Sono: ${sleepCurrent}h/${sleepTarget}h, Treinos: ${workoutsDone}/${workoutTarget}x por semana, Água: ${waterCurrent}L/${waterTarget}L) e elabore estratégias comportamentais para elevar a consistência.`)}
+              onClick={() => onOpenNutriaWithPrompt(`Nutria, avalie o cumprimento de hábitos de ${patient.name} (Sono: ${formatPtBrNumber(sleepCurrent, 1)}h/${formatPtBrNumber(sleepTarget, 1)}h, Treinos: ${workoutsDone}/${workoutTarget}x por semana, Água: ${formatWaterLiters(waterCurrent)} / ${formatWaterLiters(waterTarget)}) e elabore estratégias comportamentais para elevar a consistência.`)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-fuchsia-200 border border-fuchsia-500/40 rounded-xl text-xs font-bold"
             >
               <Sparkles className="w-3.5 h-3.5 text-fuchsia-400" />
@@ -259,7 +270,7 @@ export const PatientHabitsSubcategory: React.FC<PatientHabitsSubcategoryProps> =
           <div className="p-4 bg-[#1d0637] rounded-2xl border border-purple-800/40 flex items-center justify-between">
             <div>
               <span className="text-[11px] text-purple-300 font-bold uppercase block">Sono Médio</span>
-              <p className="text-2xl font-black text-purple-200 mt-0.5">{sleepCurrent}h <span className="text-xs text-purple-400 font-normal">/ {sleepTarget}h</span></p>
+              <p className="text-2xl font-black text-purple-200 mt-0.5">{formatPtBrNumber(sleepCurrent, 1)}h <span className="text-xs text-purple-400 font-normal">/ {formatPtBrNumber(sleepTarget, 1)}h</span></p>
               <span className="text-[10px] text-purple-300 font-medium">Meta de recuperação neural</span>
             </div>
             <div className="w-12 h-12 rounded-2xl bg-indigo-950/80 flex items-center justify-center border border-indigo-700/60 text-indigo-300">
@@ -281,8 +292,8 @@ export const PatientHabitsSubcategory: React.FC<PatientHabitsSubcategoryProps> =
           <div className="p-4 bg-[#1d0637] rounded-2xl border border-purple-800/40 flex items-center justify-between">
             <div>
               <span className="text-[11px] text-purple-300 font-bold uppercase block">Meta de Água</span>
-              <p className="text-2xl font-black text-cyan-300 mt-0.5">{waterCurrent}L <span className="text-xs text-purple-400 font-normal">/ {waterTarget}L</span></p>
-              <span className="text-[10px] text-cyan-400 font-medium">35ml/kg corporal</span>
+              <p className="text-2xl font-black text-cyan-300 mt-0.5">{formatWaterLiters(waterCurrent)} <span className="text-xs text-purple-400 font-normal">/ {formatWaterLiters(waterTarget)}</span></p>
+              <span className="text-[10px] text-cyan-400 font-medium">35 ml/kg corporal ({formatWaterMl(waterCurrent * 1000)} hoje)</span>
             </div>
             <div className="w-12 h-12 rounded-2xl bg-cyan-950/80 flex items-center justify-center border border-cyan-700/60 text-cyan-300">
               <Droplets className="w-6 h-6" />
@@ -531,7 +542,7 @@ export const PatientHabitsSubcategory: React.FC<PatientHabitsSubcategoryProps> =
               3. Meta de Hidratação Diária
             </h4>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-700/50 font-bold">
-              Meta: {waterTarget} L/dia
+              Meta: {formatWaterLiters(waterTarget)} ({formatWaterMl(waterTarget * 1000)})
             </span>
           </div>
 
@@ -539,7 +550,9 @@ export const PatientHabitsSubcategory: React.FC<PatientHabitsSubcategoryProps> =
             <div className="p-4 bg-[#1d0637] rounded-2xl border border-purple-800/40 text-center space-y-2">
               <div className="flex items-center justify-between text-xs font-bold text-purple-200">
                 <span>Consumo Hoje:</span>
-                <span className="text-cyan-300 text-base">{waterCurrent} L ({waterScore}%)</span>
+                <span className="text-cyan-300 text-base font-black">
+                  {formatWaterLiters(waterCurrent)} ({formatWaterMl(waterCurrent * 1000)}) • {waterScore}%
+                </span>
               </div>
 
               {/* Medidor visual de nível d'água */}
@@ -554,19 +567,19 @@ export const PatientHabitsSubcategory: React.FC<PatientHabitsSubcategoryProps> =
               <div className="flex items-center justify-center gap-2 pt-2">
                 <button
                   onClick={() => handleAddWater(0.25)}
-                  className="px-3 py-1.5 bg-[#250849] hover:bg-[#340b67] text-cyan-200 rounded-xl text-xs font-bold border border-cyan-800/50 transition-all"
+                  className="px-3 py-1.5 bg-[#250849] hover:bg-[#340b67] text-cyan-200 rounded-xl text-xs font-bold border border-cyan-800/50 transition-all cursor-pointer"
                 >
                   +250 ml (1 copo)
                 </button>
                 <button
                   onClick={() => handleAddWater(0.5)}
-                  className="px-3 py-1.5 bg-[#250849] hover:bg-[#340b67] text-cyan-200 rounded-xl text-xs font-bold border border-cyan-800/50 transition-all"
+                  className="px-3 py-1.5 bg-[#250849] hover:bg-[#340b67] text-cyan-200 rounded-xl text-xs font-bold border border-cyan-800/50 transition-all cursor-pointer"
                 >
                   +500 ml (garrafa)
                 </button>
                 <button
                   onClick={handleResetWater}
-                  className="p-1.5 text-purple-400 hover:text-rose-300 rounded-xl transition-colors"
+                  className="p-1.5 text-purple-400 hover:text-rose-300 rounded-xl transition-colors cursor-pointer"
                   title="Zerar dia"
                 >
                   Zerar
@@ -575,7 +588,7 @@ export const PatientHabitsSubcategory: React.FC<PatientHabitsSubcategoryProps> =
             </div>
 
             <div className="p-3 bg-[#120326] rounded-xl border border-cyan-900/40 text-[11px] text-cyan-200">
-              💧 <strong>Cálculo Clínico:</strong> 35ml × {patient.currentWeightKg || 70}kg = {waterRec.liters} Litros recomendados para taxa de filtração glomerular e balanço osmótico.
+              💧 <strong>Cálculo Clínico:</strong> 35 ml × {formatPtBrNumber(patient.currentWeightKg || 70, 1)} kg = {formatWaterLiters(waterRec.liters)} ({formatWaterMl(waterRec.ml)}) recomendados para taxa de filtração glomerular e balanço osmótico.
             </div>
           </div>
         </div>

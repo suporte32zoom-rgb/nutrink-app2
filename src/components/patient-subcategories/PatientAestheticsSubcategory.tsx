@@ -27,7 +27,12 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { Patient, AnthropometricRecord, PatientEvolutionPhoto } from '../../types';
-import { calculateBMI, calculateMifflinTMB, calculateGET } from '../../utils/nutritionCalculations';
+import { 
+  calculateBMI, 
+  calculateMifflinTMB, 
+  calculateGET,
+  formatPtBrNumber
+} from '../../utils/nutritionCalculations';
 import { LiveCameraModal } from '../LiveCameraModal';
 
 interface PatientAestheticsSubcategoryProps {
@@ -451,7 +456,7 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
           <div className="p-4 bg-[#1d0637] rounded-2xl border border-purple-800/40 text-center">
             <span className="text-[11px] text-purple-300 font-bold uppercase block">Peso Inicial</span>
             <p className="text-xl font-black text-white mt-1">
-              {patient.initialWeightKg > 0 ? `${patient.initialWeightKg} kg` : '-'}
+              {patient.initialWeightKg > 0 ? `${formatPtBrNumber(patient.initialWeightKg, 1)} kg` : '-'}
             </p>
             <span className="text-[10px] text-purple-300">Início do protocolo</span>
           </div>
@@ -459,11 +464,11 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
           <div className="p-4 bg-[#1d0637] rounded-2xl border border-purple-800/40 text-center">
             <span className="text-[11px] text-purple-300 font-bold uppercase block">Peso Atual</span>
             <p className="text-xl font-black text-fuchsia-300 mt-1">
-              {patient.currentWeightKg > 0 ? `${patient.currentWeightKg} kg` : '-'}
+              {patient.currentWeightKg > 0 ? `${formatPtBrNumber(patient.currentWeightKg, 1)} kg` : '-'}
             </p>
             {patient.initialWeightKg > 0 && patient.currentWeightKg > 0 && (
               <span className={`text-[11px] font-bold ${patient.currentWeightKg < patient.initialWeightKg ? 'text-emerald-400' : 'text-amber-400'}`}>
-                Δ {(patient.currentWeightKg - patient.initialWeightKg).toFixed(1)} kg
+                Δ {formatPtBrNumber(Math.abs(patient.currentWeightKg - patient.initialWeightKg), 1)} kg
               </span>
             )}
           </div>
@@ -471,7 +476,7 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
           <div className="p-4 bg-[#1d0637] rounded-2xl border border-purple-800/40 text-center">
             <span className="text-[11px] text-purple-300 font-bold uppercase block">% Gordura Atual</span>
             <p className="text-xl font-black text-white mt-1">
-              {patient.bodyFatPercentage > 0 ? `${patient.bodyFatPercentage}%` : '-'}
+              {patient.bodyFatPercentage > 0 ? `${formatPtBrNumber(patient.bodyFatPercentage, 1)}%` : '-'}
             </p>
             <span className="text-[10px] text-purple-300">Massa Gorda</span>
           </div>
@@ -479,7 +484,7 @@ export const PatientAestheticsSubcategory: React.FC<PatientAestheticsSubcategory
           <div className="p-4 bg-[#1d0637] rounded-2xl border border-purple-800/40 text-center">
             <span className="text-[11px] text-purple-300 font-bold uppercase block">Meta Alvo</span>
             <p className="text-xl font-black text-emerald-400 mt-1">
-              {patient.targetWeightKg > 0 ? `${patient.targetWeightKg} kg` : '-'}
+              {patient.targetWeightKg > 0 ? `${formatPtBrNumber(patient.targetWeightKg, 1)} kg` : '-'}
             </p>
             <span className="text-[10px] text-emerald-300 font-medium">Objetivo final</span>
           </div>
