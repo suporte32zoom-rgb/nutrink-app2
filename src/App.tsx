@@ -242,6 +242,10 @@ export function App() {
 
   const [inventory, setInventory] = useState<InventoryItem[]>(() => {
     try {
+      const isMockId = (id: string) => 
+        id?.startsWith('inv-mock-') || 
+        ['inv-b12', 'inv-creapure', 'inv-omega3', 'inv-berberina', 'inv-bio-eletrodo', 'inv-fita', 'inv-whey', 'inv-coq10', 'inv-d3', 'inv-bcomplex', 'inv-gel', 'inv-adipo'].includes(id);
+
       const savedUser = localStorage.getItem('nutrink_user_session');
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
@@ -250,13 +254,15 @@ export function App() {
           const saved = localStorage.getItem(`nutrink_inventory_${email}`);
           if (saved) {
             const parsedInv = JSON.parse(saved);
-            if (Array.isArray(parsedInv) && parsedInv.length > 0) return parsedInv;
+            if (Array.isArray(parsedInv)) {
+              return parsedInv.filter(i => i && i.id && !isMockId(i.id));
+            }
           }
         }
       }
-      return INITIAL_INVENTORY_ITEMS;
+      return [];
     } catch {
-      return INITIAL_INVENTORY_ITEMS;
+      return [];
     }
   });
 
@@ -417,16 +423,27 @@ export function App() {
 
         const savedNutria = localStorage.getItem(`nutrink_nutria_conversation_history_${cleanEmail}`);
         setNutriaMessages(savedNutria ? JSON.parse(savedNutria) : [DEFAULT_NUTRIA_WELCOME]);
+
+        const savedInv = localStorage.getItem(`nutrink_inventory_${cleanEmail}`);
+        if (savedInv) {
+          const parsed = JSON.parse(savedInv);
+          const clean = Array.isArray(parsed) ? parsed.filter((i: any) => i && i.id && !i.id.startsWith('inv-mock-') && !['inv-b12', 'inv-creapure', 'inv-omega3', 'inv-berberina', 'inv-bio-eletrodo', 'inv-fita', 'inv-whey', 'inv-coq10', 'inv-d3', 'inv-bcomplex', 'inv-gel', 'inv-adipo'].includes(i.id)) : [];
+          setInventory(clean);
+        } else {
+          setInventory([]);
+        }
       } catch {
         setPatients([]);
         setAppointments([]);
         setTransactions([]);
+        setInventory([]);
         setNutriaMessages([DEFAULT_NUTRIA_WELCOME]);
       }
     } else {
       setPatients([]);
       setAppointments([]);
       setTransactions([]);
+      setInventory([]);
       setNutriaMessages([DEFAULT_NUTRIA_WELCOME]);
     }
 
@@ -453,6 +470,7 @@ export function App() {
     setPatients([]);
     setAppointments([]);
     setTransactions([]);
+    setInventory([]);
     setSelectedPatientId(null);
     setNutriaMessages([DEFAULT_NUTRIA_WELCOME]);
     setIsProfileModalOpen(false);
@@ -640,10 +658,8 @@ export function App() {
 
         const cloudInv = await getInventoryItems(email);
         if (!isSubscribed) return;
-        if (cloudInv && cloudInv.length > 0) {
-          setInventory(cloudInv);
-          try { localStorage.setItem(`nutrink_inventory_${email}`, JSON.stringify(cloudInv)); } catch {}
-        }
+        setInventory(cloudInv || []);
+        try { localStorage.setItem(`nutrink_inventory_${email}`, JSON.stringify(cloudInv || [])); } catch {}
 
         const profile = await getProfileByEmail(email);
         if (!isSubscribed) return;

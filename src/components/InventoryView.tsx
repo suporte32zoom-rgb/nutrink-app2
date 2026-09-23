@@ -575,9 +575,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <Boxes className="w-8 h-8 opacity-70" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-base sm:text-lg font-bold text-white">Nenhum insumo cadastrado no estoque</h3>
+            <h3 className="text-base sm:text-lg font-bold text-white">Nenhum item cadastrado no estoque</h3>
             <p className="text-xs sm:text-sm text-purple-300/80 max-w-lg mx-auto">
-              Nenhum insumo cadastrado no estoque. Clique em '+ Novo Item' para iniciar o controle do consultório.
+              Nenhum item cadastrado no estoque. Clique em '+ Novo Item' para iniciar o controle do consultório.
             </p>
           </div>
           <div className="pt-2">

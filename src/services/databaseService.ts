@@ -557,19 +557,31 @@ export function subscribeToPatients(
 export async function getInventoryItems(userEmail?: string): Promise<InventoryItem[]> {
   const cleanEmail = (userEmail || '').trim().toLowerCase();
   
+  const isMockId = (id: string) => 
+    id.startsWith('inv-mock-') || 
+    ['inv-b12', 'inv-creapure', 'inv-omega3', 'inv-berberina', 'inv-bio-eletrodo', 'inv-fita', 'inv-whey', 'inv-coq10', 'inv-d3', 'inv-bcomplex', 'inv-gel', 'inv-adipo'].includes(id);
+
   // First check localStorage for fast offline access
   if (cleanEmail) {
     try {
       const local = localStorage.getItem(`nutrink_inventory_${cleanEmail}`);
       if (local) {
-        return JSON.parse(local);
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(i => i && i.id && !isMockId(i.id));
+          return clean;
+        }
       }
     } catch {}
   } else {
     try {
       const guestLocal = localStorage.getItem('nutrink_inventory_guest');
       if (guestLocal) {
-        return JSON.parse(guestLocal);
+        const parsed = JSON.parse(guestLocal);
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(i => i && i.id && !isMockId(i.id));
+          return clean;
+        }
       }
     } catch {}
   }
@@ -585,7 +597,10 @@ export async function getInventoryItems(userEmail?: string): Promise<InventoryIt
       if (!snapshot.empty) {
         const list: InventoryItem[] = [];
         snapshot.forEach(docSnap => {
-          list.push(docSnap.data() as InventoryItem);
+          const data = docSnap.data() as InventoryItem;
+          if (data && data.id && !isMockId(data.id)) {
+            list.push(data);
+          }
         });
         // Cache to localStorage
         try {
@@ -598,8 +613,8 @@ export async function getInventoryItems(userEmail?: string): Promise<InventoryIt
     }
   }
 
-  // Default initial seed data
-  return INITIAL_INVENTORY_ITEMS;
+  // Strictly empty in production
+  return [];
 }
 
 export async function saveInventoryItem(item: InventoryItem, userEmail?: string): Promise<void> {
@@ -669,6 +684,10 @@ export function subscribeToInventory(
   userEmail?: string
 ): () => void {
   try {
+    const isMockId = (id: string) => 
+      id?.startsWith('inv-mock-') || 
+      ['inv-b12', 'inv-creapure', 'inv-omega3', 'inv-berberina', 'inv-bio-eletrodo', 'inv-fita', 'inv-whey', 'inv-coq10', 'inv-d3', 'inv-bcomplex', 'inv-gel', 'inv-adipo'].includes(id);
+
     const q = userEmail
       ? query(collection(db, 'inventory'), where('userEmail', '==', userEmail.trim().toLowerCase()))
       : collection(db, 'inventory');
@@ -679,9 +698,14 @@ export function subscribeToInventory(
         if (!snapshot.empty) {
           const list: InventoryItem[] = [];
           snapshot.forEach((docSnap) => {
-            list.push(docSnap.data() as InventoryItem);
+            const data = docSnap.data() as InventoryItem;
+            if (data && data.id && !isMockId(data.id)) {
+              list.push(data);
+            }
           });
           callback(list);
+        } else {
+          callback([]);
         }
       },
       (error) => {
