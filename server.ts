@@ -287,16 +287,21 @@ let genAIClient: GoogleGenAI | null = null;
 let currentGenAIApiKey = "";
 
 function getGenAI(): GoogleGenAI | null {
-  const apiKey = (
-    process.env.NUTRINK_GEMINI_API_KEY ||
+  const envKey = (
     process.env.GEMINI_API_KEY ||
+    process.env.NUTRINK_GEMINI_API_KEY ||
     process.env.VITE_GEMINI_API_KEY ||
     process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
     ""
   ).trim();
 
-  let finalKey = apiKey;
-  // If no primary key, check if user inadvertently provided API key in VITE_GEMINI_MODEL
+  // If token starts with ya29., it's a Google OAuth token, not a Gemini API key
+  let finalKey = envKey;
+  if (finalKey.startsWith("ya29.")) {
+    finalKey = "";
+  }
+
+  // If no primary key, check if user provided API key in VITE_GEMINI_MODEL
   if (!finalKey || finalKey.length < 5) {
     const modelEnv = (process.env.VITE_GEMINI_MODEL || "").trim();
     if (modelEnv.length > 15 && (/^(AQ\.|AIza)/i.test(modelEnv) || !isValidGeminiModelName(modelEnv))) {
@@ -304,18 +309,9 @@ function getGenAI(): GoogleGenAI | null {
     }
   }
 
-  if (!finalKey || finalKey.length < 5) return null;
-
   if (!genAIClient || currentGenAIApiKey !== finalKey) {
     currentGenAIApiKey = finalKey;
-    genAIClient = new GoogleGenAI({
-      apiKey: finalKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    });
+    genAIClient = finalKey ? new GoogleGenAI({ apiKey: finalKey }) : new GoogleGenAI({});
   }
   return genAIClient;
 }
@@ -695,8 +691,9 @@ app.get("/api/health", (req: Request, res: Response) => {
 const rawCustomModel = (process.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL || "").trim();
 const validCustomModel = isValidGeminiModelName(rawCustomModel) ? rawCustomModel : null;
 
-// Official models supported by @google/genai SDK (gemini-3.7-flash as primary)
+// Official models supported by @google/genai SDK (gemini-3.8-flash and gemini-3.7-flash as primary)
 const BASE_GEMINI_MODELS = [
+  "gemini-3.8-flash",
   "gemini-3.7-flash",
   ...(validCustomModel ? [validCustomModel] : []),
   "gemini-3.1-flash-lite",
@@ -761,6 +758,13 @@ async function generateContentWithFallback(ai: GoogleGenAI, params: any) {
       lastError = err;
       const errMsg = String(err?.message || "");
       markModelCooldown(model, errMsg);
+
+      // If credentials error, breaking early avoids unnecessary retries
+      if (errMsg.includes("UNAUTHENTICATED") || errMsg.includes("401") || errMsg.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED") || errMsg.includes("API_KEY_INVALID")) {
+        console.warn(`[NutrinK AI Engine] Autenticação da API: ${errMsg}`);
+        break;
+      }
+
       console.log(`[NutrinK AI Engine] Modelo ${model} ocupado/lento. Alternando imediatamente para o próximo modelo:`, errMsg);
       continue;
     }

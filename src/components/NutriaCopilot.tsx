@@ -584,18 +584,12 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
                             th: ({ node, ...props }) => <th className="py-2.5 px-3 font-bold text-fuchsia-300 text-left border-r border-purple-800/40 last:border-r-0 whitespace-nowrap" {...props} />,
                             td: ({ node, ...props }) => <td className="py-2 px-3 text-purple-100 border-r border-purple-900/40 last:border-r-0 break-words" {...props} />,
                             pre: ({ node, ...props }) => (
-                              <div className="w-full max-w-full overflow-x-auto my-2.5 rounded-xl bg-[#0f021f] border border-purple-800/70 p-3 box-border">
-                                <pre className="text-[11px] sm:text-xs font-mono text-purple-200 whitespace-pre overflow-x-auto" {...props} />
-                              </div>
+                              <pre className="w-full max-w-full overflow-x-auto my-2.5 rounded-xl bg-[#0f021f] border border-purple-800/70 p-3 text-[11px] sm:text-xs font-mono text-purple-200 whitespace-pre box-border" {...props} />
                             ),
-                            code: ({ node, inline, ...props }: any) => (
-                              inline ? (
-                                <code className="bg-[#120326] px-1.5 py-0.5 rounded text-fuchsia-300 text-[11px] font-mono border border-purple-800/50 break-all max-w-full inline-block" {...props} />
-                              ) : (
-                                <div className="w-full max-w-full overflow-x-auto my-2 rounded-lg bg-[#120326] p-2 border border-purple-800/50 box-border">
-                                  <code className="text-fuchsia-300 text-[11px] font-mono whitespace-pre" {...props} />
-                                </div>
-                              )
+                            code: ({ node, inline, className, children, ...props }: any) => (
+                              <code className={`bg-[#120326] px-1.5 py-0.5 rounded text-fuchsia-300 text-[11px] font-mono border border-purple-800/50 break-all max-w-full ${className || ''}`} {...props}>
+                                {children}
+                              </code>
                             ),
                             blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-fuchsia-500 pl-3.5 py-1.5 bg-purple-950/40 text-purple-100 italic my-3 rounded-r-xl border-y border-r border-purple-900/30 text-xs sm:text-sm break-words [overflow-wrap:anywhere] max-w-full box-border" {...props} />
                           }}
