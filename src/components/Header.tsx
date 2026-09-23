@@ -107,20 +107,21 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={() => setIsMobileMenuOpen(prev => !prev)}
             style={{ zIndex: 1000 }}
-            className="md:hidden p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-[#220743] hover:bg-[#2e0b59] text-purple-200 hover:text-white border border-purple-700/60 transition-all flex items-center justify-center cursor-pointer shrink-0 flex-shrink-0"
-            aria-label="Abrir Menu de Navegação"
+            className="md:hidden p-2 min-h-[44px] min-w-[44px] rounded-lg sm:rounded-xl bg-[#220743] hover:bg-[#2e0b59] text-purple-200 hover:text-white border border-purple-700/60 transition-all flex items-center justify-center cursor-pointer shrink-0 flex-shrink-0"
+            aria-label={isMobileMenuOpen ? "Fechar Menu de Navegação" : "Abrir Menu de Navegação"}
             title="Menu Principal"
             id="btn-header-hamburger-menu"
           >
-            {isMobileMenuOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5 text-fuchsia-400" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-purple-200" />}
+            {isMobileMenuOpen ? <X className="w-5 h-5 text-fuchsia-400" /> : <Menu className="w-5 h-5 text-purple-200" />}
           </button>
 
           {/* Official NutrinK Original Logo: [Ícone NK] [Nutrink] */}
           <div className="flex items-center gap-2 shrink-0 flex-shrink-0">
             <button
               onClick={() => navigate('/dashboard')}
-              className="cursor-pointer hover:opacity-90 transition-opacity flex items-center"
+              className="cursor-pointer hover:opacity-90 transition-opacity flex items-center min-h-[44px]"
               title="NutrinK • Ir para o Dashboard"
+              aria-label="NutrinK - Ir para o Painel Principal"
             >
               <NutrinKLogo size="md" withGlow={true} className="shrink-0 flex-shrink-0" />
             </button>
@@ -130,7 +131,8 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={() => navigate('/planos')}
-                className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-500/50 hover:bg-amber-900/80 transition-all cursor-pointer uppercase tracking-wider shadow-sm"
+                aria-label="Plano Gratuito: Clique para fazer upgrade para PRO"
+                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-full text-[10px] font-bold bg-amber-950/80 text-amber-300 border border-amber-500/50 hover:bg-amber-900/80 transition-all cursor-pointer uppercase tracking-wider shadow-sm"
                 title="Plano Gratuito • Clique para fazer Upgrade"
                 id="header-plan-badge-free"
               >
@@ -211,7 +213,8 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onOpenNutriaChat}
-              className="relative inline-flex items-center justify-center gap-1 sm:gap-2 px-2 py-1 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-fuchsia-950/50 transition-all transform hover:scale-[1.03] active:scale-[0.98] border border-fuchsia-400/40 shrink-0 flex-shrink-0 cursor-pointer"
+              aria-label="Falar com Copiloto IA NÚTRIA"
+              className="relative inline-flex items-center justify-center gap-1 sm:gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-2 min-h-[44px] rounded-lg sm:rounded-xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-fuchsia-950/50 transition-all transform hover:scale-[1.03] active:scale-[0.98] border border-fuchsia-400/40 shrink-0 flex-shrink-0 cursor-pointer"
               title="Falar com Copiloto IA NÚTRIA"
               id="btn-header-nutria-chat"
             >
@@ -228,7 +231,8 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={() => navigate('/configuracoes')}
-                className="flex items-center gap-1 sm:gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-lg sm:rounded-xl bg-[#220743] hover:bg-[#2e0b59] border border-purple-700/60 text-purple-200 hover:text-white transition-all shadow-sm group shrink-0 flex-shrink-0 cursor-pointer"
+                aria-label={`Perfil do profissional: ${userAccount.name}, ${userAccount.crn || ''}`}
+                className="flex items-center gap-1 sm:gap-2 p-1 sm:px-2.5 sm:py-1.5 min-h-[44px] rounded-lg sm:rounded-xl bg-[#220743] hover:bg-[#2e0b59] border border-purple-700/60 text-purple-200 hover:text-white transition-all shadow-sm group shrink-0 flex-shrink-0 cursor-pointer"
                 title={`Profissional: ${userAccount.name} • ${userAccount.crn} • ${userAccount.specialty}`}
                 id="btn-header-user-profile"
               >

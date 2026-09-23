@@ -107,13 +107,14 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                 <button
                   type="button"
                   onClick={handleNutriaClick}
-                  className={`relative w-13 h-13 md:w-16 md:h-16 rounded-full flex items-center justify-center p-0.5 md:p-1 transition-all duration-300 transform active:scale-95 cursor-pointer shadow-lg ${
+                  className={`relative w-13 h-13 md:w-16 md:h-16 min-h-[48px] min-w-[48px] rounded-full flex items-center justify-center p-0.5 md:p-1 transition-all duration-300 transform active:scale-95 cursor-pointer shadow-lg ${
                     isActive
                       ? 'shadow-[0_0_30px_rgba(217,70,239,0.8)] ring-2 ring-fuchsia-400 ring-offset-2 ring-offset-[#0D0B18] scale-105'
                       : 'shadow-[0_0_20px_rgba(168,85,247,0.5)] hover:scale-105'
                   }`}
                   id="btn-bottom-nav-nutria-ia"
                   title="Abrir Central e Copiloto NÚTRIA IA"
+                  aria-label="Abrir Central e Copiloto NÚTRIA IA"
                 >
                   {/* Glowing gradient background border */}
                   <span className="absolute inset-0 rounded-full bg-gradient-to-tr from-fuchsia-600 via-purple-600 to-teal-400 animate-gradient-x opacity-95" />
@@ -148,7 +149,8 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
               key={item.id}
               type="button"
               onClick={() => handleItemClick(item)}
-              className={`flex-1 max-w-[140px] md:max-w-[200px] flex flex-col items-center justify-center py-1.5 md:py-2 px-1 md:px-3 rounded-xl transition-all duration-200 relative group cursor-pointer ${
+              aria-label={`Ir para ${item.label}`}
+              className={`flex-1 max-w-[140px] md:max-w-[200px] min-h-[48px] flex flex-col items-center justify-center py-1.5 md:py-2 px-1 md:px-3 rounded-xl transition-all duration-200 relative group cursor-pointer ${
                 isActive ? 'text-fuchsia-400 font-bold' : 'text-slate-400 hover:text-purple-200'
               }`}
               id={`btn-bottom-nav-${item.id}`}

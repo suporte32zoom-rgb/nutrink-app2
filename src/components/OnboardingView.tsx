@@ -524,34 +524,48 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
       {/* Main Center Content Container */}
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10 flex flex-col justify-center items-center z-10">
         
-        {/* STEPPER INDICATOR */}
-        <div className="w-full flex items-center justify-between mb-6 px-2">
-          <div className="flex items-center gap-2">
+        {/* STEPPER INDICATOR / CAROUSEL DOTS */}
+        <div className="w-full flex items-center justify-between mb-4 px-1 sm:px-2">
+          <div className="flex items-center gap-1 sm:gap-1.5" role="tablist" aria-label="Indicadores de Slides">
             {ONBOARDING_SLIDES.map((slide, idx) => (
               <button
                 key={slide.id}
                 type="button"
+                role="tab"
+                aria-selected={currentStep === idx}
                 onClick={() => setCurrentStep(idx)}
-                className={`h-2 rounded-full transition-all cursor-pointer ${
-                  currentStep === idx 
-                    ? 'w-8 bg-gradient-to-r from-fuchsia-500 to-purple-500' 
-                    : idx < currentStep 
-                      ? 'w-3 bg-purple-600' 
-                      : 'w-3 bg-purple-950/80 border border-purple-800/50'
-                }`}
-                title={`Ir para ${slide.title}`}
-              />
+                className="min-h-[44px] min-w-[44px] p-2 flex items-center justify-center cursor-pointer transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-400/50 rounded-xl"
+                title={`Ir para o slide ${idx + 1}: ${slide.title}`}
+                aria-label={`Ir para o slide ${idx + 1}: ${slide.title}`}
+              >
+                <span
+                  className={`h-2 rounded-full transition-all block ${
+                    currentStep === idx 
+                      ? 'w-8 bg-gradient-to-r from-fuchsia-500 to-purple-500 shadow-sm shadow-fuchsia-500/50' 
+                      : idx < currentStep 
+                        ? 'w-3 bg-purple-600' 
+                        : 'w-3 bg-purple-950/80 border border-purple-800/50'
+                  }`}
+                />
+              </button>
             ))}
             <button
               type="button"
+              role="tab"
+              aria-selected={isAuthScreen}
               onClick={() => setCurrentStep(ONBOARDING_SLIDES.length)}
-              className={`h-2 rounded-full transition-all cursor-pointer ${
-                isAuthScreen 
-                  ? 'w-8 bg-gradient-to-r from-fuchsia-400 to-indigo-400' 
-                  : 'w-3 bg-purple-950/80 border border-purple-800/50'
-              }`}
-              title="Acesso / Cadastro"
-            />
+              className="min-h-[44px] min-w-[44px] p-2 flex items-center justify-center cursor-pointer transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-400/50 rounded-xl"
+              title="Ir para o slide final: Acesso e Cadastro"
+              aria-label="Ir para o slide final: Acesso e Cadastro"
+            >
+              <span
+                className={`h-2 rounded-full transition-all block ${
+                  isAuthScreen 
+                    ? 'w-8 bg-gradient-to-r from-fuchsia-400 to-indigo-400 shadow-sm shadow-indigo-500/50' 
+                    : 'w-3 bg-purple-950/80 border border-purple-800/50'
+                }`}
+              />
+            </button>
           </div>
 
           <span className="text-[11px] font-bold tracking-wide text-purple-300">
@@ -628,12 +642,13 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
             </div>
 
             {/* Onboarding Navigation Controls */}
-            <div className="flex items-center justify-between gap-3 pt-2 border-t border-purple-800/40">
+            <div className="flex items-center justify-between gap-2 sm:gap-3 pt-2 border-t border-purple-800/40 flex-wrap sm:flex-nowrap">
               {currentStep > 0 ? (
                 <button
                   type="button"
                   onClick={handlePrevSlide}
-                  className="py-3 px-4 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-800/50 text-purple-200 hover:text-white text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+                  aria-label="Voltar para o slide anterior"
+                  className="py-3 px-4 min-h-[44px] rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-800/50 text-purple-200 hover:text-white text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>Anterior</span>
@@ -642,7 +657,8 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                 <button
                   type="button"
                   onClick={handleSkipToAuth}
-                  className="py-2.5 px-3 rounded-xl text-purple-400 hover:text-purple-200 text-xs font-semibold cursor-pointer"
+                  aria-label="Pular introdução e ir para o login"
+                  className="py-2.5 px-3 min-h-[44px] flex items-center rounded-xl text-purple-400 hover:text-purple-200 text-xs font-semibold cursor-pointer"
                 >
                   Pular introdução
                 </button>
@@ -653,7 +669,8 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                 type="button"
                 onClick={handleGoogleClick}
                 disabled={isGoogleLoading}
-                className="py-2 px-3.5 rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-900 font-bold text-xs flex items-center gap-2 shadow-md border border-slate-200 cursor-pointer transition-all disabled:opacity-60"
+                aria-label="Entrar imediatamente com o Google no Painel Clínico"
+                className="py-2.5 px-3.5 min-h-[44px] rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-900 font-bold text-xs flex items-center gap-2 shadow-md border border-slate-200 cursor-pointer transition-all disabled:opacity-60"
                 id="btn-google-slide-login"
                 title="Entrar imediatamente no Painel Clínico"
               >
@@ -673,7 +690,8 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
               <button
                 type="button"
                 onClick={handleNextSlide}
-                className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-fuchsia-950/60 flex items-center gap-2 transition-all cursor-pointer ml-auto"
+                aria-label={currentStep === ONBOARDING_SLIDES.length - 1 ? 'Começar Agora e acessar consultório' : 'Avançar para o próximo slide'}
+                className="py-2.5 px-5 min-h-[44px] rounded-xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-fuchsia-950/60 flex items-center gap-2 transition-all cursor-pointer ml-auto"
                 id="btn-onboarding-next"
               >
                 <span>{currentStep === ONBOARDING_SLIDES.length - 1 ? 'Começar Agora' : 'Próximo'}</span>

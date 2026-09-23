@@ -221,7 +221,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
               <button
                 onClick={onOpenProfileModal}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-fuchsia-950/50 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                aria-label="Completar dados do consultório e personalizar receitas"
+                className="px-4 py-2.5 min-h-[44px] rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-fuchsia-950/50 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                 id="btn-dashboard-complete-profile"
               >
                 <Award className="w-3.5 h-3.5 text-amber-300" />
@@ -230,7 +231,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               
               <button
                 onClick={() => setIsBannerDismissed(true)}
-                className="p-2 rounded-xl text-purple-300 hover:text-white hover:bg-purple-900/40 transition-all cursor-pointer text-xs"
+                aria-label="Dispensar aviso de personalização do consultório"
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-purple-300 hover:text-white hover:bg-purple-900/40 transition-all cursor-pointer text-xs"
                 title="Dispensar aviso"
               >
                 ✕
@@ -351,7 +353,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <button
                 onClick={onOpenNewAppointment}
-                className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 bg-[#25074a] hover:bg-[#340c66] text-fuchsia-300 border border-purple-700/60 rounded-xl transition-all shadow-sm"
+                aria-label="Cadastrar novo agendamento de consulta"
+                className="inline-flex items-center gap-1 text-xs font-bold px-3.5 py-2.5 min-h-[44px] bg-[#25074a] hover:bg-[#340c66] text-fuchsia-300 border border-purple-700/60 rounded-xl transition-all shadow-sm cursor-pointer"
                 id="btn-quick-schedule"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -438,8 +441,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {onOpenAppointmentDetails && (
                           <button
                             onClick={() => onOpenAppointmentDetails(apt)}
-                            className="px-2.5 py-1.5 bg-gradient-to-r from-fuchsia-600/90 to-purple-600/90 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1 shadow-sm transition-all border border-fuchsia-400/30"
+                            className="px-3 py-2 min-h-[44px] bg-gradient-to-r from-fuchsia-600/90 to-purple-600/90 hover:from-fuchsia-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1 shadow-sm transition-all border border-fuchsia-400/30 cursor-pointer"
                             title="Ver detalhes da consulta"
+                            aria-label={`Ver detalhes da consulta de ${apt.patientName}`}
                             id={`btn-dash-details-apt-${apt.id}`}
                           >
                             <span>Ver detalhes &gt;</span>
@@ -448,8 +452,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                         <button
                           onClick={() => apt.patientId ? onSelectPatient(apt.patientId) : null}
-                          className="p-1.5 text-purple-300 hover:text-white rounded-lg hover:bg-[#2c0a54] transition-colors"
+                          className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center text-purple-300 hover:text-white rounded-lg hover:bg-[#2c0a54] transition-colors cursor-pointer"
                           title="Ver Prontuário"
+                          aria-label={`Abrir prontuário completo de ${apt.patientName}`}
                         >
                           <ChevronRight className="w-4 h-4" />
                         </button>
