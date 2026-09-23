@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { marked } from 'marked';
@@ -43,6 +44,13 @@ import { cleanMathAndLatex } from '../utils/cleanMarkdown';
 import { trackNutriaInteraction } from '../services/analytics';
 import { getNutriaGreeting } from '../utils/nutriaGreeting';
 import { NutriaAvatar } from './NutriaAvatar';
+import { 
+  getDailyNutriaUsage, 
+  incrementDailyNutriaUsage, 
+  NutriaQuotaStatus, 
+  DAILY_NUTRIA_FREE_LIMIT, 
+  NUTRIA_WARNING_THRESHOLD 
+} from '../utils/nutriaQuotaManager';
 
 interface NutriaCopilotProps {
   messages?: NutriaMessage[];
@@ -81,7 +89,18 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
   onActionExecuted,
   onClearMessages
 }) => {
+  const navigate = useNavigate();
   const currentGreeting = getNutriaGreeting(userAccount);
+
+  // Gestão persistente de cota diária de mensagens
+  const [quotaStatus, setQuotaStatus] = useState<NutriaQuotaStatus>(() => getDailyNutriaUsage(userAccount));
+  const [showLimitModal, setShowLimitModal] = useState<boolean>(false);
+
+  // Sincroniza e verifica a cota diária contra novo dia / F5
+  useEffect(() => {
+    const updated = getDailyNutriaUsage(userAccount);
+    setQuotaStatus(updated);
+  }, [userAccount]);
 
   // Estado local gerenciado das mensagens da conversa
   const [messages, setMessages] = useState<NutriaMessage[]>(() => {
@@ -160,8 +179,8 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
     }
   };
 
-  const isFree = !userAccount || userAccount.plan === 'free';
-  const isMessageLimitReached = isFree && !!userAccount && userAccount.dailyMessageCount >= userAccount.dailyMessageLimit;
+  const isFree = !quotaStatus.isUnlimited;
+  const isMessageLimitReached = quotaStatus.isLimitReached;
 
   // Reconhecimento de fala (Speech-to-Text)
   const recognitionRef = useRef<any>(null);
@@ -291,6 +310,13 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
     const input = rawInput.trim();
     if (!input || isLoading) return;
 
+    // Se a cota estiver esgotada para o plano gratuito, impede o envio e abre o modal/alerta
+    const currentQuota = getDailyNutriaUsage(userAccount);
+    if (currentQuota.isLimitReached) {
+      setShowLimitModal(true);
+      return;
+    }
+
     trackNutriaInteraction('send_message', { length: input.length });
 
     // Se o componente pai fornecer callback onSendMessage, delega para a gestão central
@@ -298,11 +324,20 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
       setInputText('');
       try {
         await onSendMessage(input);
+        const updated = getDailyNutriaUsage(userAccount);
+        setQuotaStatus(updated);
+        if (updated.isLimitReached) {
+          setShowLimitModal(true);
+        }
       } catch (callbackErr) {
         console.warn('Aviso na execução do callback pai onSendMessage:', callbackErr);
       }
       return;
     }
+
+    // Incrementa cota diária persistente no armazenamento local
+    const nextQuota = incrementDailyNutriaUsage(userAccount);
+    setQuotaStatus(nextQuota);
 
     // 1. Adiciona imediatamente a mensagem do usuário ao estado local de mensagens
     const userMsg: NutriaMessage = {
@@ -726,37 +761,58 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
       {/* Input Form & Speech Dictation Input */}
       <div className="p-3 sm:p-4 bg-[#1b0534] border-t border-purple-900/40">
         
-        {/* Limit Warning Banner for Free Plan */}
-        {isMessageLimitReached && (
-          <div className="mb-3 p-3 bg-gradient-to-r from-amber-950/90 via-[#2f0b54] to-purple-950/90 border border-amber-500/60 text-amber-200 rounded-2xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-lg shadow-black/40 animate-fadeIn">
+        {/* Alerta Preventivo nas últimas 5 mensagens (Mensagens 25 a 29) */}
+        {quotaStatus.isWarningZone && (
+          <div className="mb-3 p-3 bg-gradient-to-r from-amber-950/90 via-[#2f0b54] to-amber-950/90 border border-amber-500/70 text-amber-200 rounded-2xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-lg shadow-black/40 animate-fadeIn">
             <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
               <div>
-                <span className="font-bold text-white">Limite diário atingido ({userAccount?.dailyMessageCount || 30}/{userAccount?.dailyMessageLimit || 30} mensagens).</span>
-                <p className="text-[11px] text-amber-200/90 mt-0.5">
-                  {!userAccount?.email || userAccount.id === 'usr-unauthenticated'
-                    ? 'Crie sua conta profissional gratuita ou assine o Plano Premium para acesso ilimitado.'
-                    : 'Assine o Plano Premium para conversas ilimitadas e relatórios clínicos completos.'}
+                <p className="text-[11px] sm:text-xs text-amber-100 font-medium">
+                  <strong>Atenção:</strong> Restam apenas <strong>{quotaStatus.remaining} {quotaStatus.remaining === 1 ? 'mensagem' : 'mensagens'}</strong> no seu limite gratuito diário ({quotaStatus.count}/30). Assine o plano Premium para mensagens ilimitadas ou aguarde o dia de amanhã.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {(!userAccount?.email || userAccount.id === 'usr-unauthenticated') && onOpenLoginModal && (
-                <button
-                  onClick={() => onOpenLoginModal('register')}
-                  className="px-3 py-1.5 rounded-xl bg-purple-700 hover:bg-purple-600 text-white font-bold text-xs shadow-md shrink-0 cursor-pointer border border-purple-400/40"
-                >
-                  Cadastrar Conta Grátis
-                </button>
-              )}
-              {onOpenSubscriptionModal && (
-                <button
-                  onClick={onOpenSubscriptionModal}
-                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-fuchsia-600 hover:from-amber-400 hover:to-fuchsia-500 text-slate-950 font-black text-xs shadow-md shrink-0 cursor-pointer"
-                >
-                  Fazer Upgrade ⭐
-                </button>
-              )}
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenSubscriptionModal) onOpenSubscriptionModal();
+                else navigate('/planos');
+              }}
+              className="px-3 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-fuchsia-600 hover:from-amber-400 hover:to-fuchsia-500 text-slate-950 font-black text-xs shadow-md shrink-0 cursor-pointer self-end sm:self-center"
+            >
+              Fazer Upgrade ⭐
+            </button>
+          </div>
+        )}
+
+        {/* Alerta Definitivo de Travamento ao Atingir 30 Mensagens */}
+        {quotaStatus.isLimitReached && (
+          <div className="mb-3 p-3.5 bg-gradient-to-r from-rose-950/95 via-[#2f0b54] to-purple-950/95 border border-rose-500/80 text-rose-100 rounded-2xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl shadow-black/50 animate-fadeIn">
+            <div className="flex items-start sm:items-center gap-2.5">
+              <div className="p-1.5 rounded-xl bg-rose-600/30 border border-rose-500/50 text-rose-300 shrink-0">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="font-bold text-white text-xs sm:text-sm block">
+                  Seu limite de 30 mensagens diárias da NÚTRIA IA acabou.
+                </span>
+                <p className="text-[11px] text-purple-200/90 mt-0.5">
+                  Faça o upgrade para o plano Premium para continuar ou aguarde até amanhã.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenSubscriptionModal) onOpenSubscriptionModal();
+                  else navigate('/planos');
+                }}
+                className="w-full sm:w-auto px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Crown className="w-3.5 h-3.5 text-amber-300" />
+                <span>Planos & Assinaturas</span>
+              </button>
             </div>
           </div>
         )}
@@ -779,12 +835,13 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
             <button
               type="button"
               onClick={toggleRecording}
-              className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+              disabled={quotaStatus.isLimitReached || isLoading}
+              className={`p-3 rounded-2xl border transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                 isRecording
                   ? 'bg-rose-600 text-white border-rose-500 animate-pulse'
                   : 'bg-[#220743] text-purple-200 hover:text-white border-purple-700/60 hover:bg-[#2f0b5a]'
               }`}
-              title={isRecording ? 'Parar gravação' : 'Ditar comando de voz para a NÚTRIA'}
+              title={isRecording ? 'Parar gravação' : (quotaStatus.isLimitReached ? 'Limite diário atingido' : 'Ditar comando de voz para a NÚTRIA')}
             >
               {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
@@ -795,18 +852,18 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder={
-              isMessageLimitReached 
-                ? '🔒 Limite do Plano Free atingido. Digite para ver planos ou clique em Upgrade...'
+              quotaStatus.isLimitReached 
+                ? 'Limite diário atingido (30/30)'
                 : (isRecording ? 'Ouvindo...' : 'Solicite prontuários, planos alimentares, exames ou cálculos clínicos à NÚTRIA...')
             }
-            disabled={isLoading}
-            className="flex-1 bg-[#120326] border border-purple-700/60 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-purple-300/60 focus:outline-none focus:border-fuchsia-400"
+            disabled={quotaStatus.isLimitReached || isLoading}
+            className="flex-1 bg-[#120326] border border-purple-700/60 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-purple-300/60 focus:outline-none focus:border-fuchsia-400 disabled:opacity-50 disabled:bg-[#0c021a] disabled:cursor-not-allowed"
           />
 
           <button
             type="submit"
-            disabled={isLoading || !inputText.trim()}
-            className="p-3 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 disabled:opacity-50 text-white rounded-2xl font-bold shadow-md shadow-fuchsia-950/60 transition-all flex items-center justify-center shrink-0 border border-fuchsia-400/30 cursor-pointer"
+            disabled={quotaStatus.isLimitReached || isLoading || !inputText.trim()}
+            className="p-3 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl font-bold shadow-md shadow-fuchsia-950/60 transition-all flex items-center justify-center shrink-0 border border-fuchsia-400/30 cursor-pointer"
           >
             <Send className="w-4 h-4" />
           </button>
@@ -815,15 +872,75 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
         <div className="flex items-center justify-between text-[10px] text-purple-300/80 mt-2 px-1 font-medium gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <span className="truncate">NutrinK AI Ecosystem • Respostas em tempo real</span>
-            {isFree && userAccount && (
-              <span className="text-amber-300 font-bold bg-amber-950/70 text-[9px] leading-none px-1.5 py-0.5 rounded border border-amber-500/30 mr-2.5 shrink-0 inline-flex items-center">
-                {userAccount.dailyMessageCount}/{userAccount.dailyMessageLimit} msgs hoje
+            {!quotaStatus.isUnlimited && (
+              <span className={`font-bold text-[9px] leading-none px-1.5 py-0.5 rounded border mr-2.5 shrink-0 inline-flex items-center ${
+                quotaStatus.isLimitReached 
+                  ? 'bg-rose-950/80 text-rose-300 border-rose-500/40' 
+                  : quotaStatus.isWarningZone
+                    ? 'bg-amber-950/80 text-amber-300 border-amber-500/40 animate-pulse'
+                    : 'bg-purple-950/70 text-purple-200 border-purple-700/40'
+              }`}>
+                {quotaStatus.count}/{quotaStatus.limit} msgs hoje
               </span>
             )}
           </div>
           <span className="shrink-0">NÚTRIA v2.5</span>
         </div>
       </div>
+
+      {/* Modal Definitivo de Limite Atingido (30 Mensagens) */}
+      {showLimitModal && quotaStatus.isLimitReached && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-gradient-to-b from-[#1c063b] to-[#120324] border border-purple-700/80 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl text-center animate-scaleUp">
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center mx-auto shadow-inner">
+              <Lock className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-black text-white">
+                Limite Diário Atingido (30/30)
+              </h3>
+              <p className="text-xs sm:text-sm text-purple-200/90 leading-relaxed">
+                Seu limite de 30 mensagens diárias da NÚTRIA IA acabou. Faça o upgrade para o plano Premium para continuar ou aguarde até amanhã.
+              </p>
+            </div>
+
+            <div className="bg-[#180532] border border-purple-800/50 rounded-2xl p-3 text-left space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-amber-300 font-bold">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Vantagens do Plano Premium:</span>
+              </div>
+              <ul className="space-y-1 text-purple-200/90 text-[11px] pl-5 list-disc">
+                <li>Mensagens e pareceres clínicos 100% ilimitados</li>
+                <li>Cálculos de VET, GEB, GET e macronutrientes sem travas</li>
+                <li>Emissão de dietas, prontuários e prescrições ilimitadas</li>
+              </ul>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowLimitModal(false)}
+                className="w-full sm:w-1/3 py-2.5 rounded-xl bg-[#20063e] hover:bg-[#2b0852] text-purple-300 text-xs font-bold cursor-pointer"
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLimitModal(false);
+                  if (onOpenSubscriptionModal) onOpenSubscriptionModal();
+                  else navigate('/planos');
+                }}
+                className="w-full sm:w-2/3 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-xs font-black shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Crown className="w-3.5 h-3.5 text-amber-300" />
+                <span>Planos & Assinaturas</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

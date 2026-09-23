@@ -58,6 +58,7 @@ import {
 } from './types';
 import { safeFetchJson } from './utils/api';
 import { callNutriaDirect } from './services/nutriaGeminiDirect';
+import { getDailyNutriaUsage, incrementDailyNutriaUsage } from './utils/nutriaQuotaManager';
 import { getNutriaGreeting } from './utils/nutriaGreeting';
 import { NutriaAvatar } from './components/NutriaAvatar';
 import { Bot, Sparkles, MessageSquare, X } from 'lucide-react';
@@ -349,14 +350,16 @@ export function App() {
   // Fallback guest object for child components that require non-null UserAccount
   const [guestDailyCount, setGuestDailyCount] = useState<number>(() => {
     try {
-      const saved = localStorage.getItem('nutrink_guest_msg_count');
-      return saved ? parseInt(saved, 10) || 0 : 0;
+      return getDailyNutriaUsage(null).count;
     } catch {
       return 0;
     }
   });
 
-  const effectiveUserAccount: UserAccount = userAccount || {
+  const effectiveUserAccount: UserAccount = userAccount ? {
+    ...userAccount,
+    dailyMessageCount: getDailyNutriaUsage(userAccount).count
+  } : {
     id: 'usr-unauthenticated',
     name: 'Profissional de Saúde',
     email: '',
@@ -364,9 +367,9 @@ export function App() {
     specialty: 'Nutrição Clínica & Funcional',
     plan: 'free',
     isSubscribed: false,
-    dailyMessageCount: guestDailyCount,
+    dailyMessageCount: getDailyNutriaUsage(null).count,
     dailyMessageLimit: 30,
-    monthlyMessageCount: guestDailyCount,
+    monthlyMessageCount: getDailyNutriaUsage(null).count,
     monthlyMessageLimit: 50,
     activeSince: '2026'
   };
@@ -1000,12 +1003,9 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
     const inputLower = userInput.toLowerCase();
     const isPlanInquiry = inputLower.includes('plano') || inputLower.includes('assinatura') || inputLower.includes('preço') || inputLower.includes('valor') || inputLower.includes('quanto custa') || inputLower.includes('upgrade');
 
-    const userPlan = effectiveUserAccount.plan;
-    const isFree = userPlan === 'free';
-    const msgCount = effectiveUserAccount.dailyMessageCount;
-    const msgLimit = effectiveUserAccount.dailyMessageLimit;
+    const quota = getDailyNutriaUsage(userAccount);
 
-    if (isFree && msgCount >= msgLimit && !isPlanInquiry) {
+    if (quota.isLimitReached && !isPlanInquiry) {
       const userMsg: NutriaMessage = {
         id: `msg-${Date.now()}`,
         role: 'user',
@@ -1013,25 +1013,16 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       };
 
-      const isUnauthenticated = !isAuthenticated || !userAccount?.email || userAccount.id === 'usr-unauthenticated';
-
       const limitBlockedMsg: NutriaMessage = {
         id: `msg-limit-${Date.now() + 1}`,
         role: 'assistant',
-        content: isUnauthenticated
-          ? `🔒 Você atingiu o limite de **30 mensagens gratuitas** por dia com a NUTRIA. Para continuar enviando comandos, salvando prontuários e gerando prescrições clínicas completas, crie sua conta gratuita ou assine o **Plano Premium**!`
-          : `🔒 Você atingiu o limite de **30 mensagens diárias** do Plano Gratuito. Assine o **Plano Premium** (R$ 39,00/mês ou R$ 399,00/ano via PIX) para ter conversas ilimitadas e relatórios clínicos completos!`,
+        content: `🔒 **Seu limite de 30 mensagens diárias da NÚTRIA IA acabou.** Faça o upgrade para o plano Premium para continuar ou aguarde até amanhã.`,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         isLocked: true
       };
 
       setNutriaMessages(prev => [...prev, userMsg, limitBlockedMsg]);
-
-      if (isUnauthenticated) {
-        handleOpenLoginModal('register');
-      } else {
-        setIsSubscriptionModalOpen(true);
-      }
+      setIsSubscriptionModalOpen(true);
       return;
     }
 
@@ -1045,23 +1036,20 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
     setNutriaMessages(prev => [...prev, userMsg]);
     setIsNutriaLoading(true);
 
+    const nextQuota = incrementDailyNutriaUsage(userAccount);
     if (userAccount) {
       setUserAccount(prev => {
         if (!prev) return prev;
         const updated = {
           ...prev,
-          dailyMessageCount: (prev.dailyMessageCount || 0) + 1,
+          dailyMessageCount: nextQuota.count,
           monthlyMessageCount: (prev.monthlyMessageCount || 0) + 1
         };
         try { localStorage.setItem('nutrink_user_session', JSON.stringify(updated)); } catch {}
         return updated;
       });
     } else {
-      setGuestDailyCount(prev => {
-        const next = prev + 1;
-        try { localStorage.setItem('nutrink_guest_msg_count', String(next)); } catch {}
-        return next;
-      });
+      setGuestDailyCount(nextQuota.count);
     }
 
     try {
