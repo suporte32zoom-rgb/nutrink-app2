@@ -14,7 +14,8 @@ import {
   serverTimestamp,
   Timestamp 
 } from 'firebase/firestore';
-import { Patient, Appointment, FinancialTransaction, UserAccount, NutriaMessage } from '../types';
+import { Patient, Appointment, FinancialTransaction, UserAccount, NutriaMessage, InventoryItem, StockMovement } from '../types';
+import { INITIAL_INVENTORY_ITEMS } from '../data/inventorySeedData';
 
 // Load Firebase Firestore configuration
 const firebaseConfig = {
@@ -548,3 +549,148 @@ export function subscribeToPatients(
     return () => {};
   }
 }
+
+/**
+ * INVENTORY & STOCK SERVICE
+ * Maps to 'inventory' collection with fallback to local seed
+ */
+export async function getInventoryItems(userEmail?: string): Promise<InventoryItem[]> {
+  const cleanEmail = (userEmail || '').trim().toLowerCase();
+  
+  // First check localStorage for fast offline access
+  if (cleanEmail) {
+    try {
+      const local = localStorage.getItem(`nutrink_inventory_${cleanEmail}`);
+      if (local) {
+        return JSON.parse(local);
+      }
+    } catch {}
+  } else {
+    try {
+      const guestLocal = localStorage.getItem('nutrink_inventory_guest');
+      if (guestLocal) {
+        return JSON.parse(guestLocal);
+      }
+    } catch {}
+  }
+
+  // If connected to Firestore and email provided, fetch from database
+  if (cleanEmail) {
+    try {
+      const q = query(
+        collection(db, 'inventory'),
+        where('userEmail', '==', cleanEmail)
+      );
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const list: InventoryItem[] = [];
+        snapshot.forEach(docSnap => {
+          list.push(docSnap.data() as InventoryItem);
+        });
+        // Cache to localStorage
+        try {
+          localStorage.setItem(`nutrink_inventory_${cleanEmail}`, JSON.stringify(list));
+        } catch {}
+        return list;
+      }
+    } catch (err) {
+      console.warn('[DB Error getInventoryItems]:', err);
+    }
+  }
+
+  // Default initial seed data
+  return INITIAL_INVENTORY_ITEMS;
+}
+
+export async function saveInventoryItem(item: InventoryItem, userEmail?: string): Promise<void> {
+  if (!item.id) return;
+  const cleanEmail = (userEmail || '').trim().toLowerCase();
+
+  // Save to localStorage
+  const storageKey = cleanEmail ? `nutrink_inventory_${cleanEmail}` : 'nutrink_inventory_guest';
+  try {
+    const raw = localStorage.getItem(storageKey);
+    const list: InventoryItem[] = raw ? JSON.parse(raw) : [...INITIAL_INVENTORY_ITEMS];
+    const idx = list.findIndex(i => i.id === item.id);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...item, updatedAt: new Date().toISOString() };
+    } else {
+      list.unshift({ ...item, createdAt: item.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() });
+    }
+    localStorage.setItem(storageKey, JSON.stringify(list));
+  } catch (err) {
+    console.warn('[LocalStorage saveInventoryItem warn]:', err);
+  }
+
+  // Save to Firestore
+  if (cleanEmail) {
+    try {
+      const docRef = doc(db, 'inventory', item.id);
+      const cleanData = sanitizeForFirestore({
+        ...item,
+        userEmail: cleanEmail,
+        updatedAt: new Date().toISOString()
+      });
+      await setDoc(docRef, cleanData, { merge: true });
+    } catch (err) {
+      console.error('[DB Error saveInventoryItem]:', err);
+    }
+  }
+}
+
+export async function deleteInventoryItemFromDb(itemId: string, userEmail?: string): Promise<void> {
+  if (!itemId) return;
+  const cleanEmail = (userEmail || '').trim().toLowerCase();
+
+  // Remove from localStorage
+  const storageKey = cleanEmail ? `nutrink_inventory_${cleanEmail}` : 'nutrink_inventory_guest';
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (raw) {
+      const list: InventoryItem[] = JSON.parse(raw);
+      const filtered = list.filter(i => i.id !== itemId);
+      localStorage.setItem(storageKey, JSON.stringify(filtered));
+    }
+  } catch (err) {}
+
+  // Remove from Firestore
+  if (cleanEmail) {
+    try {
+      const docRef = doc(db, 'inventory', itemId);
+      await deleteDoc(docRef);
+    } catch (err) {
+      console.error('[DB Error deleteInventoryItem]:', err);
+    }
+  }
+}
+
+export function subscribeToInventory(
+  callback: (items: InventoryItem[]) => void,
+  userEmail?: string
+): () => void {
+  try {
+    const q = userEmail
+      ? query(collection(db, 'inventory'), where('userEmail', '==', userEmail.trim().toLowerCase()))
+      : collection(db, 'inventory');
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const list: InventoryItem[] = [];
+          snapshot.forEach((docSnap) => {
+            list.push(docSnap.data() as InventoryItem);
+          });
+          callback(list);
+        }
+      },
+      (error) => {
+        console.warn('[Firestore onSnapshot Inventory warning]:', error);
+      }
+    );
+  } catch (err) {
+    console.warn('[Firestore subscribeToInventory error]:', err);
+    return () => {};
+  }
+}
+

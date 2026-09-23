@@ -22,6 +22,7 @@ const NutriaCopilot = lazy(() => import('./components/NutriaCopilot').then(m => 
 const MealPlansGlobalView = lazy(() => import('./components/MealPlansGlobalView').then(m => ({ default: m.MealPlansGlobalView })));
 const ExamsGlobalView = lazy(() => import('./components/ExamsGlobalView').then(m => ({ default: m.ExamsGlobalView })));
 const PrescriptionsGlobalView = lazy(() => import('./components/PrescriptionsGlobalView').then(m => ({ default: m.PrescriptionsGlobalView })));
+const InventoryView = lazy(() => import('./components/InventoryView').then(m => ({ default: m.InventoryView })));
 const SettingsGlobalView = lazy(() => import('./components/SettingsGlobalView').then(m => ({ default: m.SettingsGlobalView })));
 const InstitutionalPageView = lazy(() => import('./components/InstitutionalPageView').then(m => ({ default: m.InstitutionalPageView })));
 const TelemedicineView = lazy(() => import('./components/TelemedicineView').then(m => ({ default: m.TelemedicineView })));
@@ -43,6 +44,7 @@ import {
   INITIAL_TRANSACTIONS, 
   INITIAL_FOOD_DATABASE 
 } from './data/initialData';
+import { INITIAL_INVENTORY_ITEMS } from './data/inventorySeedData';
 import { 
   Patient, 
   Appointment, 
@@ -50,7 +52,9 @@ import {
   NutriaMessage, 
   NutriaActionExecution,
   UserAccount,
-  SubscriptionPlan
+  SubscriptionPlan,
+  InventoryItem,
+  StockMovement
 } from './types';
 import { safeFetchJson } from './utils/api';
 import { callNutriaDirect } from './services/nutriaGeminiDirect';
@@ -72,7 +76,11 @@ import {
   saveNutriaMessage,
   subscribeToAppointments,
   subscribeToTransactions,
-  subscribeToPatients
+  subscribeToPatients,
+  getInventoryItems,
+  saveInventoryItem,
+  deleteInventoryItemFromDb,
+  subscribeToInventory
 } from './services/databaseService';
 import { trackPageView, trackAppointmentEvent, trackEvent } from './services/analytics';
 
@@ -232,6 +240,26 @@ export function App() {
     }
   });
 
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
+    try {
+      const savedUser = localStorage.getItem('nutrink_user_session');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        const email = parsed?.email?.trim().toLowerCase();
+        if (email) {
+          const saved = localStorage.getItem(`nutrink_inventory_${email}`);
+          if (saved) {
+            const parsedInv = JSON.parse(saved);
+            if (Array.isArray(parsedInv) && parsedInv.length > 0) return parsedInv;
+          }
+        }
+      }
+      return INITIAL_INVENTORY_ITEMS;
+    } catch {
+      return INITIAL_INVENTORY_ITEMS;
+    }
+  });
+
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
   // Track page views in Google Analytics whenever the active URL changes
@@ -273,6 +301,17 @@ export function App() {
       }
     }
   }, [transactions, userAccount?.email]);
+
+  useEffect(() => {
+    const email = userAccount?.email?.trim().toLowerCase();
+    if (email) {
+      try {
+        localStorage.setItem(`nutrink_inventory_${email}`, JSON.stringify(inventory));
+      } catch (e) {
+        console.error('Error saving inventory:', e);
+      }
+    }
+  }, [inventory, userAccount?.email]);
 
   // Modal UI States
   const [isNewPatientOpen, setIsNewPatientOpen] = useState(false);
@@ -599,6 +638,13 @@ export function App() {
         setTransactions(cloudTx || []);
         try { localStorage.setItem(`nutrink_transactions_${email}`, JSON.stringify(cloudTx || [])); } catch {}
 
+        const cloudInv = await getInventoryItems(email);
+        if (!isSubscribed) return;
+        if (cloudInv && cloudInv.length > 0) {
+          setInventory(cloudInv);
+          try { localStorage.setItem(`nutrink_inventory_${email}`, JSON.stringify(cloudInv)); } catch {}
+        }
+
         const profile = await getProfileByEmail(email);
         if (!isSubscribed) return;
         if (profile) {
@@ -639,11 +685,19 @@ export function App() {
       }
     }, email);
 
+    const unsubInv = subscribeToInventory((cloudInv) => {
+      if (isSubscribed) {
+        setInventory(cloudInv || INITIAL_INVENTORY_ITEMS);
+        try { localStorage.setItem(`nutrink_inventory_${email}`, JSON.stringify(cloudInv || INITIAL_INVENTORY_ITEMS)); } catch {}
+      }
+    }, email);
+
     return () => {
       isSubscribed = false;
       unsubApts();
       unsubTx();
       unsubPatients();
+      unsubInv();
     };
   }, [userAccount?.email]);
 
@@ -762,6 +816,68 @@ export function App() {
     if (selectedPatientId === patientId) {
       setSelectedPatientId(null);
       navigate('/pacientes');
+    }
+  };
+
+  const handleSaveInventoryItem = async (item: InventoryItem) => {
+    const email = userAccount?.email?.trim().toLowerCase();
+    setInventory(prev => {
+      const exists = prev.some(i => i.id === item.id);
+      const updated = exists ? prev.map(i => i.id === item.id ? item : i) : [item, ...prev];
+      if (email) {
+        try { localStorage.setItem(`nutrink_inventory_${email}`, JSON.stringify(updated)); } catch {}
+      }
+      return updated;
+    });
+    await saveInventoryItem(item, userAccount?.email).catch(err => console.warn('Erro ao salvar insumo no Firestore:', err));
+  };
+
+  const handleDeleteInventoryItem = async (itemId: string) => {
+    const email = userAccount?.email?.trim().toLowerCase();
+    setInventory(prev => {
+      const updated = prev.filter(i => i.id !== itemId);
+      if (email) {
+        try { localStorage.setItem(`nutrink_inventory_${email}`, JSON.stringify(updated)); } catch {}
+      }
+      return updated;
+    });
+    await deleteInventoryItemFromDb(itemId).catch(err => console.warn('Erro ao deletar insumo do Firestore:', err));
+  };
+
+  const handleLogStockMovement = async (itemId: string, movement: Omit<StockMovement, 'id' | 'date'>) => {
+    const email = userAccount?.email?.trim().toLowerCase();
+    const newMovement: StockMovement = {
+      id: `mov-${Date.now()}`,
+      date: new Date().toISOString(),
+      ...movement
+    };
+
+    let targetUpdated: InventoryItem | null = null;
+
+    setInventory(prev => {
+      const updated = prev.map(item => {
+        if (item.id === itemId) {
+          const delta = movement.type === 'entrada' ? movement.quantity : -movement.quantity;
+          const newStock = Math.max(0, item.currentStock + delta);
+          const updatedHistory = [newMovement, ...(item.history || [])];
+          targetUpdated = {
+            ...item,
+            currentStock: newStock,
+            history: updatedHistory
+          };
+          return targetUpdated;
+        }
+        return item;
+      });
+
+      if (email) {
+        try { localStorage.setItem(`nutrink_inventory_${email}`, JSON.stringify(updated)); } catch {}
+      }
+      return updated;
+    });
+
+    if (targetUpdated) {
+      await saveInventoryItem(targetUpdated, userAccount?.email).catch(err => console.warn('Erro ao atualizar estoque:', err));
     }
   };
 
@@ -968,6 +1084,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
           totalExpenses,
           balance: totalRevenue - totalExpenses
         },
+        inventory: inventory,
         userAccount: {
           name: effectiveUserAccount.name,
           plan: effectiveUserAccount.plan,
@@ -1097,6 +1214,101 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
         };
         setTransactions(prev => [newTx, ...prev]);
         navigate('/financeiro');
+      } else if (actionExecuted.type === 'inventory_item_created' || actionExecuted.type === 'ADD_INVENTORY_ITEM') {
+        const newItem: InventoryItem = {
+          id: payload.id || `inv-${Date.now()}`,
+          name: payload.name || 'Novo Suplemento / Insumo',
+          category: payload.category || 'suplementos',
+          subcategory: payload.subcategory || 'Suplementos Nutricionais',
+          currentStock: Number(payload.currentStock ?? payload.quantity ?? 10),
+          minStock: Number(payload.minStock ?? 3),
+          unit: payload.unit || 'unidades',
+          unitLabel: payload.unitLabel || payload.unit || 'unidades',
+          lotNumber: payload.lotNumber || `LOTE-${new Date().getFullYear()}-01`,
+          expirationDate: payload.expirationDate || '2027-12-31',
+          location: payload.location || 'Consultório Principal',
+          notes: payload.notes || 'Cadastrado pelo copiloto NÚTRIA.',
+          createdAt: new Date().toISOString(),
+          history: [
+            {
+              id: `mov-${Date.now()}`,
+              date: new Date().toISOString(),
+              type: 'entrada',
+              quantity: Number(payload.currentStock ?? payload.quantity ?? 10),
+              reason: 'Cadastro inicial via comando de chat com a NÚTRIA IA'
+            }
+          ]
+        };
+        handleSaveInventoryItem(newItem);
+      } else if (actionExecuted.type === 'inventory_stock_updated' || actionExecuted.type === 'UPDATE_INVENTORY_STOCK') {
+        const targetId = payload.itemId;
+        const qty = Number(payload.quantity || 1);
+        const movType = payload.type || 'entrada';
+        const reason = payload.reason || (movType === 'entrada' ? 'Entrada no estoque' : 'Saída no estoque');
+
+        if (targetId) {
+          handleLogStockMovement(targetId, {
+            type: movType,
+            quantity: qty,
+            reason: reason,
+            performedBy: userAccount?.name || 'NÚTRIA IA'
+          });
+        } else if (inventory.length > 0) {
+          // Se não tiver ID explícito, aplica no primeiro item correspondente ou mais recente
+          const found = payload.itemName 
+            ? inventory.find(i => i.name.toLowerCase().includes(payload.itemName.toLowerCase()))
+            : inventory[0];
+          if (found) {
+            handleLogStockMovement(found.id, {
+              type: movType,
+              quantity: qty,
+              reason: reason,
+              performedBy: userAccount?.name || 'NÚTRIA IA'
+            });
+          }
+        }
+      } else if (actionExecuted.type === 'inventory_stock_deducted' || actionExecuted.type === 'DEDUCT_INVENTORY_STOCK') {
+        const targetId = payload.itemId;
+        const qty = Number(payload.quantity || 1);
+        const reason = payload.reason || 'Baixa no estoque via NÚTRIA IA';
+
+        if (targetId) {
+          handleLogStockMovement(targetId, {
+            type: 'saida',
+            quantity: qty,
+            reason: reason,
+            performedBy: userAccount?.name || 'NÚTRIA IA'
+          });
+        } else if (inventory.length > 0) {
+          const found = payload.itemName 
+            ? inventory.find(i => i.name.toLowerCase().includes(payload.itemName.toLowerCase()))
+            : inventory[0];
+          if (found) {
+            handleLogStockMovement(found.id, {
+              type: 'saida',
+              quantity: qty,
+              reason: reason,
+              performedBy: userAccount?.name || 'NÚTRIA IA'
+            });
+          }
+        }
+      } else if (actionExecuted.type === 'NAVIGATE_TAB') {
+        const tab = payload.tab;
+        if (tab === 'inventory' || tab === 'estoque') {
+          navigate('/estoque');
+        } else if (tab === 'patients' || tab === 'pacientes') {
+          navigate('/pacientes');
+        } else if (tab === 'calendar' || tab === 'agenda') {
+          navigate('/agenda');
+        } else if (tab === 'nutricalc' || tab === 'antropometria') {
+          navigate('/antropometria');
+        } else if (tab === 'finance' || tab === 'financeiro') {
+          navigate('/financeiro');
+        } else if (tab === 'plans' || tab === 'planos') {
+          navigate('/planos');
+        } else if (tab === 'settings' || tab === 'configuracoes') {
+          navigate('/configuracoes');
+        }
       }
     } catch (e) {
       console.warn('Erro ao executar ação local da NÚTRIA:', e);
@@ -1309,6 +1521,23 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à 
               initialSelectedPatientId={selectedPatientId}
             />
           } />
+          <Route path="/formulas" element={<Navigate to="/prescricoes" replace />} />
+
+          {/* Gestão de Estoque & Insumos */}
+          <Route path="/estoque" element={
+            <InventoryView
+              inventory={inventory}
+              patients={patients}
+              onSaveItem={handleSaveInventoryItem}
+              onDeleteItem={handleDeleteInventoryItem}
+              onLogMovement={handleLogStockMovement}
+              onRecordMovement={handleLogStockMovement}
+              onOpenNutriaWithPrompt={handleOpenNutriaWithPrompt}
+              userAccount={effectiveUserAccount}
+            />
+          } />
+          <Route path="/insumos" element={<Navigate to="/estoque" replace />} />
+          <Route path="/inventario" element={<Navigate to="/estoque" replace />} />
 
           {/* Telemedicina & Vídeo */}
           <Route path="/telemedicina" element={

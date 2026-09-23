@@ -9,7 +9,7 @@
  */
 
 import { GoogleGenAI } from '@google/genai';
-import { NutriaActionExecution, Patient, Appointment, FinancialTransaction, UserAccount } from '../types';
+import { NutriaActionExecution, Patient, Appointment, FinancialTransaction, UserAccount, InventoryItem, StockMovement } from '../types';
 import { cleanMathAndLatex } from '../utils/cleanMarkdown';
 
 export interface NutriaCallParams {
@@ -20,6 +20,7 @@ export interface NutriaCallParams {
   patients?: Patient[];
   appointments?: Appointment[];
   transactions?: FinancialTransaction[];
+  inventory?: InventoryItem[];
   userAccount?: UserAccount;
   appContext?: {
     patientsCount?: number;
@@ -230,12 +231,25 @@ Você possui integração total com o ecossistema NutrinK. Sempre que o usuário
 - Avaliação Antropométrica: \`/antropometria\`
 - Solicitação e Análise de Exames: \`/exames\`
 - Prescrição de Suplementos: \`/prescricoes\`
+- Gestão de Estoque & Insumos: \`/estoque\`
+- Financeiro & Caixa: \`/financeiro\`
 - Configurações do Consultório: \`/configuracoes\`
 - Páginas Institucionais: \`/sobre\`, \`/termos\`, \`/privacidade\`, \`/suporte\`
 
 ---
 
-## 7. DIRETRIZES DE RESPOSTA E ASSINATURA OBRIGATÓRIA
+## 7. GESTÃO DE ESTOQUE, INSUMOS & BAIXAS AUTOMÁTICAS
+Você possui consciência em tempo real de todo o estoque de insumos, suplementos, fitoterápicos, injetáveis e materiais do consultório:
+1. **Verificação Prévia de Estoque:** Ao sugerir marcas, suplementos manipulados, injetáveis ou amostras grátis para um paciente, consulte o estoque do consultório. Se o item estiver com estoque zerado ou abaixo do estoque mínimo, informe o profissional proativamente (ex: *"Atenção: Nosso estoque de Creatina está em nível crítico (2 potes restantes)"*).
+2. **Consultas de Estoque:** Responda prontamente sobre quantidades disponíveis, números de lote, datas de validade e localização física de qualquer insumo no consultório.
+3. **Comandos de Estoque no Chat:**
+   - **Cadastro:** Quando o usuário solicitar cadastrar itens (ex: *"NÚTRIA, cadastre 20 ampolas de Vitamina B12 no estoque"*), processe e confirme a inclusão com nome, quantidade, unidade e categorização automática.
+   - **Entrada:** Ao informar chegada ou compra de suprimentos (ex: *"Chegaram 10 frascos de ômega 3"*), confirme a entrada e o novo saldo.
+   - **Saída / Baixa:** Ao relatar uso, entrega de amostra ou prescrição (ex: *"Dê baixa em 2 frascos de ômega 3"*), confirme a saída com o motivo gravado.
+
+---
+
+## 8. DIRETRIZES DE RESPOSTA E ASSINATURA OBRIGATÓRIA
 1. **Linguagem Natural, Fluida e Direta:** NUNCA use templates pré-fabricados ou respostas engessadas. NUNCA repita a pergunta do usuário usando fórmulas como "Com relação a '...'". Responda de forma direta, conversacional e contextual.
 2. **Saudações e Perguntas Abertas:** Diante de saudações ou perguntas gerais (ex: "Boa tarde, como pode me ajudar?"), responda de maneira breve, acolhedora e elegante, apresentando como pode apoiar nos cálculos, condutas, exames, planos ou na navegação da plataforma NutrinK.
 3. **Precisão Técnica sob Demanda:** Ao receber solicitações de cálculos, prescrições, planos dietéticos ou prontuários, entregue imediatamente o raciocínio clínico completo com dados numéricos exatos, tabelas organizadas e sem sintaxe LaTeX.
@@ -451,6 +465,27 @@ ORIENTAÇÃO: Se o usuário expressou novos dados na mensagem, priorize-os. Caso
   if (patientsList.length > 0) {
     const pListSummary = patientsList.slice(0, 10).map((p, i) => `  ${i + 1}. ${p.name} (${p.age ? p.age + ' anos' : 'idade n/i'}) - Peso: ${p.currentWeightKg || 'n/i'} kg - Objetivo: ${p.objective || 'Acompanhamento'}`).join('\n');
     fullPrompt += `\n\n[LISTA DE PACIENTES DO CONSULTÓRIO]:\n${pListSummary}`;
+  }
+
+  // Injeção de Estoque & Insumos em Tempo Real
+  const inventoryList = Array.isArray(params.inventory) ? params.inventory : [];
+  if (inventoryList.length > 0) {
+    const invSummary = inventoryList.map(item => {
+      const isLow = item.currentStock <= item.minStock;
+      const statusStr = item.currentStock === 0 
+        ? '⚠️ [SEM ESTOQUE (ZERADO)]' 
+        : isLow 
+        ? `⚠️ [ESTOQUE BAIXO (Mínimo: ${item.minStock})]` 
+        : '[OK]';
+      return `  • ${item.name} (${item.subcategory || item.category}): ${item.currentStock} ${item.unit || 'unidades'} ${statusStr} ${item.lotNumber ? `| Lote: ${item.lotNumber}` : ''} ${item.expirationDate ? `| Validade: ${item.expirationDate}` : ''} ${item.location ? `| Local: ${item.location}` : ''}`;
+    }).join('\n');
+
+    fullPrompt += `\n\n[ESTOQUE & INSUMOS DO CONSULTÓRIO (TEMPO REAL)]:
+- Total de Itens: ${inventoryList.length}
+- Itens Cadastrados e Saldo Atual:
+${invSummary}
+
+ORIENTAÇÃO DE ESTOQUE: Utilize essas quantidades em tempo real para responder sobre disponibilidade, alertar sobre itens em falta ao prescrever e apoiar na reposição.`;
   }
 
   return fullPrompt;
@@ -745,7 +780,167 @@ export function detectOperationalAction(userInput: string, aiReply: string, para
     };
   }
 
-  // 10. Ações de navegação para seções
+  // 10. Ações de Estoque & Insumos
+  // 10.1 Cadastro de novo item via chat
+  if (
+    (lower.includes('cadastr') || lower.includes('adicione') || lower.includes('incluir') || lower.includes('novo item')) &&
+    (lower.includes('estoque') || lower.includes('insumo') || lower.includes('ampola') || lower.includes('frasco') || lower.includes('suplemento'))
+  ) {
+    // Detecta quantidade (ex: 20 ampolas, 10 frascos, 15 unidades)
+    const qtyMatch = userInput.match(/(\d+)\s*(ampolas?|frascos?|caixas?|unidades?|potes?|sach[eê]s?|comprimidos?|c[aá]psulas?|rolos?|pacotes?)/i) || userInput.match(/(\d+)/);
+    const quantity = qtyMatch ? parseInt(qtyMatch[1], 10) : 10;
+    
+    // Detecta unidade
+    let unit: string = 'unidades';
+    if (qtyMatch && qtyMatch[2]) {
+      const rawUnit = qtyMatch[2].toLowerCase();
+      if (rawUnit.startsWith('ampola')) unit = 'ampolas';
+      else if (rawUnit.startsWith('frasco')) unit = 'frascos';
+      else if (rawUnit.startsWith('caixa')) unit = 'caixas';
+      else if (rawUnit.startsWith('pote')) unit = 'potes';
+      else if (rawUnit.startsWith('sach')) unit = 'saches';
+      else if (rawUnit.startsWith('comprim')) unit = 'comprimidos';
+      else if (rawUnit.startsWith('cáps') || rawUnit.startsWith('caps')) unit = 'capsulas';
+      else if (rawUnit.startsWith('rolo')) unit = 'rolos';
+    }
+
+    // Extrai nome do produto limpando palavras-chave
+    let productName = userInput
+      .replace(/^(núbtria|nutria|por favor|cadastre|cadastrar|adicione|adicionar|inclua|incluir|novo item no estoque|no estoque|de estoque|do estoque|item|novo item)\s*/gi, '')
+      .replace(/(\d+)\s*(ampolas?|frascos?|caixas?|unidades?|potes?|sach[eê]s?|comprimidos?|c[aá]psulas?|rolos?|pacotes?)/gi, '')
+      .replace(/\b(no estoque|do consultório|no consultório|para o consultório|no armário)\b/gi, '')
+      .replace(/^\s*(de|do|da|com)\s+/i, '')
+      .trim();
+
+    if (!productName || productName.length < 3) {
+      productName = 'Novo Suplemento / Insumo';
+    }
+
+    // Classificação automática inteligente de categoria e subcategoria
+    let category: string = 'suplementos';
+    let subcategory: string = 'Suplementos Nutricionais';
+    const prodLower = productName.toLowerCase();
+
+    if (prodLower.includes('injet') || prodLower.includes('ampola') || prodLower.includes('b12') || prodLower.includes('metilcobalamina') || prodLower.includes('vitamina d3 50')) {
+      category = 'medicamentos_injetaveis';
+      subcategory = 'Injetáveis & Manipulados';
+      if (unit === 'unidades') unit = 'ampolas';
+    } else if (prodLower.includes('fitoter') || prodLower.includes('berberina') || prodLower.includes('curcum') || prodLower.includes('ashwagandha') || prodLower.includes('extrato') || prodLower.includes('tintura')) {
+      category = 'fitoterapicos';
+      subcategory = 'Fitoterápicos & Extratos';
+      if (unit === 'unidades') unit = 'frascos';
+    } else if (prodLower.includes('amostra') || prodLower.includes('grátis') || prodLower.includes('degusta')) {
+      category = 'amostras_gratis';
+      subcategory = 'Amostras & Degustação';
+      if (unit === 'unidades') unit = 'saches';
+    } else if (prodLower.includes('fita') || prodLower.includes('adip') || prodLower.includes('antropo') || prodLower.includes('paquímetro') || prodLower.includes('estadiômetro')) {
+      category = 'antropometria';
+      subcategory = 'Instrumentos de Medição';
+    } else if (prodLower.includes('eletrod') || prodLower.includes('gel') || prodLower.includes('bioimped') || prodLower.includes('glicemia') || prodLower.includes('álcool') || prodLower.includes('lupa')) {
+      category = 'consumiveis_clinicos';
+      subcategory = 'Consumíveis & Bioimpedância';
+    } else if (prodLower.includes('papel') || prodLower.includes('bloco') || prodLower.includes('receituário') || prodLower.includes('maca')) {
+      category = 'papelaria_geral';
+      subcategory = 'Papelaria & Consultório';
+    } else if (prodLower.includes('creatina') || prodLower.includes('whey') || prodLower.includes('proteína') || prodLower.includes('ômega') || prodLower.includes('omega') || prodLower.includes('magnésio') || prodLower.includes('coenzima')) {
+      category = 'suplementos';
+      subcategory = prodLower.includes('creatina') ? 'Aminoácidos & Ergogênicos' : prodLower.includes('whey') ? 'Proteínas' : 'Suplementos Gerais';
+      if (unit === 'unidades') unit = prodLower.includes('ômega') ? 'frascos' : 'potes';
+    }
+
+    return {
+      type: 'inventory_item_created',
+      payload: {
+        id: `inv-${Date.now()}`,
+        name: productName,
+        category: category,
+        subcategory: subcategory,
+        currentStock: quantity,
+        minStock: Math.max(2, Math.floor(quantity * 0.3)),
+        unit: unit,
+        unitLabel: unit,
+        lotNumber: `LOTE-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+        expirationDate: '2027-12-31',
+        location: 'Armário Principal',
+        notes: 'Cadastrado automaticamente via comando de chat com a NÚTRIA IA.'
+      },
+      summary: `Produto "${productName}" (${quantity} ${unit}) cadastrado no estoque na categoria ${subcategory}.`
+    };
+  }
+
+  // 10.2 Entrada no estoque
+  if (
+    (lower.includes('dê entrada') || lower.includes('dar entrada') || lower.includes('chegaram mais') || lower.includes('chegou mais') || lower.includes('comprei mais') || lower.includes('recebi mais')) &&
+    (lower.includes('estoque') || lower.includes('frasco') || lower.includes('unidade') || lower.includes('pote') || lower.includes('ampola') || lower.includes('caixa'))
+  ) {
+    const qtyMatch = userInput.match(/(\d+)/);
+    const qty = qtyMatch ? parseInt(qtyMatch[1], 10) : 5;
+    
+    // Tenta encontrar o item no estoque
+    let matchedItem: any = null;
+    if (params.inventory && Array.isArray(params.inventory)) {
+      for (const item of params.inventory) {
+        if (lower.includes(item.name.toLowerCase()) || lower.includes(item.subcategory.toLowerCase())) {
+          matchedItem = item;
+          break;
+        }
+      }
+    }
+
+    return {
+      type: 'inventory_stock_updated',
+      payload: {
+        type: 'entrada',
+        quantity: qty,
+        itemId: matchedItem ? matchedItem.id : undefined,
+        itemName: matchedItem ? matchedItem.name : 'Insumo do Consultório',
+        reason: 'Entrada registrada via NÚTRIA IA (Compra / Reposição)'
+      },
+      summary: `Entrada de +${qty} unidades registrada no estoque com sucesso.`
+    };
+  }
+
+  // 10.3 Baixa / Saída no estoque
+  if (
+    (lower.includes('dê baixa') || lower.includes('dar baixa') || lower.includes('baixa no estoque') || lower.includes('saída no estoque') || lower.includes('gastei') || lower.includes('retirei') || lower.includes('entreguei amostra') || lower.includes('usei 1')) &&
+    (lower.includes('estoque') || lower.includes('frasco') || lower.includes('unidade') || lower.includes('pote') || lower.includes('ampola') || lower.includes('caixa') || lower.includes('amostra') || lower.includes('ômega') || lower.includes('creatina'))
+  ) {
+    const qtyMatch = userInput.match(/(\d+)/);
+    const qty = qtyMatch ? parseInt(qtyMatch[1], 10) : 1;
+
+    let matchedItem: any = null;
+    if (params.inventory && Array.isArray(params.inventory)) {
+      for (const item of params.inventory) {
+        if (lower.includes(item.name.toLowerCase()) || lower.includes(item.subcategory.toLowerCase())) {
+          matchedItem = item;
+          break;
+        }
+      }
+    }
+
+    return {
+      type: 'inventory_stock_deducted',
+      payload: {
+        type: 'saida',
+        quantity: qty,
+        itemId: matchedItem ? matchedItem.id : undefined,
+        itemName: matchedItem ? matchedItem.name : 'Insumo do Consultório',
+        reason: 'Baixa registrada via NÚTRIA IA (Uso Clínico / Entrega ao Paciente)'
+      },
+      summary: `Baixa de -${qty} unidades executada no estoque com sucesso.`
+    };
+  }
+
+  // 10.4 Navegação para o Estoque
+  if (lower.includes('abrir estoque') || lower.includes('ver estoque') || lower.includes('consultar estoque') || lower.includes('gestão de estoque') || lower.includes('ver insumos')) {
+    return {
+      type: 'NAVIGATE_TAB',
+      payload: { tab: 'inventory' },
+      summary: 'Navegação para o módulo de Gestão de Estoque & Insumos.'
+    };
+  }
+
+  // 11. Ações de navegação para seções
   if (lower.includes('abrir planos') || lower.includes('ver planos') || lower.includes('assinar') || lower.includes('upgrade')) {
     return {
       type: 'NAVIGATE_TAB',
@@ -1104,7 +1299,27 @@ Prescrição estruturada pela NÚTRIA para o consultório NutrinK.`;
       || lower.includes('quem e voce')
       || lower.length < 15;
 
-    if (isGreeting) {
+    if (lower.includes('estoque') || lower.includes('insumo') || lower.includes('ampola') || lower.includes('frasco') || lower.includes('suplemento')) {
+      const isCadastro = lower.includes('cadastr') || lower.includes('adicione') || lower.includes('incluir') || lower.includes('novo item');
+      const isEntrada = lower.includes('dê entrada') || lower.includes('dar entrada') || lower.includes('chegaram') || lower.includes('comprei');
+      const isBaixa = lower.includes('dê baixa') || lower.includes('dar baixa') || lower.includes('baixa') || lower.includes('gastei') || lower.includes('retirei') || lower.includes('usei');
+
+      if (isCadastro) {
+        reply = `✅ **Item Registrado no Estoque com Sucesso!**\n\nIdentifiquei a solicitação e realizei a inclusão do produto no banco de dados de Estoque & Insumos do seu consultório.\n\n- O item já foi categorizado automaticamente e está disponível para controle de movimentações e prescrições.\n- Você pode visualizar e gerenciar o item a qualquer momento na aba **Estoque & Insumos** (\`/estoque\`).\n\n*Ação operacional executada pela NÚTRIA.*`;
+      } else if (isEntrada) {
+        reply = `📦 **Entrada no Estoque Registrada!**\n\nA movimentação de entrada foi registrada no histórico com data, hora e motivo. O saldo atual do produto foi incrementado no sistema.\n\n*Ação operacional executada pela NÚTRIA.*`;
+      } else if (isBaixa) {
+        reply = `📤 **Baixa no Estoque Realizada!**\n\nA saída do insumo foi debitada do saldo atual e registrada na trilha de auditoria do consultório.\n\n*Ação operacional executada pela NÚTRIA.*`;
+      } else {
+        const invList = Array.isArray(params.inventory) ? params.inventory : [];
+        if (invList.length > 0) {
+          const itemsSummary = invList.slice(0, 6).map(it => `• **${it.name}**: ${it.currentStock} ${it.unit} (${it.currentStock <= it.minStock ? '⚠️ Estoque Baixo' : '✅ Normal'})`).join('\n');
+          reply = `📦 **Situação do Estoque do Consultório:**\n\nAtualmente temos **${invList.length} itens cadastrados** no sistema.\n\n${itemsSummary}\n\nPara visualizar o inventário completo, histórico de movimentações ou cadastrar novos itens, acesse **Estoque & Insumos** (\`/estoque\`).`;
+        } else {
+          reply = `📦 **Gestão de Estoque & Insumos:**\n\nVocê pode controlar todos os suplementos, amostras grátis, fitoterápicos, injetáveis e materiais do consultório pela aba **Estoque & Insumos** (\`/estoque\`).\n\nPara cadastrar ou dar baixa, basta me solicitar aqui no chat (ex: *"NÚTRIA, cadastre 20 ampolas de Vitamina B12"* ou *"Dê baixa em 2 frascos de Ômega 3"*).`;
+        }
+      }
+    } else if (isGreeting) {
       reply = `Olá! Sou a **NÚTRIA**, sua copiloto clínica e operacional de Inteligência Artificial no **NutrinK**.
 
 Estou pronta para apoiar seu atendimento com total rigor científico e agilidade. Posso auxiliar você em:
@@ -1113,6 +1328,7 @@ Estou pronta para apoiar seu atendimento com total rigor científico e agilidade
 - 🥗 **Planos Alimentares:** Montagem de cardápios personalizados com opções isoenergéticas e listas de substituições.
 - 🧪 **Análise de Exames:** Interpretação clínica de hemograma, perfil lipídico, glicemia, função renal e vitaminas.
 - 💊 **Prescrições & Fitoterápicos:** Dosagens precisas, posologia e alertas de interações com base nas diretrizes CFN/ANVISA.
+- 📦 **Gestão de Estoque & Insumos:** Cadastro por voz/texto, rastreamento de lotes e baixas automáticas de suplementos.
 - 🗂️ **Gestão do Consultório:** Abertura rápida de prontuários, agenda, calculadoras e relatórios.
 
 Como posso colaborar com a sua conduta clínica ou com a gestão do consultório hoje?`;
@@ -1121,7 +1337,7 @@ Como posso colaborar com a sua conduta clínica ou com a gestão do consultório
 
 Você pode me fornecer os detalhes clínicos do paciente (como idade, peso, altura, exames laboratoriais ou patologias) para realizarmos os cálculos energéticos exatos, estruturação do plano alimentar ou prescrições individualizadas.
 
-Se preferir navegar diretamente para alguma ferramenta, basta me avisar (por exemplo: *"Abrir Pacientes"*, *"Ver Agenda"* ou *"Calcular TMB"*).`;
+Se preferir gerenciar o consultório ou estoque, basta solicitar (por exemplo: *"Abrir Pacientes"*, *"Ver Estoque"*, *"Cadastrar Insumo"* ou *"Calcular TMB"*).`;
     }
   }
 
@@ -1169,6 +1385,7 @@ export async function callNutriaDirect(
         patientContext: maybeContext?.patientContext || maybeContext?.activePatient,
         patients: maybeContext?.patientsSummary?.names || maybeContext?.patients,
         appointments: maybeContext?.todayAppointments || maybeContext?.appointments,
+        inventory: maybeContext?.inventory,
         userAccount: maybeContext?.userAccount,
         appContext: {
           patientsCount: maybeContext?.patientsSummary?.total || maybeContext?.patientsCount,
@@ -1198,6 +1415,7 @@ export async function callNutriaDirect(
         patients: params.patients ? params.patients.slice(0, 10) : undefined,
         appointments: params.appointments ? params.appointments.slice(0, 8) : undefined,
         transactions: params.transactions ? params.transactions.slice(0, 8) : undefined,
+        inventory: params.inventory ? params.inventory.slice(0, 20) : undefined,
         userAccount: params.userAccount,
         appContext: params.appContext
       })

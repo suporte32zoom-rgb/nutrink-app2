@@ -301,13 +301,23 @@ export interface NutriaActionExecution {
     | 'ADD_PATIENT'
     | 'patient_created'
     | 'UPDATE_PATIENT'
+    | 'patient_updated'
+    | 'patient_selected'
     | 'SCHEDULE_APPOINTMENT'
     | 'appointment_scheduled'
     | 'CANCEL_APPOINTMENT'
+    | 'appointment_cancelled'
+    | 'appointment_rescheduled'
     | 'ADD_FINANCE_TRANSACTION'
     | 'transaction_logged'
     | 'UPDATE_MEAL_PLAN'
     | 'meal_plan_generated'
+    | 'ADD_INVENTORY_ITEM'
+    | 'inventory_item_created'
+    | 'UPDATE_INVENTORY_STOCK'
+    | 'inventory_stock_updated'
+    | 'DEDUCT_INVENTORY_STOCK'
+    | 'inventory_stock_deducted'
     | 'NAVIGATE_TAB'
     | 'INTERPRET_LABS'
     | 'CALCULATE_ENERGY_METRICS'
@@ -409,4 +419,74 @@ export interface TelemedicineSession {
   estimatedGET?: number;
   suggestedSupplements?: string[];
 }
+
+export type InventoryCategory = 
+  | 'suplementos' 
+  | 'medicamentos_injetaveis' 
+  | 'fitoterapicos' 
+  | 'antropometria' 
+  | 'consumiveis_clinicos' 
+  | 'amostras_gratis' 
+  | 'papelaria_geral' 
+  | 'outros';
+
+export type InventoryUnit = 
+  | 'unidades' 
+  | 'caixas' 
+  | 'ampolas' 
+  | 'frascos' 
+  | 'potes' 
+  | 'saches' 
+  | 'comprimidos' 
+  | 'capsulas' 
+  | 'rolos' 
+  | 'pacotes' 
+  | 'pares';
+
+export type StockMovementType = 
+  | 'entrada' 
+  | 'saida' 
+  | 'baixa_automatica' 
+  | 'ajuste' 
+  | 'perda';
+
+export interface StockMovement {
+  id: string;
+  itemId: string;
+  itemName: string;
+  type: StockMovementType;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  reason: string;
+  timestamp: string; // ISO string
+  patientId?: string;
+  patientName?: string;
+  user?: string;
+  notes?: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  category: InventoryCategory;
+  categoryLabel?: string;
+  subcategory: string;
+  currentStock: number;
+  minStock: number;
+  unit: InventoryUnit;
+  unitLabel?: string;
+  lotNumber?: string;
+  expirationDate?: string; // YYYY-MM-DD
+  location?: string; // e.g. "Armário Principal - Prateleira 2"
+  costPrice?: number;
+  salePrice?: number;
+  supplier?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  lastMovementDate?: string;
+  movements?: StockMovement[];
+}
+
 

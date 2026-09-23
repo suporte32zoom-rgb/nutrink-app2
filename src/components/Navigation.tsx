@@ -12,6 +12,7 @@ import {
   Apple,
   Activity,
   Pill,
+  Boxes,
   Settings
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -29,6 +30,7 @@ export type ActiveTab =
   | 'meal_plans'
   | 'exams'
   | 'prescriptions'
+  | 'inventory'
   | 'settings';
 
 interface NavigationProps {
@@ -114,6 +116,13 @@ export const Navigation: React.FC<NavigationProps> = ({
       label: 'Prescrições & Fórmulas',
       icon: Pill,
       badge: null
+    },
+    {
+      id: 'inventory',
+      route: '/estoque',
+      label: 'Estoque & Insumos',
+      icon: Boxes,
+      badge: 'Novo'
     },
     {
       id: 'telemedicine',

@@ -87,6 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'nutricalc', route: '/antropometria', label: 'NutriCalc & Protocolos', icon: Calculator },
     { id: 'exams', route: '/exames', label: 'Exames & Biomarcadores', icon: Activity },
     { id: 'prescriptions', route: '/prescricoes', label: 'Prescrições & Fórmulas', icon: Pill },
+    { id: 'inventory', route: '/estoque', label: 'Estoque & Insumos', icon: Boxes },
     { id: 'telemedicine', route: '/telemedicina', label: 'Telemedicina & Vídeo', icon: Video },
     { id: 'finance', route: '/financeiro', label: 'Financeiro & Faturamento', icon: DollarSign },
     { id: 'nutria_hub', route: '/nutria', label: 'Copiloto NÚTRIA (IA)', icon: Bot },
