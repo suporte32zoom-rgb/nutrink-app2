@@ -236,9 +236,10 @@ Você possui integração total com o ecossistema NutrinK. Sempre que o usuário
 ---
 
 ## 7. DIRETRIZES DE RESPOSTA E ASSINATURA OBRIGATÓRIA
-1. **Objetividade e Estruturação:** Respostas diretas, com tabelas limpas, listas e negritos, facilitando a aplicação imediata no atendimento.
-2. **Proatividade Clínica:** Sugira os próximos passos clínicos e operacionais na plataforma.
-3. **Assinatura Oficial:** Finalize prescrições e minutas com a assinatura:
+1. **Linguagem Natural, Fluida e Direta:** NUNCA use templates pré-fabricados ou respostas engessadas. NUNCA repita a pergunta do usuário usando fórmulas como "Com relação a '...'". Responda de forma direta, conversacional e contextual.
+2. **Saudações e Perguntas Abertas:** Diante de saudações ou perguntas gerais (ex: "Boa tarde, como pode me ajudar?"), responda de maneira breve, acolhedora e elegante, apresentando como pode apoiar nos cálculos, condutas, exames, planos ou na navegação da plataforma NutrinK.
+3. **Precisão Técnica sob Demanda:** Ao receber solicitações de cálculos, prescrições, planos dietéticos ou prontuários, entregue imediatamente o raciocínio clínico completo com dados numéricos exatos, tabelas organizadas e sem sintaxe LaTeX.
+4. **Assinatura Oficial:** Em prescrições, minutas e condutas estruturadas, finalize com a assinatura oficial:
 "Prescrição estruturada pela NÚTRIA para o consultório NutrinK."`;
 
 /**
@@ -1090,16 +1091,38 @@ Prescrição estruturada pela NÚTRIA para o consultório NutrinK.`;
 
 Prescrição estruturada pela NÚTRIA para o consultório NutrinK.`;
   } else {
-    reply = `Olá, Doutor(a)! A **NÚTRIA** está à disposição no consultório NutrinK com total conformidade com as normas do CFN, CRM e LGPD.
+    // Detecção de saudações e perguntas abertas/introdutórias
+    const isGreeting = /^(ol[aá]|oi|bom dia|boa tarde|boa noite|ola doutora|ola doutor|opa|tudo bem|como vai|como est[aá]|sauda[cç][oõ]es)/i.test(userInput.trim())
+      || lower.includes('como pode me ajudar') 
+      || lower.includes('como você funciona')
+      || lower.includes('como voce funciona')
+      || lower.includes('o que você faz')
+      || lower.includes('o que voce faz')
+      || lower.includes('quais recursos')
+      || lower.includes('apresente-se')
+      || lower.includes('quem é você')
+      || lower.includes('quem e voce')
+      || lower.length < 15;
 
-Com relação a **"${userInput}"**:
-- Para interpretação de exames: forneça os marcadores laboratoriais (hemograma, perfil lipídico, glicemia, HbA1c, tireoide, vitaminas, minerais).
-- Para prescrição e conduta: informe perfil clínico ou restrições patológicas para cardápio com 3 opções isoenergéticas e dosagens exatas.
-- Para dúvidas sobre segurança de suplementos (Creatina, EGCG, etc.): avalio contraindicações fisiológicas com resposta direta e objetiva.
+    if (isGreeting) {
+      reply = `Olá! Sou a **NÚTRIA**, sua copiloto clínica e operacional de Inteligência Artificial no **NutrinK**.
 
----
+Estou pronta para apoiar seu atendimento com total rigor científico e agilidade. Posso auxiliar você em:
 
-Prescrição estruturada pela NÚTRIA para o consultório NutrinK.`;
+- 📊 **Cálculos Metabólicos:** Estimativa de TMB/GET (Mifflin-St Jeor, Harris-Benedict, Cunningham) e cálculo de peso ajustado.
+- 🥗 **Planos Alimentares:** Montagem de cardápios personalizados com opções isoenergéticas e listas de substituições.
+- 🧪 **Análise de Exames:** Interpretação clínica de hemograma, perfil lipídico, glicemia, função renal e vitaminas.
+- 💊 **Prescrições & Fitoterápicos:** Dosagens precisas, posologia e alertas de interações com base nas diretrizes CFN/ANVISA.
+- 🗂️ **Gestão do Consultório:** Abertura rápida de prontuários, agenda, calculadoras e relatórios.
+
+Como posso colaborar com a sua conduta clínica ou com a gestão do consultório hoje?`;
+    } else {
+      reply = `Entendido! Estou pronta para te apoiar com essa análise no consultório.
+
+Você pode me fornecer os detalhes clínicos do paciente (como idade, peso, altura, exames laboratoriais ou patologias) para realizarmos os cálculos energéticos exatos, estruturação do plano alimentar ou prescrições individualizadas.
+
+Se preferir navegar diretamente para alguma ferramenta, basta me avisar (por exemplo: *"Abrir Pacientes"*, *"Ver Agenda"* ou *"Calcular TMB"*).`;
+    }
   }
 
   const actionExecuted = detectOperationalAction(userInput, reply, params);
