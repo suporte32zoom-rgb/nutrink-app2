@@ -687,6 +687,110 @@ app.get("/api/health", (req: Request, res: Response) => {
   });
 });
 
+// Diagnostic endpoint to test Gemini 3.7 Flash connection explicitly with detailed latency & telemetry
+app.all(["/api/gemini/diagnostic", "/api/nutria/diagnostic"], async (req: Request, res: Response) => {
+  const startTime = performance.now();
+  const timestamp = new Date().toISOString();
+  const targetModel = (req.body?.model || req.query?.model || "gemini-3.7-flash").toString().trim();
+  const testPrompt = (req.body?.prompt || req.query?.prompt || "Diagnostic Ping: Verificação de conectividade com a API Gemini 3.7 Flash para o NutrinK.").toString().trim();
+
+  const activeKey = (
+    process.env.GEMINI_API_KEY ||
+    process.env.NUTRINK_GEMINI_API_KEY ||
+    process.env.VITE_GEMINI_API_KEY ||
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+    ""
+  ).trim();
+
+  const keyConfigured = Boolean(activeKey && activeKey.length > 5);
+  const keyPrefix = activeKey.length > 8 ? `${activeKey.substring(0, 6)}...${activeKey.substring(activeKey.length - 3)}` : (keyConfigured ? "configured" : "none");
+
+  const diagnosticResult: Record<string, any> = {
+    diagnosticEndpoint: "/api/gemini/diagnostic",
+    timestamp,
+    targetModel,
+    apiKey: {
+      configured: keyConfigured,
+      prefix: keyPrefix,
+      length: activeKey.length
+    },
+    testPrompt,
+    requestHeaders: {
+      host: req.headers.host,
+      userAgent: req.headers['user-agent'],
+      contentType: req.headers['content-type']
+    }
+  };
+
+  const ai = getGenAI();
+  if (!ai) {
+    const latencyMs = Math.round(performance.now() - startTime);
+    diagnosticResult.success = false;
+    diagnosticResult.status = "error_missing_api_key";
+    diagnosticResult.latencyMs = latencyMs;
+    diagnosticResult.error = {
+      message: "Instância da GoogleGenAI não inicializada. Chave de API ausente ou inválida nas variáveis de ambiente.",
+      code: "NO_API_KEY"
+    };
+    res.setHeader('X-Gemini-Model', targetModel);
+    res.setHeader('X-Diagnostic-Latency-Ms', latencyMs.toString());
+    res.setHeader('X-Diagnostic-Status', 'error');
+    res.status(503).json(diagnosticResult);
+    return;
+  }
+
+  try {
+    const genCallStart = performance.now();
+    const response: any = await ai.models.generateContent({
+      model: targetModel,
+      contents: testPrompt,
+      config: {
+        maxOutputTokens: 250,
+        temperature: 0.2
+      }
+    });
+    const genCallDurationMs = Math.round(performance.now() - genCallStart);
+    const totalLatencyMs = Math.round(performance.now() - startTime);
+
+    const replyText = response?.text || response?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const finishReason = response?.candidates?.[0]?.finishReason || "STOP";
+    const usageMetadata = response?.usageMetadata || null;
+
+    diagnosticResult.success = true;
+    diagnosticResult.status = "ok_connected";
+    diagnosticResult.modelUsed = targetModel;
+    diagnosticResult.latencyMs = totalLatencyMs;
+    diagnosticResult.geminiCallDurationMs = genCallDurationMs;
+    diagnosticResult.responseText = replyText;
+    diagnosticResult.finishReason = finishReason;
+    diagnosticResult.usageMetadata = usageMetadata;
+    diagnosticResult.rawCandidatesCount = response?.candidates?.length || 0;
+    diagnosticResult.responseSnippet = replyText.slice(0, 300);
+
+    res.setHeader('X-Gemini-Model', targetModel);
+    res.setHeader('X-Diagnostic-Latency-Ms', totalLatencyMs.toString());
+    res.setHeader('X-Diagnostic-Status', 'success');
+    res.json(diagnosticResult);
+  } catch (err: any) {
+    const totalLatencyMs = Math.round(performance.now() - startTime);
+    diagnosticResult.success = false;
+    diagnosticResult.status = "error_api_call_failed";
+    diagnosticResult.latencyMs = totalLatencyMs;
+    diagnosticResult.error = {
+      message: err?.message || String(err),
+      name: err?.name,
+      status: err?.status,
+      statusCode: err?.statusCode || (err?.message?.includes('403') ? 403 : err?.message?.includes('429') ? 429 : 500),
+      stackSnippet: err?.stack ? err.stack.split('\n').slice(0, 3).join('\n') : undefined
+    };
+
+    res.setHeader('X-Gemini-Model', targetModel);
+    res.setHeader('X-Diagnostic-Latency-Ms', totalLatencyMs.toString());
+    res.setHeader('X-Diagnostic-Status', 'failed');
+    res.status(500).json(diagnosticResult);
+  }
+});
+
 // Multi-model candidate list prioritizing gemini-3.7-flash official model
 const rawCustomModel = (process.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL || "").trim();
 const validCustomModel = isValidGeminiModelName(rawCustomModel) ? rawCustomModel : null;

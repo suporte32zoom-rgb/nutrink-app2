@@ -25,7 +25,16 @@ import {
   Crown, 
   Lock, 
   Volume2,
-  VolumeX
+  VolumeX,
+  Activity,
+  Zap,
+  Terminal,
+  Code,
+  AlertCircle,
+  Sliders,
+  Sparkles,
+  ShieldCheck,
+  X
 } from 'lucide-react';
 import { NutriaMessage, Patient, Appointment, UserAccount } from '../types';
 import { speakText, stopSpeech } from '../utils/voiceUtils';
@@ -453,7 +462,7 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
             className="p-1.5 text-purple-300 hover:text-white rounded-xl hover:bg-[#250847] text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all border border-purple-800/40"
             title="Iniciar nova conversa e limpar histórico local"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-fuchsia-400" />
+            <RefreshCw className="w-3.5 h-3.5 text-purple-400" />
             <span className="hidden sm:inline text-[10px]">Nova Conversa</span>
           </button>
 
@@ -679,16 +688,6 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
                           )}
                         </button>
 
-                        {/* Download as Markdown file */}
-                        <button
-                          onClick={() => handleDownloadReport(msg.content, msg.id)}
-                          className="hover:text-fuchsia-300 flex items-center gap-1 px-2 py-0.5 rounded-lg hover:bg-[#250847] transition-all font-semibold cursor-pointer"
-                          title="Baixar como arquivo .md formatado"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          <span className="text-[10px]">Baixar</span>
-                        </button>
-
                         {/* Print Document */}
                         <button
                           onClick={() => handlePrintReport(msg.content)}
@@ -813,16 +812,16 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
           </button>
         </form>
 
-        <div className="flex items-center justify-between text-[10px] text-purple-300/80 mt-2 px-1 font-medium">
-          <div className="flex items-center gap-2">
-            <span>NutrinK AI Ecosystem • Respostas em tempo real</span>
+        <div className="flex items-center justify-between text-[10px] text-purple-300/80 mt-2 px-1 font-medium gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="truncate">NutrinK AI Ecosystem • Respostas em tempo real</span>
             {isFree && userAccount && (
-              <span className="text-amber-300 font-bold bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-500/30">
+              <span className="text-amber-300 font-bold bg-amber-950/70 text-[9px] leading-none px-1.5 py-0.5 rounded border border-amber-500/30 mr-2.5 shrink-0 inline-flex items-center">
                 {userAccount.dailyMessageCount}/{userAccount.dailyMessageLimit} msgs hoje
               </span>
             )}
           </div>
-          <span>NÚTRIA v2.5</span>
+          <span className="shrink-0">NÚTRIA v2.5</span>
         </div>
       </div>
 
