@@ -15,6 +15,7 @@ import {
   FileText, 
   Calculator, 
   Zap, 
+  RotateCcw,
   Eye, 
   EyeOff, 
   AlertCircle,
@@ -613,7 +614,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
             <div className="p-3 rounded-2xl bg-[#140428]/90 border border-fuchsia-700/50 flex items-center gap-2.5 text-xs text-purple-200 shadow-inner">
               <Sparkles className="w-4 h-4 text-fuchsia-400 shrink-0" />
               <span className="font-semibold text-fuchsia-200">
-                ✨ Experimente grátis com 30 interações na NÚTRIA AI • Sem cartão de crédito.
+                ✨ Plano Gratuito: 30 mensagens por dia na NÚTRIA AI • Sem cartão de crédito ou pagamento.
               </span>
             </div>
 
@@ -718,14 +719,14 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
               </h1>
               
               <p className="text-xs sm:text-sm text-purple-200/90 max-w-md mx-auto leading-relaxed">
-                Acesse seu consultório em 1 clique e ganhe 30 mensagens grátis para testar a NÚTRIA AI. Não pedimos cartão de crédito.
+                Acesse seu consultório em 1 clique. Use grátis todos os dias com até 30 mensagens diárias renováveis. Sem cartão, Pix ou compromisso de assinatura.
               </p>
             </div>
 
             {/* Value Trigger Banner */}
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/90 via-fuchsia-950/90 to-purple-950/90 border border-fuchsia-500/60 text-fuchsia-100 text-xs sm:text-sm font-semibold flex items-center justify-center gap-2.5 shadow-lg shadow-fuchsia-950/50 text-center">
               <Sparkles className="w-4 h-4 text-fuchsia-400 shrink-0" />
-              <span>✨ Experimente grátis com 30 interações na NÚTRIA AI • Sem cartão de crédito.</span>
+              <span>✨ Plano Gratuito: 30 mensagens por dia na NÚTRIA AI • Sem cartão de crédito ou pagamento.</span>
             </div>
 
             {/* Feedback Messages */}
@@ -789,14 +790,14 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                 </div>
                 <div className="py-1.5 px-2 rounded-xl bg-purple-950/60 border border-purple-800/50 text-center">
                   <span className="text-[10px] font-semibold text-purple-200 flex items-center justify-center gap-1">
-                    <Sparkles className="w-3 h-3 text-fuchsia-400 shrink-0" />
-                    🎁 30 Mensagens Grátis
+                    <RotateCcw className="w-3 h-3 text-fuchsia-400 shrink-0" />
+                    🔄 30 Mensagens/Dia Grátis
                   </span>
                 </div>
                 <div className="py-1.5 px-2 rounded-xl bg-purple-950/60 border border-purple-800/50 text-center">
                   <span className="text-[10px] font-semibold text-purple-200 flex items-center justify-center gap-1">
                     <ShieldCheck className="w-3 h-3 text-fuchsia-400 shrink-0" />
-                    💳 Sem Cartão de Crédito
+                    💳 Sem Cartão ou Pagamento
                   </span>
                 </div>
               </div>
