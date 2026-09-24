@@ -609,11 +609,11 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
               {currentSlide.description}
             </p>
 
-            {/* Mandatory Login Warning Banner */}
+            {/* Free Trial Value Trigger Banner */}
             <div className="p-3 rounded-2xl bg-[#140428]/90 border border-fuchsia-700/50 flex items-center gap-2.5 text-xs text-purple-200 shadow-inner">
-              <Lock className="w-4 h-4 text-fuchsia-400 shrink-0" />
+              <Sparkles className="w-4 h-4 text-fuchsia-400 shrink-0" />
               <span className="font-semibold text-fuchsia-200">
-                O login é obrigatório para acessar e utilizar a plataforma NutrinK.
+                ✨ Experimente grátis com 30 interações na NÚTRIA AI • Sem cartão de crédito.
               </span>
             </div>
 
@@ -718,14 +718,14 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
               </h1>
               
               <p className="text-xs sm:text-sm text-purple-200/90 max-w-md mx-auto leading-relaxed">
-                Acesso rápido e seguro. Entre com sua conta do Google para acessar seu consultório em 1 clique.
+                Acesse seu consultório em 1 clique e ganhe 30 mensagens grátis para testar a NÚTRIA AI. Não pedimos cartão de crédito.
               </p>
             </div>
 
-            {/* Notice: O login é obrigatório para acessar e utilizar a plataforma NutrinK */}
+            {/* Value Trigger Banner */}
             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/90 via-fuchsia-950/90 to-purple-950/90 border border-fuchsia-500/60 text-fuchsia-100 text-xs sm:text-sm font-semibold flex items-center justify-center gap-2.5 shadow-lg shadow-fuchsia-950/50 text-center">
-              <Lock className="w-4 h-4 text-fuchsia-400 shrink-0" />
-              <span>O login é obrigatório para acessar e utilizar a plataforma NutrinK.</span>
+              <Sparkles className="w-4 h-4 text-fuchsia-400 shrink-0" />
+              <span>✨ Experimente grátis com 30 interações na NÚTRIA AI • Sem cartão de crédito.</span>
             </div>
 
             {/* Feedback Messages */}
@@ -784,19 +784,19 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                 <div className="py-1.5 px-2 rounded-xl bg-purple-950/60 border border-purple-800/50 text-center">
                   <span className="text-[10px] font-semibold text-purple-200 flex items-center justify-center gap-1">
                     <Zap className="w-3 h-3 text-fuchsia-400 shrink-0" />
-                    1 Clique
+                    ⚡ Login em 1 Clique
                   </span>
                 </div>
                 <div className="py-1.5 px-2 rounded-xl bg-purple-950/60 border border-purple-800/50 text-center">
                   <span className="text-[10px] font-semibold text-purple-200 flex items-center justify-center gap-1">
-                    <NutriaAvatar size="xs" className="w-3.5 h-3.5 border-fuchsia-400/60 shadow shrink-0" />
-                    IA NÚTRIA
+                    <Sparkles className="w-3 h-3 text-fuchsia-400 shrink-0" />
+                    🎁 30 Mensagens Grátis
                   </span>
                 </div>
                 <div className="py-1.5 px-2 rounded-xl bg-purple-950/60 border border-purple-800/50 text-center">
                   <span className="text-[10px] font-semibold text-purple-200 flex items-center justify-center gap-1">
-                    <Users className="w-3 h-3 text-fuchsia-400 shrink-0" />
-                    Prontuários
+                    <ShieldCheck className="w-3 h-3 text-fuchsia-400 shrink-0" />
+                    💳 Sem Cartão de Crédito
                   </span>
                 </div>
               </div>
