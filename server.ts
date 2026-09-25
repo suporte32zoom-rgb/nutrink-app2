@@ -11,7 +11,7 @@ import { generateFallbackClinicalResponse, isValidGeminiModelName } from "./src/
 
 dotenv.config();
 
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const app = express();
 
 // Iframe & Cross-Origin Embedding Configuration for all frontend/backend hostings (Hostinger, Next.js, Nuxt, Astro, Vue, React, Angular, SvelteKit, WordPress)
