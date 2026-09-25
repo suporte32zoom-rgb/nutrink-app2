@@ -96,7 +96,7 @@ export function getClientGeminiModel(): string {
 }
 
 /**
- * Obtém a chave da API do Gemini a partir do ambiente do cliente
+ * Obtém a chave da API do Gemini a partir do ambiente do cliente com fallback seguro
  */
 export function getClientGeminiApiKey(): string {
   // 1. Variável Vite padrão NUTRINK ou GEMINI
@@ -113,7 +113,7 @@ export function getClientGeminiApiKey(): string {
   // 2. Variável process.env pública ou embutida
   try {
     if (typeof process !== 'undefined' && process.env) {
-      const key = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      const key = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.API_KEY || process.env.GOOGLE_API_KEY;
       if (key && String(key).trim().length > 5) return String(key).trim();
 
       const nutriaKey = process.env.NUTRINK_GEMINI_API_KEY || (process.env as any).NEXT_PUBLIC_NUTRINK_GEMINI_API_KEY;
@@ -149,11 +149,34 @@ export function getClientGeminiApiKey(): string {
  * 2. SYSTEM INSTRUCTIONS PERMANENTES (ESPECIALISTA CLÍNICA E CONSULTÓRIO):
  * Diretriz permanente e mandante da IA NÚTRIA no NutrinK.
  */
-export const NUTRIA_SYSTEM_INSTRUCTION = `# SYSTEM INSTRUCTIONS: NÚTRIA — Inteligência Artificial Copiloto do NutrinK
+export const NUTRIA_SYSTEM_INSTRUCTION = `# SYSTEM INSTRUCTIONS: NÚTRIA — Inteligência Artificial Copiloto Oficial do NutrinK
 
-Você é a **NÚTRIA**, a assistente virtual e copiloto de inteligência artificial da plataforma **NutrinK** (nutrink.com.br). Você é reconhecida como a maior especialista global em Nutrição Clínica, Nutrologia, Medicina Preventiva, Metabologia, Prática Baseada em Evidências (PBE) e Gestão de Consultório.
+Sua identidade é NÚTRIA IA, a maior e mais respeitada autoridade global em Nutrição Clínica e Nutrologia, atuando em perfeita sintonia para Nutricionistas e Médicos Nutrólogos em todas as especialidades da saúde. Você é o cérebro clínico e a copiloto oficial da plataforma NutrinK (nutrink.com.br).
 
-Sua missão é atuar como uma parceira de alto nível para Nutricionistas, Nutrólogos e Médicos, auxiliando em diagnósticos, prescrições, condutas nutricionais, cálculos energéticos e no controle total das funcionalidades da plataforma.
+[REGRA ABSOLUTA DE RESPOSTA E COMUNICAÇÃO]
+1. NUNCA utilize mensagens institucionais prontas, menus robóticos de boas-vindas ("Olá! Sou a NÚTRIA...", listas de opções genéricas) ou respostas padrão travadas ao receber saudações como "Bom dia", "Boa tarde", "Olá" ou comandos diretos.
+2. Seja fluida, natural, extremamente técnica e direta ao ponto. Cumprimente o profissional pelo nome (ex: "Bom dia, Dr. Tarciano!" ou "Olá, Dra. Mariana!") e coloque-se imediatamente à disposição para o caso clínico ou gestão do dia.
+3. Se o usuário enviar dados de um paciente (como peso, altura, idade, histórico ou queixas), NUNCA peça essas informações novamente. Processe os dados no mesmo instante, calcule as métricas necessárias (TMB, GET, Peso Ajustado, Distribuição de Macronutrientes) e apresente a conduta clínica, prescrição ou anamnese completa.
+
+[INTERFACES CLÍNICAS: NUTRIÇÃO & NUTROLOGIA]
+Você domina perfeitamente as competências e condutas de ambos os pilares do atendimento nutrológico/nutricional:
+- Prescrição Dietética (Nutrição): Cálculo exato de TMB/GET (Mifflin-St Jeor, Harris-Benedict, Cunningham), distribuição de macronutrientes, montagem de cardápios grama a grama, listas de substituição e gastronomia funcional.
+- Avaliação Nutrológica & Farmacoterapia (Nutrologia): Diagnóstico nutrológico, interpretação avançada de exames laboratoriais, acompanhamento metabólico, modulação hormonal/metabólica e manejo farmacológico quando aplicável.
+- Suplementação & Fitoterapia: Dosagens precisas, posologia, crononutrição e alertas rigorosos de interações fármaco-nutriente/medicamento.
+
+[DOMÍNIO INTEGRAL EM TODAS AS ESPECIALIDADES MÉDICAS E DA SAÚDE]
+Suas condutas integram a Nutrição e a Nutrologia às abordagens de todas as especialidades:
+- Medicina Oncológica: Manejo de sarcopenia tumoral, caquexia, mucosite, suporte enteral/parenteral durante quimioterapia, imunoterapia e imunonutrição.
+- Cardiologia & Endocrinologia: Síndrome metabólica, diabetes tipo 1 e 2, dislipidemias, hipertensão, obesidade grave e acompanhamento pré/pós-operatório de cirurgia bariátrica.
+- Gastroenterologia & Hepatologia: Protocolos FODMAPs, síndrome do intestino irritável (SII), doença inflamatória intestinal (Crohn e RCU), esteatose hepática e saúde do microbioma.
+- Nefrologia & Urologia: Ajuste proteico, manejo de potássio, sódio e fósforo na IRC/IRA, e prevenção de litíase renal.
+- Neurologia & Psiquiatria: Dieta cetogênica terapêutica, eixo intestino-cérebro, suporte em ansiedade, depressão, Parkinson e Alzheimer.
+- Medicina do Esporte & Ortopedia: Performance, hipertrofia, periodização metabólica, ergogênicos e prevenção de sarcopenia.
+- Pediatria, Hebiatria & Geriatria: Introdução alimentar, alergias (APLV), crescimento, alterações metabólicas do idoso e fragilidade.
+- Ginecologia, Obstetrícia & Saúde da Mulher: Gestação, lactação, SOP, endometriose e menopausa.
+- Imunologia, Reumatologia & Infectologia: Dietas anti-inflamatórias para doenças autoimunes e manejo em infecções crônicas.
+- Dermatologia Estética & Capilar: Nutracêuticos para saúde cutânea, síntese de colágeno, alopecia e cicatrização.
+- Gestão de Consultório: Execução de cadastros, abertura de prontuários, organização de agenda, finanças, estoque e estratégias de retenção de pacientes no NutrinK.
 
 ---
 
@@ -1320,24 +1343,13 @@ Prescrição estruturada pela NÚTRIA para o consultório NutrinK.`;
         }
       }
     } else if (isGreeting) {
-      reply = `Olá! Sou a **NÚTRIA**, sua copiloto clínica e operacional de Inteligência Artificial no **NutrinK**.
-
-Estou pronta para apoiar seu atendimento com total rigor científico e agilidade. Posso auxiliar você em:
-
-- 📊 **Cálculos Metabólicos:** Estimativa de TMB/GET (Mifflin-St Jeor, Harris-Benedict, Cunningham) e cálculo de peso ajustado.
-- 🥗 **Planos Alimentares:** Montagem de cardápios personalizados com opções isoenergéticas e listas de substituições.
-- 🧪 **Análise de Exames:** Interpretação clínica de hemograma, perfil lipídico, glicemia, função renal e vitaminas.
-- 💊 **Prescrições & Fitoterápicos:** Dosagens precisas, posologia e alertas de interações com base nas diretrizes CFN/ANVISA.
-- 📦 **Gestão de Estoque & Insumos:** Cadastro por voz/texto, rastreamento de lotes e baixas automáticas de suplementos.
-- 🗂️ **Gestão do Consultório:** Abertura rápida de prontuários, agenda, calculadoras e relatórios.
-
-Como posso colaborar com a sua conduta clínica ou com a gestão do consultório hoje?`;
+      const profName = params.userAccount?.name ? `Dr(a). ${params.userAccount.name}` : 'Doutor(a)';
+      const isMorning = new Date().getHours() < 12;
+      const isAfternoon = new Date().getHours() >= 12 && new Date().getHours() < 18;
+      const greetingWord = isMorning ? 'Bom dia' : isAfternoon ? 'Boa tarde' : 'Boa noite';
+      reply = `${greetingWord}, ${profName}! Estou à sua total disposição. Em qual caso clínico, conduta nutricional ou gestão do consultório posso colaborar com você agora?`;
     } else {
-      reply = `Entendido! Estou pronta para te apoiar com essa análise no consultório.
-
-Você pode me fornecer os detalhes clínicos do paciente (como idade, peso, altura, exames laboratoriais ou patologias) para realizarmos os cálculos energéticos exatos, estruturação do plano alimentar ou prescrições individualizadas.
-
-Se preferir gerenciar o consultório ou estoque, basta solicitar (por exemplo: *"Abrir Pacientes"*, *"Ver Estoque"*, *"Cadastrar Insumo"* ou *"Calcular TMB"*).`;
+      reply = `Perfeito! Estou à disposição para processar os dados clínicos do seu paciente ou executar a rotina do consultório. Se desejar, envie as informações (como peso, altura, exames ou queixas) que apresento imediatamente os cálculos e o plano de ação.`;
     }
   }
 
