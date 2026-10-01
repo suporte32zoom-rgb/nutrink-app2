@@ -738,3 +738,560 @@ export function sendPrescriptionViaWhatsApp(patient: Patient, prescription: Clin
 
   window.open(targetUrl, '_blank');
 }
+
+/**
+ * Generates an official, beautifully formatted clinical summary PDF document (Dossiê e Prontuário do Paciente)
+ * Includes: Complete Anthropometrics, Clinical History / Anamnesis, Latest Prescription, Metabolic Calculations & Evolution History.
+ */
+export function printClinicalSummaryPdf(patient: Patient, userAccount?: UserAccount): void {
+  trackDocumentExport('resumo_clinico', 'pdf');
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Por favor, permita janelas pop-up no navegador para gerar o resumo clínico em PDF.');
+    return;
+  }
+
+  // Cálculos antropométricos e metabólicos
+  const heightM = normalizeHeightToMeters(patient.heightCm);
+  const heightCm = normalizeHeightToCm(patient.heightCm);
+  const weightKg = patient.currentWeightKg || 0;
+  const initialWeight = patient.initialWeightKg || weightKg;
+  const targetWeight = patient.targetWeightKg || 0;
+  const bmiData = calculateBMI(weightKg, patient.heightCm);
+  const tmb = calculateMifflinTMB(patient.gender, weightKg, patient.heightCm, patient.age);
+  const getVal = calculateGET(tmb, patient.activityFactor || 1.2);
+  const waterData = calculateWaterRecommendation(weightKg);
+
+  // Dados do profissional e consultório
+  const doctorName = userAccount?.name || 'Dr(a). Profissional de Saúde';
+  const doctorCrn = userAccount?.crn || 'CRN / CRM Ativo';
+  const doctorSpecialty = userAccount?.specialty || 'Nutrição Clínica & Funcional';
+  const clinicName = userAccount?.clinicName || 'NutrinK • Gestão Clínica & Inteligência Nutricional';
+  const clinicAddress = userAccount?.clinicAddress || '';
+  const clinicPhone = userAccount?.phone || '';
+  const clinicEmail = userAccount?.email || 'contato@nutrink.com.br';
+  const prescriptionFooter = userAccount?.prescriptionFooter || '';
+  const now = new Date();
+  const dateFormatted = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const timeFormatted = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  // Obtenção da última avaliação de evolução física (se houver)
+  const evolutionList = Array.isArray(patient.evolutionHistory) ? [...patient.evolutionHistory] : [];
+  evolutionList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const latestEvolution = evolutionList.length > 0 ? evolutionList[0] : null;
+
+  // Obtenção da última prescrição clínica
+  const prescriptionsList = Array.isArray(patient.prescriptions) ? [...patient.prescriptions] : [];
+  prescriptionsList.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+  const latestPrescription = prescriptionsList.length > 0 ? prescriptionsList[0] : null;
+
+  // Formatação de Hábito Intestinal
+  const bowelLabels: Record<string, string> = {
+    diario_normal: 'Diário e Normal (Tipo 3 ou 4 na Escala de Bristol)',
+    constipado: 'Constipado / Ressecado (Intervalos > 48h)',
+    diarreico: 'Diarreico / Amolecido',
+    irregular: 'Irregular / Alternante'
+  };
+  const bowelHabitText = patient.anamnese?.bowelHabit ? (bowelLabels[patient.anamnese.bowelHabit] || patient.anamnese.bowelHabit) : 'Não informado';
+
+  // Renderização do Bloco da Última Prescrição
+  let prescriptionHtml = '';
+  if (latestPrescription && latestPrescription.items && latestPrescription.items.length > 0) {
+    prescriptionHtml = `
+      <div class="section-card">
+        <div class="section-title">
+          <span>💊 Última Prescrição Ativa: ${latestPrescription.title}</span>
+          <span class="badge-sub">${latestPrescription.date || dateFormatted} • ${latestPrescription.type.replace('_', ' ').toUpperCase()}</span>
+        </div>
+        ${latestPrescription.instructions ? `
+          <div class="instruction-box">
+            <strong>Instruções Gerais:</strong> ${latestPrescription.instructions}
+          </div>
+        ` : ''}
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 25%;">Item / Suplemento</th>
+              <th style="width: 15%;">Dosagem</th>
+              <th style="width: 12%;">Forma</th>
+              <th style="width: 28%;">Posologia Recomendada</th>
+              <th style="width: 20%;">Indicação / Notas</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${latestPrescription.items.map((it, idx) => `
+              <tr>
+                <td><strong>${idx + 1}. ${it.name}</strong></td>
+                <td><span class="highlight-pill">${it.dosage}</span></td>
+                <td><span style="text-transform: uppercase; font-size: 11px; font-weight: 700;">${it.form}</span></td>
+                <td>${it.posology}</td>
+                <td>${it.indication ? `<em>${it.indication}</em>` : (it.notes || '-')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } else {
+    prescriptionHtml = `
+      <div class="section-card">
+        <div class="section-title">
+          <span>💊 Última Prescrição Ativa</span>
+        </div>
+        <p style="color: #64748b; font-size: 12px; font-style: italic; margin: 0; padding: 10px 0;">
+          Nenhuma prescrição magistral ou protocolo de suplementação cadastrado para este paciente.
+        </p>
+      </div>
+    `;
+  }
+
+  // Renderização do Histórico de Evoluções Físicas
+  let evolutionHtml = '';
+  if (evolutionList.length > 0) {
+    evolutionHtml = `
+      <div class="section-card">
+        <div class="section-title">
+          <span>📈 Histórico de Avaliações Antropométricas (${evolutionList.length} registro(s))</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th style="text-align: right;">Peso (kg)</th>
+              <th style="text-align: right;">IMC</th>
+              <th style="text-align: right;">% Gordura</th>
+              <th style="text-align: right;">% M. Magra</th>
+              <th style="text-align: right;">Cintura (cm)</th>
+              <th style="text-align: right;">Quadril (cm)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${evolutionList.slice(0, 5).map(ev => `
+              <tr>
+                <td><strong>${ev.date}</strong></td>
+                <td style="text-align: right; font-weight: 700;">${ev.weightKg ? `${ev.weightKg} kg` : '-'}</td>
+                <td style="text-align: right;">${ev.bmi || '-'}</td>
+                <td style="text-align: right;">${ev.bodyFatPercentage ? `${ev.bodyFatPercentage}%` : '-'}</td>
+                <td style="text-align: right;">${ev.muscleMassPercentage ? `${ev.muscleMassPercentage}%` : '-'}</td>
+                <td style="text-align: right;">${ev.waistCircumferenceCm ? `${ev.waistCircumferenceCm} cm` : '-'}</td>
+                <td style="text-align: right;">${ev.hipCircumferenceCm ? `${ev.hipCircumferenceCm} cm` : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="utf-8" />
+        <title>Resumo Clínico & Prontuário - ${patient.name} | NutrinK</title>
+        <style>
+          @page {
+            size: A4;
+            margin: 1.2cm;
+          }
+          * {
+            box-sizing: border-box;
+          }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            line-height: 1.45;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+            font-size: 12px;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2.5px solid #7c3aed;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+          }
+          .brand {
+            font-size: 22px;
+            font-weight: 900;
+            color: #581c87;
+            letter-spacing: -0.5px;
+          }
+          .brand span {
+            color: #c026d3;
+          }
+          .doc-badge {
+            display: inline-block;
+            background: #fdf4ff;
+            color: #701a75;
+            border: 1px solid #f0abfc;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+          }
+          .doctor-meta {
+            text-align: right;
+            font-size: 11px;
+            color: #475569;
+          }
+          .doctor-meta strong {
+            color: #0f172a;
+            font-size: 13px;
+            display: block;
+          }
+          .patient-hero {
+            background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+            border: 1.5px solid #d8b4fe;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 12px;
+            page-break-inside: avoid;
+          }
+          .field-label {
+            font-size: 10px;
+            font-weight: 800;
+            color: #6b21a8;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+          }
+          .field-value {
+            font-size: 13px;
+            font-weight: 800;
+            color: #1e1b4b;
+            margin-top: 1px;
+          }
+          .field-sub {
+            font-size: 11px;
+            color: #475569;
+            font-weight: 500;
+          }
+          .section-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 14px;
+            background: #fff;
+            page-break-inside: avoid;
+          }
+          .section-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #4c1d95;
+            border-bottom: 1.5px solid #f1f5f9;
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .badge-sub {
+            font-size: 10px;
+            font-weight: 700;
+            color: #7e22ce;
+            background: #faf5ff;
+            border: 1px solid #d8b4fe;
+            padding: 2px 6px;
+            border-radius: 4px;
+          }
+          .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+          }
+          .metric-cell {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+          }
+          .metric-val {
+            font-size: 14px;
+            font-weight: 900;
+            color: #0f172a;
+          }
+          .metric-lbl {
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-top: 1px;
+          }
+          .anamnese-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 16px;
+            font-size: 11.5px;
+          }
+          .anamnese-item {
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            border-radius: 6px;
+            padding: 8px 10px;
+          }
+          .anamnese-item strong {
+            display: block;
+            color: #334155;
+            font-size: 10px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+          }
+          .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin-top: 6px;
+          }
+          .data-table th, .data-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            text-align: left;
+          }
+          .data-table th {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 700;
+            font-size: 10px;
+            text-transform: uppercase;
+          }
+          .highlight-pill {
+            background: #ede9fe;
+            color: #6d28d9;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+          }
+          .instruction-box {
+            background: #fffbeb;
+            border-left: 3px solid #f59e0b;
+            padding: 6px 10px;
+            font-size: 11.5px;
+            color: #92400e;
+            border-radius: 0 4px 4px 0;
+            margin-bottom: 8px;
+          }
+          .signature-box {
+            margin-top: 24px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10.5px;
+            color: #64748b;
+            page-break-inside: avoid;
+          }
+          .sig-line {
+            width: 220px;
+            border-top: 1px solid #0f172a;
+            margin-bottom: 4px;
+          }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+        </style>
+      </head>
+      <body>
+        <!-- Header -->
+        <div class="header">
+          <div>
+            <div class="brand">Nutrin<span>K</span></div>
+            <div class="doc-badge">Resumo Clínico Integrado & Prontuário</div>
+            ${clinicName ? `<div style="font-size: 11px; font-weight: 800; color: #0f172a; margin-top: 3px;">${clinicName}</div>` : ''}
+            ${clinicAddress ? `<div style="font-size: 10px; color: #64748b;">${clinicAddress}</div>` : ''}
+          </div>
+          <div class="doctor-meta">
+            <strong>${doctorName}</strong>
+            <div>${doctorCrn} • ${doctorSpecialty}</div>
+            <div>${clinicEmail} ${clinicPhone ? `• Tel: ${clinicPhone}` : ''}</div>
+            <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Emitido em: ${dateFormatted} às ${timeFormatted}</div>
+          </div>
+        </div>
+
+        <!-- Identificação do Paciente -->
+        <div class="patient-hero">
+          <div>
+            <div class="field-label">Paciente</div>
+            <div class="field-value">${patient.name}</div>
+            <div class="field-sub">
+              ${patient.cpf ? `CPF: ${patient.cpf} • ` : ''}Tel: ${patient.phone || '-'} • E-mail: ${patient.email || '-'}
+            </div>
+          </div>
+          <div>
+            <div class="field-label">Idade / Gênero</div>
+            <div class="field-value">${patient.age > 0 ? `${patient.age} anos` : '-'}</div>
+            <div class="field-sub">${patient.gender ? patient.gender.toUpperCase() : '-'}</div>
+          </div>
+          <div>
+            <div class="field-label">Objetivo Clínico</div>
+            <div class="field-value" style="color: #7c3aed;">${patient.objective.replace('_', ' ').toUpperCase()}</div>
+            <div class="field-sub">Status: ${patient.status === 'ativo' ? 'Ativo' : 'Em Acompanhamento'}</div>
+          </div>
+          <div>
+            <div class="field-label">ID Prontuário</div>
+            <div class="field-value" style="font-family: monospace; font-size: 11px;">#${patient.id}</div>
+            <div class="field-sub">${patient.createdAt ? `Desde ${patient.createdAt}` : ''}</div>
+          </div>
+        </div>
+
+        <!-- Seção 1: Antropometria & Metabolismo Atual -->
+        <div class="section-card">
+          <div class="section-title">
+            <span>📊 Avaliação Antropométrica & Cálculos Metabólicos</span>
+            <span class="badge-sub">Mifflin-St Jeor & Diretrizes SBAN</span>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-cell">
+              <div class="metric-val" style="color: #7e22ce;">${weightKg > 0 ? `${weightKg} kg` : '-'}</div>
+              <div class="metric-lbl">Peso Atual</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-val">${heightCm > 0 ? `${heightCm} cm` : '-'}</div>
+              <div class="metric-lbl">Altura (${heightM > 0 ? `${heightM.toFixed(2)}m` : '-'})</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-val" style="color: #059669;">${bmiData.bmi > 0 ? bmiData.bmi : '-'}</div>
+              <div class="metric-lbl">IMC (${bmiData.classification !== '-' ? bmiData.classification.split(' ')[0] : 'Normal'})</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-val">${tmb > 0 ? `${tmb} kcal` : '-'}</div>
+              <div class="metric-lbl">TMB Basal</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-val" style="color: #ea580c;">${getVal > 0 ? `${getVal} kcal` : '-'}</div>
+              <div class="metric-lbl">GET (NAF ${patient.activityFactor || 1.2})</div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+            <div class="metric-cell">
+              <div class="metric-val" style="font-size: 12px;">${patient.bodyFatPercentage ? `${patient.bodyFatPercentage}%` : (latestEvolution?.bodyFatPercentage ? `${latestEvolution.bodyFatPercentage}%` : '-')}</div>
+              <div class="metric-lbl">% Gordura Corporal</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-val" style="font-size: 12px;">${patient.muscleMassPercentage ? `${patient.muscleMassPercentage}%` : (latestEvolution?.muscleMassPercentage ? `${latestEvolution.muscleMassPercentage}%` : '-')}</div>
+              <div class="metric-lbl">% Massa Magra</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-val" style="font-size: 12px;">${initialWeight > 0 ? `${initialWeight} kg` : '-'}</div>
+              <div class="metric-lbl">Peso Inicial</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-val" style="font-size: 12px; color: #2563eb;">${waterData.liters > 0 ? `${waterData.liters} L/dia` : '35 mL/kg'}</div>
+              <div class="metric-lbl">Meta Hídrica (${waterData.ml || 0} mL)</div>
+            </div>
+          </div>
+
+          ${latestEvolution?.waistCircumferenceCm || latestEvolution?.hipCircumferenceCm ? `
+            <div style="margin-top: 10px; font-size: 11px; color: #475569; background: #fdf4ff; border: 1px solid #f0abfc; padding: 6px 10px; border-radius: 6px;">
+              <strong>Circunferências Recentes:</strong> 
+              ${latestEvolution.waistCircumferenceCm ? `Cintura: <strong>${latestEvolution.waistCircumferenceCm} cm</strong> | ` : ''}
+              ${latestEvolution.hipCircumferenceCm ? `Quadril: <strong>${latestEvolution.hipCircumferenceCm} cm</strong> | ` : ''}
+              ${latestEvolution.armCircumferenceCm ? `Braço: <strong>${latestEvolution.armCircumferenceCm} cm</strong> | ` : ''}
+              ${latestEvolution.thighCircumferenceCm ? `Coxa: <strong>${latestEvolution.thighCircumferenceCm} cm</strong>` : ''}
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Seção 2: Anamnese e Histórico Clínico -->
+        <div class="section-card">
+          <div class="section-title">
+            <span>📋 Anamnese Clínica & Estilo de Vida</span>
+          </div>
+          <div class="anamnese-grid">
+            <div class="anamnese-item">
+              <strong>🩺 Histórico Clínico / Patologias</strong>
+              ${patient.anamnese?.clinicalHistory || 'Nenhuma patologia ou comorbidade pregressa informada.'}
+            </div>
+            <div class="anamnese-item">
+              <strong>⚠️ Alergias e Intolerâncias</strong>
+              ${patient.anamnese?.foodAllergiesAndIntolerances || 'Nenhuma alergia ou intolerância alimentar relatada.'}
+            </div>
+            <div class="anamnese-item">
+              <strong>💊 Medicamentos e Suplementos em Uso</strong>
+              ${patient.anamnese?.currentMedicationsAndSupplements || 'Nenhum medicamento de uso contínuo informado.'}
+            </div>
+            <div class="anamnese-item">
+              <strong>🍽️ Preferências & Aversões</strong>
+              ${patient.anamnese?.dietaryPreferences ? `Gosta: ${patient.anamnese.dietaryPreferences}. ` : ''}
+              ${patient.anamnese?.dietaryAversions ? `Aversão: ${patient.anamnese.dietaryAversions}.` : (patient.anamnese?.dietaryPreferences ? '' : 'Padrão alimentar livre.')}
+            </div>
+            <div class="anamnese-item">
+              <strong>🚽 Hábito Intestinal</strong>
+              ${bowelHabitText}
+            </div>
+            <div class="anamnese-item">
+              <strong>🌙 Sono, Rotina & Atividade</strong>
+              Sono: ${patient.anamnese?.sleepHoursPerNight ? `${patient.anamnese.sleepHoursPerNight}h/noite` : 'Não informado'} • 
+              Ativ: ${patient.anamnese?.physicalActivity || 'Fator ' + (patient.activityFactor || 1.2)}
+            </div>
+          </div>
+          ${patient.notes ? `
+            <div style="margin-top: 8px; font-size: 11px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 6px;">
+              <strong>Notas do Prontuário:</strong> ${patient.notes}
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Seção 3: Última Prescrição Ativa -->
+        ${prescriptionHtml}
+
+        <!-- Seção 4: Histórico de Evoluções (se houver) -->
+        ${evolutionHtml}
+
+        <!-- Rodapé e Assinatura -->
+        ${latestPrescription?.digitalSignature?.signed ? `
+        <div style="margin-top: 20px; border: 1.5px solid #059669; background: #ecfdf5; border-radius: 8px; padding: 10px 14px; page-break-inside: avoid;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong style="color: #065f46; font-size: 11px; text-transform: uppercase;">✔ Documento Autenticado com Assinatura Digital</strong>
+              <div style="font-size: 12px; font-weight: 800; color: #0f172a; margin-top: 1px;">
+                ${latestPrescription.digitalSignature.signedBy} (${latestPrescription.digitalSignature.professionalCouncil})
+              </div>
+              <div style="font-size: 10px; color: #047857; margin-top: 2px;">
+                Assinado em ${latestPrescription.digitalSignature.signedAt} • Hash: <code style="font-family: monospace;">${latestPrescription.digitalSignature.hash}</code>
+              </div>
+            </div>
+            ${latestPrescription.digitalSignature.qrCodeUrl ? `
+              <img src="${latestPrescription.digitalSignature.qrCodeUrl}" alt="QR Code" style="width: 54px; height: 54px;" />
+            ` : ''}
+          </div>
+        </div>
+        ` : `
+        <div class="signature-box">
+          <div>
+            <div>Documento gerado eletronicamente em <strong>${dateFormatted} às ${timeFormatted}</strong></div>
+            <div>NutrinK • Sistema de Gestão e Inteligência Clínica Digital</div>
+            ${prescriptionFooter ? `<div style="font-size: 9.5px; color: #94a3b8; margin-top: 2px;">${prescriptionFooter}</div>` : ''}
+          </div>
+          <div style="text-align: center;">
+            <div class="sig-line"></div>
+            <strong style="color: #0f172a; font-size: 11.5px;">${doctorName}</strong>
+            <div style="font-size: 10px;">${doctorCrn} • ${doctorSpecialty}</div>
+          </div>
+        </div>
+        `}
+
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        </script>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+}

@@ -64,7 +64,8 @@ import {
   printMealPlanPdf, 
   sendMealPlanViaWhatsApp, 
   printPrescriptionPdf, 
-  sendPrescriptionViaWhatsApp 
+  sendPrescriptionViaWhatsApp,
+  printClinicalSummaryPdf
 } from '../utils/pdfExportUtils';
 import { 
   normalizeHeightToCm, 
@@ -558,6 +559,16 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
               >
                 <Edit3 className="w-3.5 h-3.5 text-fuchsia-300" />
                 <span>Editar Dados Clínicos</span>
+              </button>
+
+              <button
+                onClick={() => printClinicalSummaryPdf(selectedPatient, userAccount)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#220743] hover:bg-[#2f0b5a] text-purple-100 border border-purple-700/60 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                title="Gerar Dossiê e Resumo Clínico formatado em PDF com antropometria, anamnese e última prescrição"
+                id="btn-print-clinical-summary-pdf"
+              >
+                <FileText className="w-3.5 h-3.5 text-fuchsia-400" />
+                <span>Resumo Clínico PDF</span>
               </button>
 
               {onStartTelemedicine && (

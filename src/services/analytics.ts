@@ -147,10 +147,10 @@ export function trackAppointmentEvent(
 }
 
 /**
- * Rastreia emissão de documentos clínicos (Receitas, Planos, Recibos)
+ * Rastreia emissão de documentos clínicos (Receitas, Planos, Recibos, Resumo Clínico)
  */
 export function trackDocumentExport(
-  documentType: 'plano_alimentar' | 'prescricao_magistral' | 'pedido_exames' | 'recibo_consulta',
+  documentType: 'plano_alimentar' | 'prescricao_magistral' | 'pedido_exames' | 'recibo_consulta' | 'resumo_clinico',
   format: 'pdf' | 'whatsapp' | 'impressao'
 ): void {
   trackEvent('clinical_document_export', {
