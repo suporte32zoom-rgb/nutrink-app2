@@ -1,6 +1,13 @@
 /**
  * Google Analytics 4 (GA4) Service for NutrinK
- * Gerencia o rastreamento seguro de visualizações de página, métricas clínicas e eventos do consultório.
+ * 
+ * DIRETRIZES DE GEOLOCALIZAÇÃO E EXECUÇÃO:
+ * 1. Execução 100% no cliente (Browser/DOM): Garante que a conexão seja feita pelo dispositivo
+ *    real do usuário (celular ou computador) via seu provedor de internet (Vivo, Claro, Tim, etc.),
+ *    registrando a geolocalização exata de cada estado brasileiro (RJ, MG, BA, RS, SP, etc.).
+ * 2. Chamada direta sem proxy interno: O tráfego vai direto para a infraestrutura do Google
+ *    (googletagmanager.com e google-analytics.com), sem passar pelo servidor da Hostinger em São Paulo.
+ * 3. Compatibilidade total com PWA / Service Worker (ignorado em sw.js).
  */
 
 declare global {
@@ -17,11 +24,14 @@ export const GA_MEASUREMENT_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID as stri
 let isInitialized = false;
 
 /**
- * Inicializa com segurança o Google Analytics 4
- * Se a tag já foi inserida no index.html, reaproveita a instância global sem duplicação.
+ * Inicializa com segurança o Google Analytics 4 EXCLUSIVAMENTE no navegador do cliente (Front-End)
+ * NUNCA executa no lado do servidor (SSR/Node) para não mascarar o IP com o datacenter da hospedagem.
  */
 export function initGoogleAnalytics(measurementId: string = GA_MEASUREMENT_ID): void {
-  if (typeof window === 'undefined') return;
+  // Garantia estrita de execução no cliente (Browser DOM)
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return;
+  }
 
   if (isInitialized) {
     return;
@@ -34,10 +44,15 @@ export function initGoogleAnalytics(measurementId: string = GA_MEASUREMENT_ID): 
       window.dataLayer.push(arguments);
     };
     window.gtag('js', new Date());
-    window.gtag('config', measurementId);
+    // Configura o ID diretamente apontando para a rede pública do Google com cookies seguros
+    window.gtag('config', measurementId, {
+      cookie_domain: 'auto',
+      cookie_flags: 'SameSite=None;Secure',
+      send_page_view: false // O roteador SPA (React Router) gerencia as trocas de rotas
+    });
   }
 
-  // Se o script da tag já não existir na página, injeta na head
+  // Se o script da tag ainda não existir no DOM da página, injeta no head do cliente
   const hasGtagScript = Array.from(document.querySelectorAll('script')).some(
     s => s.src && s.src.includes('googletagmanager.com/gtag/js')
   );
@@ -46,9 +61,11 @@ export function initGoogleAnalytics(measurementId: string = GA_MEASUREMENT_ID): 
     const script = document.createElement('script');
     script.id = 'google-analytics-gtag';
     script.async = true;
+    script.crossOrigin = 'anonymous';
+    // Conexão direta aos servidores oficiais do Google
     script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
     script.onerror = () => {
-      console.warn('[Google Analytics] Falha ao carregar gtag.js (pode estar bloqueado por AdBlocker).');
+      console.warn('[Google Analytics] Falha ao carregar gtag.js no cliente (possível bloqueador de anúncios).');
     };
     document.head.appendChild(script);
   }
@@ -58,9 +75,10 @@ export function initGoogleAnalytics(measurementId: string = GA_MEASUREMENT_ID): 
 
 /**
  * Registra a visualização de tela / módulo do sistema NutrinK (SPA Navigation)
+ * Executado estritamente no cliente com envio direto aos servidores do Google
  */
-export function trackPageView(pageTitle: string, pagePath: string = window.location.pathname): void {
-  if (typeof window === 'undefined') return;
+export function trackPageView(pageTitle: string, pagePath: string = (typeof window !== 'undefined' ? window.location.pathname : '/')): void {
+  if (typeof window === 'undefined' || !window.document) return;
 
   if (!window.gtag) {
     initGoogleAnalytics();
@@ -71,7 +89,8 @@ export function trackPageView(pageTitle: string, pagePath: string = window.locat
       window.gtag('event', 'page_view', {
         page_title: pageTitle,
         page_path: pagePath,
-        page_location: `${window.location.origin}${pagePath.startsWith('/') ? pagePath : '/' + pagePath}`
+        page_location: window.location.href,
+        send_to: GA_MEASUREMENT_ID
       });
     }
   } catch (err) {

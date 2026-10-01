@@ -7,8 +7,10 @@ import './index.css';
 import { initGoogleAnalytics } from './services/analytics';
 import { getGoogleClientId } from './services/googleAuth';
 
-// Inicialização do Google Analytics 4
-initGoogleAnalytics();
+// Inicialização do Google Analytics 4 (Execução exclusiva no cliente/browser)
+if (typeof window !== 'undefined') {
+  initGoogleAnalytics();
+}
 
 // Register PWA Service Worker if supported
 if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {

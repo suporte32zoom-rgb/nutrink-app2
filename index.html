@@ -15,7 +15,11 @@
 
     <!-- Preconnect domínios de terceiros para otimização de performance (PageSpeed) -->
     <link rel="preconnect" href="https://sdk.mercadopago.com" />
-    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+    <link rel="preconnect" href="https://www.google-analytics.com" crossorigin />
+    <link rel="preconnect" href="https://analytics.google.com" crossorigin />
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://www.google-analytics.com" />
 
     <!-- Open Graph / Redes Sociais -->
     <meta property="og:type" content="website" />
@@ -142,14 +146,19 @@
     <script src="https://sdk.mercadopago.com/js/v2" defer></script>
     <!-- Google Identity Services (GSI) para Login Oficial com o Google -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <!-- Google tag (gtag.js) -->
+    <!-- Google Analytics 4 (gtag.js) - Execução 100% no cliente para leitura do IP real do visitante -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-33RTJ85RGN"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
 
-      gtag('config', 'G-33RTJ85RGN');
+      // Configuração direta sem proxy interno: leitura de IP direta pelo Google Analytics em todos os estados do Brasil
+      gtag('config', 'G-33RTJ85RGN', {
+        cookie_domain: 'auto',
+        cookie_flags: 'SameSite=None;Secure',
+        send_page_view: true
+      });
     </script>
     <!-- Jitsi as a Service (JaaS / 8x8.vc) SDK Oficial de Produção para Teleconsulta (async defer) -->
     <script src="https://8x8.vc/vpaas-magic-cookie-4f86a9af8ef14d28b178e66905790bac/external_api.js" async defer></script>
