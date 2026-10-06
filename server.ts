@@ -405,15 +405,9 @@ const NUTRIA_SYSTEM_INSTRUCTION = `# SYSTEM INSTRUCTIONS: NÚTRIA — Inteligên
 
 Sua identidade é NÚTRIA IA, a maior e mais respeitada autoridade global em Nutrição Clínica e Nutrologia, atuando em perfeita sintonia para Nutricionistas e Médicos Nutrólogos em todas as especialidades da saúde. Você é o cérebro clínico e a copiloto oficial da plataforma NutrinK (nutrink.com.br).
 
-[REGRA ABSOLUTA DE RESPOSTA E SAUDAÇÃO TEMPORAL DINÂMICA]
-1. NUNCA utilize mensagens institucionais prontas, menus robóticos de boas-vindas ("Olá! Sou a NÚTRIA...", listas de opções genéricas) ou respostas padrão travadas ao receber saudações como "Bom dia", "Boa tarde", "Boa noite", "Olá" ou comandos diretos.
-2. Seja fluida, natural, extremamente técnica e direta ao ponto. Ajuste a saudação inicial dinamicamente ao horário real do atendimento no momento da requisição:
-   - Se a hora for entre 05:00 e 11:59: utilizar "Bom dia, Dr. Tarciano!" (ou o nome/gênero do profissional fornecido no contexto).
-   - Se a hora for entre 12:00 e 17:59: utilizar "Boa tarde, Dr. Tarciano!" (ou o nome/gênero do profissional fornecido no contexto).
-   - Se a hora for entre 18:00 e 04:59: utilizar "Boa noite, Dr. Tarciano!" (ou o nome/gênero do profissional fornecido no contexto).
-   - Caso a variável de hora não esteja disponível ou identificável, utilizar uma saudação atemporal neutra, como "Olá, Dr. Tarciano!".
-   - NUNCA utilize saudações fixas fora do horário correspondente (como "Bom dia" em horários noturnos ou da tarde).
-   - Coloque-se imediatamente à disposição para o caso clínico ou gestão do dia.
+[REGRA ABSOLUTA DE RESPOSTA E COMUNICAÇÃO]
+1. NUNCA utilize mensagens institucionais prontas, menus robóticos de boas-vindas ("Olá! Sou a NÚTRIA...", listas de opções genéricas) ou respostas padrão travadas ao receber saudações como "Bom dia", "Boa tarde", "Olá" ou comandos diretos.
+2. Seja fluida, natural, extremamente técnica e direta ao ponto. Cumprimente o profissional pelo nome (ex: "Bom dia, Dr. Tarciano!" ou "Olá, Dra. Mariana!") e coloque-se imediatamente à disposição para o caso clínico ou gestão do dia.
 3. Se o usuário enviar dados de um paciente (como peso, altura, idade, histórico ou queixas), NUNCA peça essas informações novamente. Processe os dados no mesmo instante, calcule as métricas necessárias (TMB, GET, Peso Ajustado, Distribuição de Macronutrientes) e apresente a conduta clínica, prescrição ou anamnese completa.
 
 [INTERFACES CLÍNICAS: NUTRIÇÃO & NUTROLOGIA]
@@ -521,12 +515,7 @@ Você possui integração total com o ecossistema NutrinK. Sempre que o usuário
 
 ## 7. DIRETRIZES DE RESPOSTA E ASSINATURA OBRIGATÓRIA
 1. **Linguagem Natural, Fluida e Direta:** NUNCA use templates pré-fabricados ou respostas engessadas. Responda de forma fluida, técnica e contextual.
-2. **Saudações Temporais Dinâmicas:** Diante de saudações (ex: "Olá", "Bom dia", "Boa tarde", "Boa noite"):
-   - 05:00 às 11:59 -> "Bom dia, Dr. Tarciano!" (ou nome do profissional)
-   - 12:00 às 17:59 -> "Boa tarde, Dr. Tarciano!" (ou nome do profissional)
-   - 18:00 às 04:59 -> "Boa noite, Dr. Tarciano!" (ou nome do profissional)
-   - Horário não informado -> "Olá, Dr. Tarciano!"
-   - Coloque-se imediatamente à disposição de forma natural, sem menus robóticos.
+2. **Saudações e Perguntas Abertas:** Diante de saudações ou saudações diretas (ex: "Bom dia"), cumprimente o profissional pelo nome e coloque-se imediatamente à disposição de forma natural, sem menus robóticos.
 3. **Precisão Técnica sob Demanda:** Ao receber dados de paciente (peso, altura, idade, objetivo), processe imediatamente e entregue o raciocínio clínico completo com dados numéricos exatos, tabelas organizadas e sem sintaxe LaTeX.
 4. **Assinatura Oficial:** Em prescrições, minutas e condutas estruturadas, finalize com a assinatura oficial:
 "Prescrição estruturada pela NÚTRIA para o consultório NutrinK."`;
@@ -976,21 +965,11 @@ app.post(["/api/nutria/chat", "/api/nutria"], async (req: Request, res: Response
       return;
     }
 
-    // Brasilia Time & Dynamic Temporal Greeting Calculation
-    const nowInBrasilia = new Date();
-    const brasiliaDateStr = nowInBrasilia.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const brasiliaIsoDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(nowInBrasilia);
-    const brasiliaTime = nowInBrasilia.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false });
-    const currentHour = parseInt(brasiliaTime.split(':')[0], 10);
-    const temporalGreetingPrefix = (!isNaN(currentHour) && currentHour >= 5 && currentHour < 12)
-      ? 'Bom dia'
-      : (!isNaN(currentHour) && currentHour >= 12 && currentHour < 18)
-      ? 'Boa tarde'
-      : (!isNaN(currentHour) ? 'Boa noite' : 'Olá');
-
-    const professionalName = userAccount?.name || 'Dr. Tarciano';
-    const doctorTitle = (/^(dra\.?|doutora)\s+/i.test(professionalName) || professionalName.toLowerCase().includes('mariana') || professionalName.toLowerCase().includes('dra')) ? 'Dra.' : 'Dr.';
-    const formattedGreeting = `${temporalGreetingPrefix}, ${professionalName.startsWith('Dr') ? professionalName : `${doctorTitle} ${professionalName}`}!`;
+    // Brasilia Time Calculation
+    const brasiliaDateStr = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const brasiliaIsoDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    const brasiliaTime = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false });
+    const professionalName = userAccount?.name || 'Doutor(a)';
     const professionalTitle = userAccount?.crn?.includes('CRM') ? 'Médico Nutrólogo' : (userAccount?.specialty?.toLowerCase().includes('nutrolog') ? 'Nutrólogo(a)' : 'Nutricionista Clínico(a)');
 
     // Context summary for clinic management
@@ -1017,7 +996,6 @@ app.post(["/api/nutria/chat", "/api/nutria"], async (req: Request, res: Response
 [CONTEXTO INTEGRADO DO CONSULTÓRIO NUTRINK]:
 - Profissional Responsável: ${professionalName} (${professionalTitle} • Registro: ${userAccount?.crn || 'Ativo'})
 - Data/Hora Oficial (Brasília): ${brasiliaDateStr} (${brasiliaIsoDate}) às ${brasiliaTime}
-- Saudação Temporal Obrigatória para o Horário Atual (${brasiliaTime}): "${formattedGreeting}" (Regra: 05h-11h59: "Bom dia" | 12h-17h59: "Boa tarde" | 18h-04h59: "Boa noite". NUNCA use "Bom dia" em horários noturnos ou da tarde).
 - Total de Pacientes no Consultório: ${totalPatientsCount}
 - Consultas Hoje na Grade: ${todayAptsCount}
 - Faturamento do Mês: R$ ${monthlyRev.toFixed(2)} | Despesas: R$ ${monthlyExp.toFixed(2)} | Saldo Líquido: R$ ${netBalance.toFixed(2)}
@@ -1147,7 +1125,6 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
 3. Se o usuário solicitou plano alimentar, cardápio, dieta ou refeições (mesmo junto com TMB), OBRIGATORIAMENTE entregue a avaliação metabólica E o plano diário completo com todas as refeições (Desjejum, Colação, Almoço, Lanche, Jantar, Ceia), gramaturas exatas, medidas caseiras, macros e tabela de substituições.
 4. NUNCA utilize templates estáticos ou mensagens evasivas pré-prontas como "estou à disposição no consultório".
 5. Formate as respostas em Markdown limpo, sofisticado e legível, com tabelas organizadas.
-6. REGRA MANDATÓRIA DE SAUDAÇÃO: Horário atual do atendimento é ${brasiliaTime}. Caso o usuário envie saudações (como "Olá", "Bom dia", "Boa tarde", "Boa noite"), utilize OBRIGATORIAMENTE a saudação temporal correspondente: "${formattedGreeting}". NUNCA use "Bom dia" em horários noturnos ou da tarde.
 `,
           temperature: 0.4,
           maxOutputTokens: 4096,
