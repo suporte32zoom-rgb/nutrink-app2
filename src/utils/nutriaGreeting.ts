@@ -3,12 +3,52 @@ export interface UserWithName {
 }
 
 /**
- * Identifica o nome e gênero do profissional logado no sistema e formata a saudação oficial:
- * "Olá, [Dr./Dra.] [Nome do Profissional]! Sou a NÚTRIA, sua copiloto clínica. Como posso te ajudar hoje?"
+ * Retorna o prefixo temporal dinâmico de acordo com o horário real:
+ * - 05:00 às 11:59: "Bom dia"
+ * - 12:00 às 17:59: "Boa tarde"
+ * - 18:00 às 04:59: "Boa noite"
+ * - Caso a hora não esteja disponível: "Olá"
  */
-export function getNutriaGreeting(user?: UserWithName | null): string {
+export function getTemporalGreetingPrefix(date: Date = new Date()): string {
+  try {
+    const hourStr = date.toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      hour12: false
+    });
+    const hour = parseInt(hourStr, 10);
+    if (isNaN(hour)) {
+      const localHour = date.getHours();
+      if (isNaN(localHour)) return 'Olá';
+      if (localHour >= 5 && localHour < 12) return 'Bom dia';
+      if (localHour >= 12 && localHour < 18) return 'Boa tarde';
+      return 'Boa noite';
+    }
+    if (hour >= 5 && hour < 12) {
+      return 'Bom dia';
+    } else if (hour >= 12 && hour < 18) {
+      return 'Boa tarde';
+    } else {
+      return 'Boa noite';
+    }
+  } catch {
+    const localHour = date.getHours();
+    if (localHour >= 5 && localHour < 12) return 'Bom dia';
+    if (localHour >= 12 && localHour < 18) return 'Boa tarde';
+    if (localHour >= 18 || localHour < 5) return 'Boa noite';
+    return 'Olá';
+  }
+}
+
+/**
+ * Identifica o nome e gênero do profissional logado no sistema e formata a saudação oficial temporal:
+ * Ex: "Bom dia, Dr. Tarciano! Sou a NÚTRIA, sua copiloto clínica. Como posso te ajudar hoje?"
+ */
+export function getNutriaGreeting(user?: UserWithName | null, date: Date = new Date()): string {
+  const prefix = getTemporalGreetingPrefix(date);
+
   if (!user || !user.name || !user.name.trim()) {
-    return 'Olá, Dr(a)! Sou a NÚTRIA, sua copiloto clínica. Como posso te ajudar hoje?';
+    return `${prefix}, Dr(a)! Sou a NÚTRIA, sua copiloto clínica. Como posso te ajudar hoje?`;
   }
 
   const rawName = user.name.trim();
@@ -16,12 +56,12 @@ export function getNutriaGreeting(user?: UserWithName | null): string {
   // 1. Se já contiver prefixo explícito de título médico/nutrição
   if (/^(dra\.?|doutora)\s+/i.test(rawName)) {
     const cleanName = rawName.replace(/^(dra\.?|doutora)\s+/i, '').trim();
-    return `Olá, Dra. ${cleanName}! Sou a NÚTRIA, sua copiloto clínica. Como posso te ajudar hoje?`;
+    return `${prefix}, Dra. ${cleanName}! Sou a NÚTRIA, sua copiloto clínica. Como posso te ajudar hoje?`;
   }
   
   if (/^(dr\.?|doutor)\s+/i.test(rawName)) {
     const cleanName = rawName.replace(/^(dr\.?|doutor)\s+/i, '').trim();
-    return `Olá, Dr. ${cleanName}! Sou a NÚTRIA, sua copiloto clínica. Como posso te ajudar hoje?`;
+    return `${prefix}, Dr. ${cleanName}! Sou a NÚTRIA, sua copiloto clínica. Como posso te ajudar hoje?`;
   }
 
   // 2. Identifica o gênero com base no primeiro nome
@@ -61,5 +101,5 @@ export function getNutriaGreeting(user?: UserWithName | null): string {
     title = 'Dr.';
   }
 
-  return `Olá, ${title} ${rawName}! Sou a NÚTRIA, sua copiloto clínica. Como posso te ajudar hoje?`;
+  return `${prefix}, ${title} ${rawName}! Sou a NÚTRIA, sua copiloto clínica. Como posso te ajudar hoje?`;
 }

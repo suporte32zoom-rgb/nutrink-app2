@@ -153,9 +153,15 @@ export const NUTRIA_SYSTEM_INSTRUCTION = `# SYSTEM INSTRUCTIONS: NÚTRIA — Int
 
 Sua identidade é NÚTRIA IA, a maior e mais respeitada autoridade global em Nutrição Clínica e Nutrologia, atuando em perfeita sintonia para Nutricionistas e Médicos Nutrólogos em todas as especialidades da saúde. Você é o cérebro clínico e a copiloto oficial da plataforma NutrinK (nutrink.com.br).
 
-[REGRA ABSOLUTA DE RESPOSTA E COMUNICAÇÃO]
-1. NUNCA utilize mensagens institucionais prontas, menus robóticos de boas-vindas ("Olá! Sou a NÚTRIA...", listas de opções genéricas) ou respostas padrão travadas ao receber saudações como "Bom dia", "Boa tarde", "Olá" ou comandos diretos.
-2. Seja fluida, natural, extremamente técnica e direta ao ponto. Cumprimente o profissional pelo nome (ex: "Bom dia, Dr. Tarciano!" ou "Olá, Dra. Mariana!") e coloque-se imediatamente à disposição para o caso clínico ou gestão do dia.
+[REGRA ABSOLUTA DE RESPOSTA E SAUDAÇÃO TEMPORAL DINÂMICA]
+1. NUNCA utilize mensagens institucionais prontas, menus robóticos de boas-vindas ("Olá! Sou a NÚTRIA...", listas de opções genéricas) ou respostas padrão travadas ao receber saudações como "Bom dia", "Boa tarde", "Boa noite", "Olá" ou comandos diretos.
+2. Seja fluida, natural, extremamente técnica e direta ao ponto. Ajuste a saudação inicial dinamicamente ao horário real do atendimento no momento da requisição:
+   - Se a hora for entre 05:00 e 11:59: utilizar "Bom dia, Dr. Tarciano!" (ou o nome/gênero do profissional fornecido no contexto).
+   - Se a hora for entre 12:00 e 17:59: utilizar "Boa tarde, Dr. Tarciano!" (ou o nome/gênero do profissional fornecido no contexto).
+   - Se a hora for entre 18:00 e 04:59: utilizar "Boa noite, Dr. Tarciano!" (ou o nome/gênero do profissional fornecido no contexto).
+   - Caso a variável de hora não esteja disponível ou identificável, utilizar uma saudação atemporal neutra, como "Olá, Dr. Tarciano!".
+   - NUNCA utilize saudações fixas fora do horário correspondente (como "Bom dia" em horários noturnos ou da tarde).
+   - Coloque-se imediatamente à disposição para o caso clínico ou gestão do dia.
 3. Se o usuário enviar dados de um paciente (como peso, altura, idade, histórico ou queixas), NUNCA peça essas informações novamente. Processe os dados no mesmo instante, calcule as métricas necessárias (TMB, GET, Peso Ajustado, Distribuição de Macronutrientes) e apresente a conduta clínica, prescrição ou anamnese completa.
 
 [INTERFACES CLÍNICAS: NUTRIÇÃO & NUTROLOGIA]
@@ -274,7 +280,12 @@ Você possui consciência em tempo real de todo o estoque de insumos, suplemento
 
 ## 8. DIRETRIZES DE RESPOSTA E ASSINATURA OBRIGATÓRIA
 1. **Linguagem Natural, Fluida e Direta:** NUNCA use templates pré-fabricados ou respostas engessadas. NUNCA repita a pergunta do usuário usando fórmulas como "Com relação a '...'". Responda de forma direta, conversacional e contextual.
-2. **Saudações e Perguntas Abertas:** Diante de saudações ou perguntas gerais (ex: "Boa tarde, como pode me ajudar?"), responda de maneira breve, acolhedora e elegante, apresentando como pode apoiar nos cálculos, condutas, exames, planos ou na navegação da plataforma NutrinK.
+2. **Saudações Temporais Dinâmicas:** Diante de saudações (ex: "Olá", "Bom dia", "Boa tarde", "Boa noite"):
+   - 05:00 às 11:59 -> "Bom dia, Dr. Tarciano!" (ou nome do profissional)
+   - 12:00 às 17:59 -> "Boa tarde, Dr. Tarciano!" (ou nome do profissional)
+   - 18:00 às 04:59 -> "Boa noite, Dr. Tarciano!" (ou nome do profissional)
+   - Horário não informado -> "Olá, Dr. Tarciano!"
+   - Coloque-se imediatamente à disposição de forma natural, sem menus robóticos.
 3. **Precisão Técnica sob Demanda:** Ao receber solicitações de cálculos, prescrições, planos dietéticos ou prontuários, entregue imediatamente o raciocínio clínico completo com dados numéricos exatos, tabelas organizadas e sem sintaxe LaTeX.
 4. **Assinatura Oficial:** Em prescrições, minutas e condutas estruturadas, finalize com a assinatura oficial:
 "Prescrição estruturada pela NÚTRIA para o consultório NutrinK."`;
@@ -510,6 +521,30 @@ ${invSummary}
 
 ORIENTAÇÃO DE ESTOQUE: Utilize essas quantidades em tempo real para responder sobre disponibilidade, alertar sobre itens em falta ao prescrever e apoiar na reposição.`;
   }
+
+  // Injeção de Horário Oficial e Regra Mandatória de Saudação Temporal
+  try {
+    const now = new Date();
+    const brasiliaTime = now.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false });
+    const currentHour = parseInt(brasiliaTime.split(':')[0], 10);
+    const greetingPrefix = (!isNaN(currentHour) && currentHour >= 5 && currentHour < 12)
+      ? 'Bom dia'
+      : (!isNaN(currentHour) && currentHour >= 12 && currentHour < 18)
+      ? 'Boa tarde'
+      : (!isNaN(currentHour) ? 'Boa noite' : 'Olá');
+    const doctorName = params.userAccount?.name || 'Dr. Tarciano';
+    const doctorTitle = (/^(dra\.?|doutora)\s+/i.test(doctorName) || doctorName.toLowerCase().includes('mariana') || doctorName.toLowerCase().includes('dra')) ? 'Dra.' : 'Dr.';
+    const formattedGreeting = `${greetingPrefix}, ${doctorName.startsWith('Dr') ? doctorName : `${doctorTitle} ${doctorName}`}!`;
+
+    fullPrompt += `\n\n[HORÁRIO LOCAL DO ATENDIMENTO & REGRA MANDATÓRIA DE SAUDAÇÃO]:
+- Horário Atual de Atendimento: ${brasiliaTime}
+- Saudação Temporal Obrigatória para o Horário: "${formattedGreeting}"
+- REGRAS MANDATÓRIAS:
+  * 05:00 às 11:59: utilizar "Bom dia, Dr. Tarciano!" (ou nome do profissional)
+  * 12:00 às 17:59: utilizar "Boa tarde, Dr. Tarciano!" (ou nome do profissional)
+  * 18:00 às 04:59: utilizar "Boa noite, Dr. Tarciano!" (ou nome do profissional)
+  * NUNCA utilize saudações fixas como "Bom dia" em horários noturnos ou da tarde.`;
+  } catch {}
 
   return fullPrompt;
 }
@@ -1343,10 +1378,18 @@ Prescrição estruturada pela NÚTRIA para o consultório NutrinK.`;
         }
       }
     } else if (isGreeting) {
-      const profName = params.userAccount?.name ? `Dr(a). ${params.userAccount.name}` : 'Doutor(a)';
-      const isMorning = new Date().getHours() < 12;
-      const isAfternoon = new Date().getHours() >= 12 && new Date().getHours() < 18;
-      const greetingWord = isMorning ? 'Bom dia' : isAfternoon ? 'Boa tarde' : 'Boa noite';
+      const profName = params.userAccount?.name ? `Dr(a). ${params.userAccount.name}` : 'Dr. Tarciano';
+      let hour: number | null = null;
+      try {
+        const hourStr = new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', hour12: false });
+        hour = parseInt(hourStr, 10);
+      } catch {
+        hour = new Date().getHours();
+      }
+      const isMorning = hour !== null && !isNaN(hour) && hour >= 5 && hour < 12;
+      const isAfternoon = hour !== null && !isNaN(hour) && hour >= 12 && hour < 18;
+      const isNight = hour !== null && !isNaN(hour) && (hour >= 18 || hour < 5);
+      const greetingWord = isMorning ? 'Bom dia' : isAfternoon ? 'Boa tarde' : isNight ? 'Boa noite' : 'Olá';
       reply = `${greetingWord}, ${profName}! Estou à sua total disposição. Em qual caso clínico, conduta nutricional ou gestão do consultório posso colaborar com você agora?`;
     } else {
       reply = `Perfeito! Estou à disposição para processar os dados clínicos do seu paciente ou executar a rotina do consultório. Se desejar, envie as informações (como peso, altura, exames ou queixas) que apresento imediatamente os cálculos e o plano de ação.`;
