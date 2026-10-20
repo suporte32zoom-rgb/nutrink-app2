@@ -25,9 +25,9 @@ import {
   Repeat
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { UserAccount, SubscriptionPlan } from '../types';
 import { MercadoPagoLogo } from './MercadoPagoLogo';
 import { NutriaAvatar } from './NutriaAvatar';
+import { PixPaymentModal, PixPlanType } from './PixPaymentModal';
 
 interface MercadoPagoSubscriptionsViewProps {
   userAccount?: UserAccount;
@@ -69,10 +69,17 @@ export const MercadoPagoSubscriptionsView: React.FC<MercadoPagoSubscriptionsView
   onSelectPlan
 }) => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const [isPixModalOpen, setIsPixModalOpen] = useState(false);
+  const [pixInitialPlan, setPixInitialPlan] = useState<PixPlanType>('annual');
 
   const MP_LINKS = {
     annual: 'https://mpago.la/1ZYT8kZ',
     monthly: 'https://mpago.la/1Y7wbXw'
+  };
+
+  const handleOpenPixModal = (cycle: PixPlanType) => {
+    setPixInitialPlan(cycle);
+    setIsPixModalOpen(true);
   };
 
   const handleOpenCheckout = (cycle: 'annual' | 'monthly') => {
@@ -180,7 +187,7 @@ export const MercadoPagoSubscriptionsView: React.FC<MercadoPagoSubscriptionsView
           </div>
 
           {/* Checkout Direct Button */}
-          <div className="pt-6 space-y-3">
+          <div className="pt-6 space-y-2.5">
             <button
               type="button"
               onClick={() => handleOpenCheckout('annual')}
@@ -192,9 +199,20 @@ export const MercadoPagoSubscriptionsView: React.FC<MercadoPagoSubscriptionsView
               <ExternalLink className="w-4 h-4 text-cyan-200 shrink-0" />
             </button>
 
+            <button
+              type="button"
+              onClick={() => handleOpenPixModal('annual')}
+              className="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-950/70 border border-emerald-400/50 transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              id="btn-pix-anual"
+            >
+              <QrCode className="w-5 h-5 text-amber-300 shrink-0" />
+              <span>Pagar com Pix • R$ 899,00</span>
+              <Zap className="w-4 h-4 text-amber-300 shrink-0" />
+            </button>
+
             <div className="flex items-center justify-center gap-1.5 text-[11px] text-purple-300">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Checkout seguro Mercado Pago • Pix, Cartão em até 12x ou Boleto</span>
+              <span>Checkout seguro • Pix Oficial ou Mercado Pago em até 12x</span>
             </div>
           </div>
 
@@ -260,7 +278,7 @@ export const MercadoPagoSubscriptionsView: React.FC<MercadoPagoSubscriptionsView
           </div>
 
           {/* Checkout Direct Button */}
-          <div className="pt-6 space-y-3">
+          <div className="pt-6 space-y-2.5">
             <button
               type="button"
               onClick={() => handleOpenCheckout('monthly')}
@@ -272,9 +290,20 @@ export const MercadoPagoSubscriptionsView: React.FC<MercadoPagoSubscriptionsView
               <ExternalLink className="w-4 h-4 text-fuchsia-200 shrink-0" />
             </button>
 
+            <button
+              type="button"
+              onClick={() => handleOpenPixModal('monthly')}
+              className="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-950/70 border border-emerald-400/50 transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              id="btn-pix-mensal"
+            >
+              <QrCode className="w-5 h-5 text-amber-300 shrink-0" />
+              <span>Pagar com Pix • R$ 89,90</span>
+              <Zap className="w-4 h-4 text-amber-300 shrink-0" />
+            </button>
+
             <div className="flex items-center justify-center gap-1.5 text-[11px] text-purple-300">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Checkout seguro Mercado Pago • Ativação instantânea</span>
+              <span>Checkout seguro • Pix Oficial ou Mercado Pago instantâneo</span>
             </div>
           </div>
 
@@ -430,10 +459,16 @@ export const MercadoPagoSubscriptionsView: React.FC<MercadoPagoSubscriptionsView
       <div className="text-center pt-4 pb-2 text-xs sm:text-sm text-purple-300/90 font-medium">
         <p className="flex items-center justify-center gap-2 flex-wrap">
           <span className="text-base">🔒</span>
-          <span><strong>Pagamento 100% seguro via Mercado Pago</strong> • Ativação imediata • Cancele quando quiser</span>
+          <span><strong>Pagamento 100% seguro via Mercado Pago ou Pix Oficial</strong> • Ativação imediata • Cancele quando quiser</span>
         </p>
       </div>
 
+      {/* Pix Direct Payment Modal */}
+      <PixPaymentModal
+        isOpen={isPixModalOpen}
+        onClose={() => setIsPixModalOpen(false)}
+        initialPlan={pixInitialPlan}
+      />
     </div>
   );
 };

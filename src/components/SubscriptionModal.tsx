@@ -24,6 +24,7 @@ import confetti from 'canvas-confetti';
 import { SubscriptionPlan, UserAccount } from '../types';
 import { MercadoPagoLogo } from './MercadoPagoLogo';
 import { NutriaAvatar } from './NutriaAvatar';
+import { PixPaymentModal, PixPlanType } from './PixPaymentModal';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -68,10 +69,17 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   userAccount
 }) => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [isPixModalOpen, setIsPixModalOpen] = useState(false);
+  const [pixInitialPlan, setPixInitialPlan] = useState<PixPlanType>('annual');
 
   const MP_LINKS = {
     annual: 'https://mpago.la/1ZYT8kZ',
     monthly: 'https://mpago.la/1Y7wbXw'
+  };
+
+  const handleOpenPixModal = (cycle: PixPlanType) => {
+    setPixInitialPlan(cycle);
+    setIsPixModalOpen(true);
   };
 
   if (!isOpen) return null;
@@ -183,6 +191,17 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   <span>Assinar Plano Anual • Mercado Pago</span>
                   <ExternalLink className="w-3.5 h-3.5 text-cyan-200 shrink-0" />
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenPixModal('annual')}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/70 border border-emerald-400/50 transition-all cursor-pointer"
+                  id="modal-btn-pix-anual"
+                >
+                  <QrCode className="w-4 h-4 text-amber-300 shrink-0" />
+                  <span>Pagar com Pix • R$ 899,00</span>
+                  <Zap className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                </button>
               </div>
 
             </div>
@@ -246,6 +265,17 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   <MercadoPagoLogo variant="icon" className="w-4 h-4 shrink-0" />
                   <span>Assinar Plano Mensal • Mercado Pago</span>
                   <ExternalLink className="w-3.5 h-3.5 text-fuchsia-200 shrink-0" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenPixModal('monthly')}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/70 border border-emerald-400/50 transition-all cursor-pointer"
+                  id="modal-btn-pix-mensal"
+                >
+                  <QrCode className="w-4 h-4 text-amber-300 shrink-0" />
+                  <span>Pagar com Pix • R$ 89,90</span>
+                  <Zap className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                 </button>
               </div>
 
@@ -364,11 +394,18 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
         <div className="bg-[#110223] border-t border-purple-800/50 p-4 text-center text-xs text-purple-300 font-medium shrink-0">
           <p className="flex items-center justify-center gap-1.5 flex-wrap">
             <span>🔒</span>
-            <span><strong>Pagamento 100% seguro via Mercado Pago</strong> • Ativação imediata • Cancele quando quiser</span>
+            <span><strong>Pagamento 100% seguro via Mercado Pago ou Pix Oficial</strong> • Ativação imediata • Cancele quando quiser</span>
           </p>
         </div>
 
       </div>
+
+      {/* Pix Direct Payment Modal */}
+      <PixPaymentModal
+        isOpen={isPixModalOpen}
+        onClose={() => setIsPixModalOpen(false)}
+        initialPlan={pixInitialPlan}
+      />
     </div>
   );
 };
