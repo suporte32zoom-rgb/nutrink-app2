@@ -13,7 +13,8 @@ import {
   Activity,
   Pill,
   Boxes,
-  Settings
+  Settings,
+  BookOpen
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { NutriaAvatar } from './NutriaAvatar';
@@ -31,6 +32,7 @@ export type ActiveTab =
   | 'exams'
   | 'prescriptions'
   | 'inventory'
+  | 'blog'
   | 'settings';
 
 interface NavigationProps {
@@ -153,6 +155,13 @@ export const Navigation: React.FC<NavigationProps> = ({
       label: 'Planos e Assinaturas',
       icon: Crown,
       badge: 'PRO'
+    },
+    {
+      id: 'blog',
+      route: '/blog',
+      label: 'Blog & Conteúdo',
+      icon: BookOpen,
+      badge: 'Artigos'
     },
     {
       id: 'settings',

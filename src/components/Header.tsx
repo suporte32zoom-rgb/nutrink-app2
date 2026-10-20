@@ -22,7 +22,8 @@ import {
   Apple,
   Activity,
   Pill,
-  Settings
+  Settings,
+  BookOpen
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NutrinKLogo } from './NutrinKLogo';
@@ -92,6 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'finance', route: '/financeiro', label: 'Financeiro & Faturamento', icon: DollarSign },
     { id: 'nutria_hub', route: '/nutria', label: 'Copiloto NÚTRIA (IA)', icon: Bot },
     { id: 'plans', route: '/planos', label: 'Planos & Assinaturas', icon: Crown },
+    { id: 'blog', route: '/blog', label: 'Blog & Hub de Conteúdo', icon: BookOpen },
     { id: 'settings', route: '/configuracoes', label: 'Configurações', icon: Settings }
   ];
 
