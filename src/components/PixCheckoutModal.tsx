@@ -124,7 +124,7 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
 
   if (!isOpen) return null;
 
-  const planAmount = selectedPlan === 'premium_anual' ? 399.00 : 39.00;
+  const planAmount = selectedPlan === 'premium_anual' ? 899.00 : 89.90;
   const planLabel = selectedPlan === 'premium_anual' ? 'Plano Anual (À Vista)' : 'Plano Mensal (À Vista)';
   const pixPayload = generatePixPayload(
     planAmount, 
@@ -327,7 +327,7 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
               }`}
             >
               <span>Plano Mensal</span>
-              <span className="text-sm font-black text-white">R$ 39,00 <span className="text-[10px] font-normal text-purple-200">à vista</span></span>
+              <span className="text-sm font-black text-white">R$ 89,90 <span className="text-[10px] font-normal text-purple-200">/ mês</span></span>
             </button>
 
             <button
@@ -340,10 +340,10 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
               }`}
             >
               <span className="absolute -top-2.5 right-2 px-1.5 py-0.2 bg-amber-400 text-slate-950 text-[9px] font-black rounded-md uppercase shadow-sm">
-                2 Meses Grátis
+                7 Dias Grátis
               </span>
               <span>Plano Anual</span>
-              <span className="text-sm font-black text-white">R$ 399,00 <span className="text-[10px] font-normal text-purple-200">à vista</span></span>
+              <span className="text-sm font-black text-white">R$ 899,00 <span className="text-[10px] font-normal text-purple-200">/ ano</span></span>
             </button>
           </div>
         </div>

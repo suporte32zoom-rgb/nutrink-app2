@@ -146,11 +146,11 @@ export const MercadoPagoSubscriptionsView: React.FC<MercadoPagoSubscriptionsView
 
             <div className="p-4 rounded-2xl bg-[#15032a] border border-amber-400/30 space-y-1">
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl sm:text-4xl font-black text-white">R$ 399,00</span>
+                <span className="text-3xl sm:text-4xl font-black text-white">R$ 899,00</span>
                 <span className="text-xs sm:text-sm text-purple-300 font-semibold">/ ano</span>
               </div>
               <div className="text-xs text-emerald-400 font-bold flex items-center gap-1">
-                <span>Equivalente a apenas R$ 33,25/mês à vista</span>
+                <span>7 dias de teste grátis sem cartão • Equivalente a R$ 74,91/mês</span>
               </div>
             </div>
 
@@ -226,7 +226,7 @@ export const MercadoPagoSubscriptionsView: React.FC<MercadoPagoSubscriptionsView
 
             <div className="p-4 rounded-2xl bg-[#110223] border border-purple-800/60 space-y-1">
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl sm:text-4xl font-black text-white">R$ 39,00</span>
+                <span className="text-3xl sm:text-4xl font-black text-white">R$ 89,90</span>
                 <span className="text-xs sm:text-sm text-purple-300 font-semibold">/ mês</span>
               </div>
               <div className="text-xs text-purple-300 font-medium">

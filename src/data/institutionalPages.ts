@@ -580,8 +580,8 @@ Tire todas as suas dúvidas sobre o software com melhor custo-benefício, inteli
 
 ---
 
-### 1. Por que o NutrinK é considerado o software de nutrição com melhor custo-benefício do mercado?
-O **NutrinK** foi desenhado para ser o **software de nutrição mais barato e completo**, oferecendo planos a partir de R$ 37 a R$ 39/mês (menos de 50 reais) e um **plano anual super econômico**. Ao contrário de outros sistemas caros, o NutrinK já inclui sem custo extra o copiloto com inteligência artificial, telemedicina com vídeo nativo, cálculos metabólicos e prontuário ilimitado.
+### 1. Quais são os planos e valores de investimento do NutrinK?
+O **NutrinK** oferece o **Plano Mensal Profissional por R$ 89,90/mês** (sem fidelidade, cancele quando quiser) e o **Plano Anual Profissional por R$ 899,00/ano** com **7 dias de teste grátis sem necessidade de cartão de crédito**. O plano unifica a gestão completa do consultório físico e o acesso irrestrito ao copiloto clínico NÚTRIA AI, sem custos adicionais por módulos separados.
 
 ---
 
