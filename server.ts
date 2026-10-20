@@ -2013,9 +2013,15 @@ function crc16Ccitt(str: string): string {
 // BR Code Oficial Banco Central do Brasil para Plano Anual NutrinK (R$ 899,00)
 const OFFICIAL_PIX_ANNUAL_BR_CODE = "00020126860014br.gov.bcb.pix0136484e40dd-f971-41e9-b414-b56421b5d2410224Assinatura AnualPlano 125204000053039865406899.005802BR5907NutrinK6009Sao Paulo62230519daqr28493713595126463044291";
 
+// BR Code Oficial Banco Central do Brasil para Plano Mensal Pro NutrinK (R$ 89,90)
+const OFFICIAL_PIX_MONTHLY_BR_CODE = "00020126780014br.gov.bcb.pix0136484e40dd-f971-41e9-b414-b56421b5d2410216Plano Mensal Pro520400005303986540589.905802BR5907NutrinK6009Sao Paulo62230519daqr28493713564904863040B00";
+
 function createBacemPixPayload(amount: number, description: string = 'NutrinK Premium', txId: string = 'NUTRINK'): string {
   if (Math.abs(amount - 899.00) < 0.01 || description.toLowerCase().includes('anual')) {
     return OFFICIAL_PIX_ANNUAL_BR_CODE;
+  }
+  if (Math.abs(amount - 89.90) < 0.01 || description.toLowerCase().includes('mensal')) {
+    return OFFICIAL_PIX_MONTHLY_BR_CODE;
   }
 
   const formattedAmount = amount.toFixed(2);

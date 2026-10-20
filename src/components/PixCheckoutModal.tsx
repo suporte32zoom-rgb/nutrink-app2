@@ -34,6 +34,7 @@ import {
   getPixQrCodeUrl, 
   OFFICIAL_PIX_ANNUAL_BR_CODE, 
   OFFICIAL_PIX_ANNUAL_AMOUNT, 
+  OFFICIAL_PIX_MONTHLY_BR_CODE,
   OFFICIAL_PIX_MONTHLY_AMOUNT 
 } from '../utils/pix';
 import { saveRegisteredUser, RegisteredProfessionalUser, SPECIALTY_OPTIONS } from './LoginModal';
@@ -148,16 +149,12 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
 
   // Preço oficial do Plano Anual (R$ 899,00) e Plano Mensal (R$ 89,90)
   const planAmount = selectedPlan === 'premium_anual' ? OFFICIAL_PIX_ANNUAL_AMOUNT : OFFICIAL_PIX_MONTHLY_AMOUNT;
-  const planLabel = selectedPlan === 'premium_anual' ? 'Assinatura Anual NutrinK' : 'Plano Mensal (À Vista)';
+  const planLabel = selectedPlan === 'premium_anual' ? 'Assinatura Anual NutrinK' : 'Plano Mensal Pro NutrinK';
 
-  // Código Pix / BR Code Oficial para o Plano Anual (Copia e Cola registrado)
+  // Código Pix / BR Code Oficial para o Plano Anual e Plano Mensal (Copia e Cola registrado)
   const pixPayload = selectedPlan === 'premium_anual'
     ? OFFICIAL_PIX_ANNUAL_BR_CODE
-    : generatePixPayload(
-        planAmount, 
-        `NutrinK ${selectedPlan === 'premium_anual' ? 'Anual' : 'Mensal'}`,
-        `NUTRINK${Date.now().toString().slice(-6)}`
-      );
+    : OFFICIAL_PIX_MONTHLY_BR_CODE;
   const qrCodeUrl = getPixQrCodeUrl(pixPayload);
 
   // Step 1 Validation & Proceed to Payment
@@ -709,7 +706,7 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
                           </span>
                         </div>
                         <span className="px-2.5 py-1 rounded-lg bg-purple-900/60 text-purple-200 border border-purple-700 text-xs font-bold">
-                          {selectedPlan === 'premium_anual' ? 'Assinatura Anual' : 'Assinatura Mensal'}
+                          {selectedPlan === 'premium_anual' ? 'Assinatura Anual' : 'Plano Mensal Pro'}
                         </span>
                       </div>
 

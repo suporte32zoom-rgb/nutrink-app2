@@ -13,6 +13,11 @@ export const PIX_RECEIVER_CITY = 'Sao Paulo';
  */
 export const OFFICIAL_PIX_ANNUAL_BR_CODE = '00020126860014br.gov.bcb.pix0136484e40dd-f971-41e9-b414-b56421b5d2410224Assinatura AnualPlano 125204000053039865406899.005802BR5907NutrinK6009Sao Paulo62230519daqr28493713595126463044291';
 export const OFFICIAL_PIX_ANNUAL_AMOUNT = 899.00;
+
+/**
+ * BR Code Oficial (Copia e Cola) registrado no Banco Central para o Plano Mensal Pro NutrinK (R$ 89,90)
+ */
+export const OFFICIAL_PIX_MONTHLY_BR_CODE = '00020126780014br.gov.bcb.pix0136484e40dd-f971-41e9-b414-b56421b5d2410216Plano Mensal Pro520400005303986540589.905802BR5907NutrinK6009Sao Paulo62230519daqr28493713564904863040B00';
 export const OFFICIAL_PIX_MONTHLY_AMOUNT = 89.90;
 
 function padTag(id: string, value: string): string {
@@ -40,9 +45,14 @@ function crc16Ccitt(str: string): string {
 }
 
 export function generatePixPayload(amount: number, description: string = 'NutrinK Premium', txId: string = 'NUTRINK'): string {
-  // Se for o valor oficial do Plano Anual (R$ 899,00), retorna o BR Code oficial validado
+  // Se for o valor oficial do Plano Anual (R$ 899,00) ou menção anual, retorna o BR Code oficial validado
   if (Math.abs(amount - OFFICIAL_PIX_ANNUAL_AMOUNT) < 0.01 || description.toLowerCase().includes('anual')) {
     return OFFICIAL_PIX_ANNUAL_BR_CODE;
+  }
+
+  // Se for o valor oficial do Plano Mensal (R$ 89,90) ou menção mensal, retorna o BR Code oficial validado
+  if (Math.abs(amount - OFFICIAL_PIX_MONTHLY_AMOUNT) < 0.01 || description.toLowerCase().includes('mensal')) {
+    return OFFICIAL_PIX_MONTHLY_BR_CODE;
   }
 
   // Format amount to 2 decimal places
