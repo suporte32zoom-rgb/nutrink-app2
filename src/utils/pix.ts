@@ -89,6 +89,6 @@ export function generatePixPayload(amount: number, description: string = 'Nutrin
 
 export function getPixQrCodeUrl(payload: string): string {
   const encoded = encodeURIComponent(payload);
-  return `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encoded}&color=150328&bgcolor=ffffff&margin=10`;
+  return `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encoded}&color=150328&bgcolor=ffffff&margin=4`;
 }
 

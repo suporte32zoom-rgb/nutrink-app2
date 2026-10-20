@@ -204,11 +204,19 @@ export const PixPaymentModal: React.FC<PixPaymentModalProps> = ({
             <>
               {/* QR Code Container */}
               <div className="flex flex-col items-center">
-                <div className="p-3 bg-white rounded-2xl shadow-xl shadow-purple-950/70 border border-purple-200 relative group">
+                <div className="p-2 sm:p-2.5 bg-white rounded-2xl shadow-2xl shadow-purple-950/80 border-2 border-purple-200/90 relative group flex items-center justify-center">
                   <img
                     src={qrImageSrc}
                     alt={`QR Code Pix NutrinK ${planName}`}
-                    className="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-lg"
+                    className="w-[280px] h-[280px] sm:w-[300px] sm:h-[300px] object-contain rounded-xl select-none"
+                    style={{
+                      imageRendering: 'pixelated',
+                      width: '300px',
+                      height: '300px',
+                      maxWidth: '85vw',
+                      maxHeight: '85vw',
+                      aspectRatio: '1 / 1'
+                    }}
                     onError={(e) => {
                       // Fallback to dynamic QR server if local image file has any loading issue
                       (e.target as HTMLImageElement).src = getPixQrCodeUrl(pixCode);

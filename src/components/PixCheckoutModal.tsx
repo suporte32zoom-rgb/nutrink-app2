@@ -156,6 +156,9 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
     ? OFFICIAL_PIX_ANNUAL_BR_CODE
     : OFFICIAL_PIX_MONTHLY_BR_CODE;
   const qrCodeUrl = getPixQrCodeUrl(pixPayload);
+  const officialQrImageSrc = selectedPlan === 'premium_anual'
+    ? '/assets/aistudio/qr-code-pixnutrink_0acc2a26.png'
+    : '/assets/aistudio/qr-code-pixnutrink89_0d4d25e5.png';
 
   // Step 1 Validation & Proceed to Payment
   const handleProceedToPayment = (e?: React.FormEvent) => {
@@ -679,16 +682,27 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
                     
                     {/* QR Code Container */}
                     <div className="flex flex-col items-center shrink-0">
-                      <div className="p-3 bg-white rounded-2xl shadow-lg relative group">
+                      <div className="p-2 sm:p-2.5 bg-white rounded-2xl shadow-2xl relative group flex items-center justify-center">
                         <img 
-                          src={qrCodeUrl} 
+                          src={officialQrImageSrc} 
                           alt="QR Code PIX NutrinK" 
-                          className="w-44 h-44 sm:w-48 sm:h-48 object-contain rounded-lg"
+                          className="w-[280px] h-[280px] sm:w-[300px] sm:h-[300px] object-contain rounded-xl select-none"
+                          style={{
+                            imageRendering: 'pixelated',
+                            width: '300px',
+                            height: '300px',
+                            maxWidth: '85vw',
+                            maxHeight: '85vw',
+                            aspectRatio: '1 / 1'
+                          }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = qrCodeUrl;
+                          }}
                         />
                         <div className="absolute inset-0 bg-black/5 rounded-2xl pointer-events-none"></div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 mt-2 text-[11px] text-purple-300 font-medium">
+                      <div className="flex items-center gap-1.5 mt-2.5 text-[11px] text-purple-300 font-medium">
                         <Clock className="w-3.5 h-3.5 text-amber-400" />
                         <span>Expira em: <strong className="text-amber-300">{formatTime(timeLeft)}</strong></span>
                       </div>
