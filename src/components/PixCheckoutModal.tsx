@@ -678,28 +678,29 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
                   </div>
 
                   {/* QR Code and Value Card */}
-                  <div className="bg-gradient-to-b from-[#1c0536] to-[#120224] border border-purple-800/70 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center gap-6 shadow-xl">
+                  <div className="bg-gradient-to-b from-[#1c0536] to-[#120224] border border-purple-800/70 rounded-2xl p-3 sm:p-5 flex flex-col md:flex-row items-center gap-5 shadow-xl">
                     
                     {/* QR Code Container */}
-                    <div className="flex flex-col items-center shrink-0">
-                      <div className="p-2 sm:p-2.5 bg-white rounded-2xl shadow-2xl relative group flex items-center justify-center">
+                    <div className="flex flex-col items-center shrink-0 w-full md:w-auto">
+                      <div 
+                        className="w-full max-w-[344px] rounded-2xl shadow-2xl relative flex items-center justify-center mx-auto"
+                        style={{ backgroundColor: '#ffffff', padding: '12px' }}
+                      >
                         <img 
                           src={officialQrImageSrc} 
                           alt="QR Code PIX NutrinK" 
-                          className="w-[280px] h-[280px] sm:w-[300px] sm:h-[300px] object-contain rounded-xl select-none"
+                          className="w-full max-w-[320px] object-contain rounded-lg select-none block"
                           style={{
+                            width: '100%',
+                            maxWidth: '320px',
+                            aspectRatio: '1 / 1',
                             imageRendering: 'pixelated',
-                            width: '300px',
-                            height: '300px',
-                            maxWidth: '85vw',
-                            maxHeight: '85vw',
-                            aspectRatio: '1 / 1'
+                            display: 'block'
                           }}
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = qrCodeUrl;
                           }}
                         />
-                        <div className="absolute inset-0 bg-black/5 rounded-2xl pointer-events-none"></div>
                       </div>
 
                       <div className="flex items-center gap-1.5 mt-2.5 text-[11px] text-purple-300 font-medium">

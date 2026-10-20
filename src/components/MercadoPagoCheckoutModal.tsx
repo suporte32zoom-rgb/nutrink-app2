@@ -25,6 +25,7 @@ import { SubscriptionPlan, UserAccount } from '../types';
 import { MercadoPagoLogo } from './MercadoPagoLogo';
 import { safeFetchJson } from '../utils/api';
 import { createCardTokenClient, getMercadoPagoClient } from '../services/mercadoPagoClient';
+import { getPixQrCodeUrl } from '../utils/pix';
 
 interface MercadoPagoCheckoutModalProps {
   isOpen: boolean;
@@ -668,33 +669,42 @@ export const MercadoPagoCheckoutModal: React.FC<MercadoPagoCheckoutModalProps> =
                       </div>
 
                       {/* QR Code Canvas */}
-                      <div className="bg-white p-4 rounded-2xl w-fit mx-auto shadow-2xl flex flex-col items-center justify-center border-4 border-[#009EE3]/40 relative">
-                        <div className="mb-2 flex items-center gap-1.5 bg-[#009EE3] text-white px-3 py-1 rounded-full text-[11px] font-black shadow-sm">
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                          <span>Mercado Pago • Pix Transparente</span>
-                        </div>
-
-                        {pixData.qrCodeBase64 ? (
-                          <div className="relative">
+                      <div className="flex flex-col items-center justify-center w-full my-2">
+                        <div 
+                          className="w-full max-w-[344px] rounded-2xl shadow-2xl flex items-center justify-center mx-auto"
+                          style={{ backgroundColor: '#ffffff', padding: '12px' }}
+                        >
+                          {pixData.qrCodeBase64 ? (
                             <img 
                               src={`data:image/png;base64,${pixData.qrCodeBase64}`} 
                               alt="QR Code PIX Mercado Pago"
-                              className="w-44 h-44 sm:w-52 sm:h-52 object-contain rounded-lg"
+                              className="w-full max-w-[320px] object-contain rounded-lg select-none block"
+                              style={{
+                                width: '100%',
+                                maxWidth: '320px',
+                                aspectRatio: '1 / 1',
+                                imageRendering: 'pixelated',
+                                display: 'block'
+                              }}
                             />
-                          </div>
-                        ) : (
-                          <div className="w-48 h-48 flex items-center justify-center text-slate-800 font-bold text-xs text-center p-2">
-                            QR Code PIX Mercado Pago
-                          </div>
-                        )}
-
-                        <div className="text-center mt-2 space-y-0.5">
-                          <span className="text-base text-slate-900 font-black block">
-                            R$ {planAmount.toFixed(2).replace('.', ',')}
-                          </span>
-                          <span className="text-[11px] text-slate-600 font-semibold block">
-                            Aponte a câmera do aplicativo do seu banco
-                          </span>
+                          ) : pixData.qrCode ? (
+                            <img 
+                              src={getPixQrCodeUrl(pixData.qrCode)} 
+                              alt="QR Code PIX Mercado Pago"
+                              className="w-full max-w-[320px] object-contain rounded-lg select-none block"
+                              style={{
+                                width: '100%',
+                                maxWidth: '320px',
+                                aspectRatio: '1 / 1',
+                                imageRendering: 'pixelated',
+                                display: 'block'
+                              }}
+                            />
+                          ) : (
+                            <div className="w-72 h-72 flex items-center justify-center text-slate-800 font-bold text-xs text-center p-4">
+                              QR Code PIX Mercado Pago
+                            </div>
+                          )}
                         </div>
                       </div>
 

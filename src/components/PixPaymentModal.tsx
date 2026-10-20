@@ -104,13 +104,13 @@ export const PixPaymentModal: React.FC<PixPaymentModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fadeIn"
       id="pix-payment-modal"
     >
       <div className="bg-[#150328] border border-purple-800/70 rounded-3xl max-w-lg w-full text-white shadow-2xl overflow-hidden relative max-h-[92vh] flex flex-col my-auto shadow-purple-950/80">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#45147C] via-[#620EAB] to-[#440974] p-5 sm:p-6 text-center relative border-b border-purple-800/50 shrink-0">
+        <div className="bg-gradient-to-r from-[#45147C] via-[#620EAB] to-[#440974] px-4 py-4 sm:p-5 text-center relative border-b border-purple-800/50 shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -169,7 +169,7 @@ export const PixPaymentModal: React.FC<PixPaymentModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
+        <div className="p-3 sm:p-5 space-y-4 overflow-y-auto flex-1">
           
           {isConfirmed ? (
             <div className="text-center py-6 space-y-4 animate-fadeIn">
@@ -203,29 +203,30 @@ export const PixPaymentModal: React.FC<PixPaymentModalProps> = ({
           ) : (
             <>
               {/* QR Code Container */}
-              <div className="flex flex-col items-center">
-                <div className="p-2 sm:p-2.5 bg-white rounded-2xl shadow-2xl shadow-purple-950/80 border-2 border-purple-200/90 relative group flex items-center justify-center">
+              <div className="flex flex-col items-center w-full">
+                <div 
+                  className="w-full max-w-[344px] rounded-2xl shadow-2xl flex items-center justify-center mx-auto relative"
+                  style={{ backgroundColor: '#ffffff', padding: '12px' }}
+                >
                   <img
                     src={qrImageSrc}
                     alt={`QR Code Pix NutrinK ${planName}`}
-                    className="w-[280px] h-[280px] sm:w-[300px] sm:h-[300px] object-contain rounded-xl select-none"
+                    className="w-full max-w-[320px] object-contain rounded-lg select-none block"
                     style={{
+                      width: '100%',
+                      maxWidth: '320px',
+                      aspectRatio: '1 / 1',
                       imageRendering: 'pixelated',
-                      width: '300px',
-                      height: '300px',
-                      maxWidth: '85vw',
-                      maxHeight: '85vw',
-                      aspectRatio: '1 / 1'
+                      display: 'block'
                     }}
                     onError={(e) => {
                       // Fallback to dynamic QR server if local image file has any loading issue
                       (e.target as HTMLImageElement).src = getPixQrCodeUrl(pixCode);
                     }}
                   />
-                  <div className="absolute inset-0 bg-black/5 rounded-2xl pointer-events-none"></div>
                 </div>
 
-                <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-purple-200">
+                <div className="mt-2.5 flex items-center gap-2 text-xs font-semibold text-purple-200">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   <span>Favorecido Oficial: <strong className="text-white">NutrinK</strong> (São Paulo)</span>
                 </div>
