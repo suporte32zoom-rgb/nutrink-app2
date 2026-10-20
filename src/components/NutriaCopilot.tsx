@@ -656,7 +656,7 @@ export const NutriaCopilot: React.FC<NutriaCopilotProps> = ({
                               <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                             </button>
                             <span className="text-[11px] text-purple-300">
-                              A partir de <strong>R$ 39,90/mês</strong> ou <strong>R$ 399,90/ano</strong>
+                              A partir de <strong>R$ 89,90/mês</strong> ou <strong>R$ 899,00/ano</strong> (7 dias de teste grátis sem cartão)
                             </span>
                           </div>
                         )}

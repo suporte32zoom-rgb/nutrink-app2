@@ -2010,11 +2010,18 @@ function crc16Ccitt(str: string): string {
   return crc.toString(16).toUpperCase().padStart(4, '0');
 }
 
+// BR Code Oficial Banco Central do Brasil para Plano Anual NutrinK (R$ 899,00)
+const OFFICIAL_PIX_ANNUAL_BR_CODE = "00020126860014br.gov.bcb.pix0136484e40dd-f971-41e9-b414-b56421b5d2410224Assinatura AnualPlano 125204000053039865406899.005802BR5907NutrinK6009Sao Paulo62230519daqr28493713595126463044291";
+
 function createBacemPixPayload(amount: number, description: string = 'NutrinK Premium', txId: string = 'NUTRINK'): string {
+  if (Math.abs(amount - 899.00) < 0.01 || description.toLowerCase().includes('anual')) {
+    return OFFICIAL_PIX_ANNUAL_BR_CODE;
+  }
+
   const formattedAmount = amount.toFixed(2);
   const pixKey = '321.785.4448/94';
-  const receiverName = 'NutrinK Consultorio';
-  const receiverCity = 'SAO PAULO';
+  const receiverName = 'NutrinK';
+  const receiverCity = 'Sao Paulo';
 
   const gui = padTag('00', 'br.gov.bcb.pix');
   const key = padTag('01', pixKey);
@@ -2042,13 +2049,13 @@ const handleCreatePix = async (req: Request, res: Response) => {
   try {
     const { planId, payerEmail, payerName, payerCpf, customAmount } = req.body;
     
-    // Calculate final price in BRL
-    let amount = 39.00;
-    let description = "NutrinK • Assinatura Premium Mensal";
+    // Calculate final price in BRL (Novos Preços Oficiais NutrinK: R$ 89,90/mês e R$ 899,00/ano)
+    let amount = 89.90;
+    let description = "NutrinK • Assinatura Profissional Mensal";
     
     if (planId === 'premium_anual') {
-      amount = 399.00;
-      description = "NutrinK • Assinatura Premium Anual";
+      amount = 899.00;
+      description = "Assinatura Anual NutrinK";
     } else if (customAmount && Number(customAmount) > 0) {
       amount = Number(customAmount);
       description = `NutrinK • Atendimento Clínico / Consulta`;
@@ -2255,11 +2262,11 @@ const handleProcessCard = async (req: Request, res: Response) => {
       customAmount
     } = req.body;
 
-    let amount = 39.00;
-    let description = "NutrinK • Assinatura Premium Mensal";
+    let amount = 89.90;
+    let description = "NutrinK • Assinatura Profissional Mensal";
     if (planId === 'premium_anual') {
-      amount = 399.00;
-      description = "NutrinK • Assinatura Premium Anual";
+      amount = 899.00;
+      description = "Assinatura Anual NutrinK";
     } else if (customAmount && Number(customAmount) > 0) {
       amount = Number(customAmount);
       description = "NutrinK • Atendimento Clínico";
@@ -2440,11 +2447,11 @@ app.post("/api/payments/process-payment", handleProcessCard);
 const handleCreateBoleto = async (req: Request, res: Response) => {
   try {
     const { planId, payerEmail, payerName, payerCpf, customAmount } = req.body;
-    let amount = 39.00;
-    let description = "NutrinK • Assinatura Premium Mensal";
+    let amount = 89.90;
+    let description = "NutrinK • Assinatura Profissional Mensal";
     if (planId === 'premium_anual') {
-      amount = 399.00;
-      description = "NutrinK • Assinatura Premium Anual";
+      amount = 899.00;
+      description = "Assinatura Anual NutrinK";
     } else if (customAmount && Number(customAmount) > 0) {
       amount = Number(customAmount);
       description = "NutrinK • Atendimento Clínico";
@@ -2535,12 +2542,12 @@ const handleCreatePreference = async (req: Request, res: Response) => {
     const token = getMercadoPagoToken();
     const mpClient = getMercadoPago();
 
-    let unitPrice = 39.00;
-    let title = "Plano Premium Mensal NutrinK";
+    let unitPrice = 89.90;
+    let title = "Plano Mensal Profissional NutrinK";
 
     if (planId === 'premium_anual') {
-      unitPrice = 399.00;
-      title = "Plano Premium Anual NutrinK (12 Meses)";
+      unitPrice = 899.00;
+      title = "Plano Anual Profissional NutrinK (12 Meses)";
     }
 
     // Payer formatting & validation

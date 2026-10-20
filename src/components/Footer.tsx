@@ -157,7 +157,7 @@ export const Footer: React.FC<FooterProps> = ({
                   id="footer-link-planos"
                 >
                   <CreditCard className="w-3.5 h-3.5 text-purple-400 group-hover:text-fuchsia-400 transition-colors" />
-                  <span className="font-semibold text-amber-300/90 group-hover:text-amber-300">Planos e Preços (R$ 39,00 à vista via PIX)</span>
+                  <span className="font-semibold text-amber-300/90 group-hover:text-amber-300">Planos e Preços (Plano Mensal e Anual • 7 Dias Grátis)</span>
                 </button>
               </li>
             </ul>

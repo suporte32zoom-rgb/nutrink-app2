@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   QrCode, 
   Copy, 
@@ -23,11 +23,19 @@ import {
   Eye,
   EyeOff,
   Stethoscope,
-  Apple
+  Apple,
+  Upload,
+  FileCheck
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SubscriptionPlan, UserAccount } from '../types';
-import { generatePixPayload, getPixQrCodeUrl } from '../utils/pix';
+import { 
+  generatePixPayload, 
+  getPixQrCodeUrl, 
+  OFFICIAL_PIX_ANNUAL_BR_CODE, 
+  OFFICIAL_PIX_ANNUAL_AMOUNT, 
+  OFFICIAL_PIX_MONTHLY_AMOUNT 
+} from '../utils/pix';
 import { saveRegisteredUser, RegisteredProfessionalUser, SPECIALTY_OPTIONS } from './LoginModal';
 
 const BRAZILIAN_UFS = [
@@ -86,6 +94,18 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
   const [isVerifying, setIsVerifying] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 min countdown
+  const [voucherFileName, setVoucherFileName] = useState<string | null>(null);
+  const [voucherFileSize, setVoucherFileSize] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setVoucherFileName(file.name);
+      const sizeInKb = (file.size / 1024).toFixed(0);
+      setVoucherFileSize(`${sizeInKb} KB`);
+    }
+  };
 
   useEffect(() => {
     if (initialPlanId) {
@@ -108,6 +128,8 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
       setFormError(null);
       setIsApproved(false);
       setIsVerifying(false);
+      setVoucherFileName(null);
+      setVoucherFileSize(null);
       setTimeLeft(15 * 60);
       setStep('register');
     }
@@ -124,13 +146,18 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
 
   if (!isOpen) return null;
 
-  const planAmount = selectedPlan === 'premium_anual' ? 899.00 : 89.90;
-  const planLabel = selectedPlan === 'premium_anual' ? 'Plano Anual (À Vista)' : 'Plano Mensal (À Vista)';
-  const pixPayload = generatePixPayload(
-    planAmount, 
-    `NutrinK ${selectedPlan === 'premium_anual' ? 'Anual' : 'Mensal'}`,
-    `NUTRINK${Date.now().toString().slice(-6)}`
-  );
+  // Preço oficial do Plano Anual (R$ 899,00) e Plano Mensal (R$ 89,90)
+  const planAmount = selectedPlan === 'premium_anual' ? OFFICIAL_PIX_ANNUAL_AMOUNT : OFFICIAL_PIX_MONTHLY_AMOUNT;
+  const planLabel = selectedPlan === 'premium_anual' ? 'Assinatura Anual NutrinK' : 'Plano Mensal (À Vista)';
+
+  // Código Pix / BR Code Oficial para o Plano Anual (Copia e Cola registrado)
+  const pixPayload = selectedPlan === 'premium_anual'
+    ? OFFICIAL_PIX_ANNUAL_BR_CODE
+    : generatePixPayload(
+        planAmount, 
+        `NutrinK ${selectedPlan === 'premium_anual' ? 'Anual' : 'Mensal'}`,
+        `NUTRINK${Date.now().toString().slice(-6)}`
+      );
   const qrCodeUrl = getPixQrCodeUrl(pixPayload);
 
   // Step 1 Validation & Proceed to Payment
@@ -715,12 +742,12 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
                             {copiedPayload ? (
                               <>
                                 <Check className="w-3.5 h-3.5 text-white" />
-                                <span>Copiado!</span>
+                                <span>Código Copiado!</span>
                               </>
                             ) : (
                               <>
                                 <Copy className="w-3.5 h-3.5 text-purple-200" />
-                                <span>Copiar Código</span>
+                                <span>Copiar Código Pix Copia e Cola</span>
                               </>
                             )}
                           </button>
@@ -734,6 +761,65 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
                       </div>
 
                     </div>
+                  </div>
+
+                  {/* Upload de Comprovante & Confirmação */}
+                  <div className="bg-[#17042e] border border-purple-800/60 rounded-2xl p-4 text-xs text-purple-200 space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="font-bold text-white flex items-center gap-2 text-xs">
+                        <Upload className="w-4 h-4 text-cyan-400" />
+                        <span>Comprovante de Pagamento (Opcional para Agilização)</span>
+                      </div>
+                      <span className="text-[10px] text-purple-400 font-medium">Formatos: PDF, PNG, JPG</span>
+                    </div>
+
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileUpload} 
+                      accept="image/*,.pdf" 
+                      className="hidden" 
+                    />
+
+                    {voucherFileName ? (
+                      <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-xl flex items-center justify-between gap-3 text-xs text-emerald-200 animate-fadeIn">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <FileCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <div className="truncate">
+                            <span className="font-bold truncate block">{voucherFileName}</span>
+                            <span className="text-[10px] text-emerald-400/80">{voucherFileSize} • Anexado com sucesso</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { setVoucherFileName(null); setVoucherFileSize(null); }}
+                          className="text-[11px] text-rose-300 hover:text-rose-100 underline shrink-0 cursor-pointer"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#25074d] hover:bg-[#340b6c] text-purple-200 hover:text-white border border-purple-700/60 flex items-center justify-center gap-2 font-semibold text-xs transition-all cursor-pointer shadow-sm"
+                          id="btn-upload-comprovante"
+                        >
+                          <Upload className="w-3.5 h-3.5 text-cyan-300" />
+                          <span>Fazer Upload de Comprovante</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleWhatsAppVoucher}
+                          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#1d0637] hover:bg-[#2a0950] text-purple-200 hover:text-white border border-purple-700/60 flex items-center justify-center gap-2 font-semibold text-xs transition-all cursor-pointer"
+                        >
+                          <Send className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Enviar Comprovante via WhatsApp</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Step-by-step instructions */}
@@ -767,19 +853,10 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setStep('register')}
-                        className="px-3.5 py-2.5 rounded-xl bg-[#18042f] hover:bg-[#250847] text-purple-300 hover:text-white text-xs font-bold transition-all border border-purple-800 flex items-center gap-1.5"
+                        className="px-3.5 py-2.5 rounded-xl bg-[#18042f] hover:bg-[#250847] text-purple-300 hover:text-white text-xs font-bold transition-all border border-purple-800 flex items-center gap-1.5 cursor-pointer"
                       >
                         <ArrowLeft className="w-3.5 h-3.5" />
                         <span>Voltar ao Cadastro</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleWhatsAppVoucher}
-                        className="px-3.5 py-2.5 rounded-xl bg-[#1d0637] hover:bg-[#2a0950] text-purple-200 hover:text-white text-xs font-bold transition-all border border-purple-700/60 flex items-center justify-center gap-1.5"
-                      >
-                        <Send className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Comprovante</span>
                       </button>
                     </div>
 
@@ -787,7 +864,7 @@ export const PixCheckoutModal: React.FC<PixCheckoutModalProps> = ({
                       type="button"
                       onClick={handleConfirmPayment}
                       disabled={isVerifying}
-                      className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-fuchsia-600 hover:from-emerald-500 hover:to-fuchsia-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-950/60 border border-emerald-400/50 flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                      className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-fuchsia-600 hover:from-emerald-500 hover:to-fuchsia-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-950/60 border border-emerald-400/50 flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                       id="btn-confirm-pix-payment"
                     >
                       {isVerifying ? (

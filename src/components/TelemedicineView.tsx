@@ -586,10 +586,10 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
           </div>
         </div>
 
-        {/* Plan Cards Grid (Mensal R$ 39,00 / Anual R$ 399,00) */}
+        {/* Plan Cards Grid (Mensal R$ 89,90 / Anual R$ 899,00) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
           
-          {/* Card 1: Plano Mensal (R$ 39,00/mês) */}
+          {/* Card 1: Plano Mensal (R$ 89,90/mês) */}
           <div className="bg-[#17042c] border border-purple-800/60 rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative shadow-xl shadow-purple-950/50 hover:border-purple-600/80 transition-all">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -607,8 +607,8 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
               <div className="pt-2 pb-1 border-y border-purple-900/40">
                 <div className="flex items-baseline gap-1">
                   <span className="text-sm font-semibold text-purple-300">R$</span>
-                  <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">39</span>
-                  <span className="text-lg font-bold text-purple-300">,00</span>
+                  <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">89</span>
+                  <span className="text-lg font-bold text-purple-300">,90</span>
                   <span className="text-xs text-purple-400 font-medium ml-1">/mês</span>
                 </div>
               </div>
@@ -643,17 +643,17 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
                 className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 hover:to-indigo-500 text-white font-black text-sm shadow-lg shadow-purple-950/60 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 id="btn-subscribe-monthly-telemed"
               >
-                <span>Assinar Plano Mensal • R$ 39,00</span>
+                <span>Assinar Plano Mensal • R$ 89,90</span>
                 <ExternalLink className="w-4 h-4" />
               </button>
               <p className="text-[11px] text-center text-purple-400">Pagamento seguro via Mercado Pago (Cartão, Pix ou Boleto)</p>
             </div>
           </div>
 
-          {/* Card 2: Plano Anual (R$ 399,00/ano) - DESTAQUE */}
+          {/* Card 2: Plano Anual (R$ 899,00/ano) - DESTAQUE */}
           <div className="bg-gradient-to-b from-[#240645] via-[#1a0433] to-[#140226] border-2 border-amber-400/80 rounded-3xl p-6 sm:p-7 flex flex-col justify-between relative shadow-2xl shadow-amber-950/40 hover:border-amber-300 transition-all">
             <div className="absolute -top-3.5 right-6 px-3.5 py-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-md">
-              Mais Econômico • 2 Meses Grátis
+              7 Dias Grátis • Mais Recomendado
             </div>
 
             <div className="space-y-4">
@@ -666,17 +666,17 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
 
               <div>
                 <h3 className="text-2xl font-black text-white">Acesso Anual Ilimitado</h3>
-                <p className="text-xs text-amber-200/90 mt-1">Economize pagando o equivalente a R$ 33,25/mês.</p>
+                <p className="text-xs text-amber-200/90 mt-1">Economize pagando o equivalente a R$ 74,91/mês.</p>
               </div>
 
               <div className="pt-2 pb-1 border-y border-purple-800/40">
                 <div className="flex items-baseline gap-1">
                   <span className="text-sm font-semibold text-amber-200">R$</span>
-                  <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">399</span>
+                  <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">899</span>
                   <span className="text-lg font-bold text-amber-200">,00</span>
                   <span className="text-xs text-purple-300 font-medium ml-1">/ano</span>
                 </div>
-                <p className="text-[11px] text-emerald-400 font-semibold mt-1">Equivalente a R$ 33,25 por mês à vista ou parcelado</p>
+                <p className="text-[11px] text-emerald-400 font-semibold mt-1">7 dias de teste grátis sem cartão • R$ 74,91/mês à vista ou parcelado</p>
               </div>
 
               <ul className="space-y-2.5 pt-2 text-xs sm:text-sm text-purple-100 font-medium">
@@ -706,7 +706,7 @@ Basta clicar no link acima pelo seu celular ou computador (com câmera e microfo
                 id="btn-subscribe-annual-telemed"
               >
                 <Sparkles className="w-4 h-4 text-slate-950" />
-                <span>Assinar Plano Anual • R$ 399,00</span>
+                <span>Assinar Plano Anual • R$ 899,00</span>
                 <ExternalLink className="w-4 h-4" />
               </button>
               <p className="text-[11px] text-center text-purple-400">Ativação instantânea via Mercado Pago</p>

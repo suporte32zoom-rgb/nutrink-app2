@@ -951,7 +951,7 @@ export function App() {
       role: 'assistant',
       content: `# 🎉 PARABÉNS, ${userName.toUpperCase()}! SEU CONSULTÓRIO ESTÁ ATIVADO!
       
-Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 399,00 à vista via PIX)' : 'Premium Mensal (R$ 39,00 à vista via PIX)'}** foi liberado e seu cadastro foi registrado com sucesso!
+Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 899,00 à vista via PIX)' : 'Premium Mensal (R$ 89,90 à vista via PIX)'}** foi liberado e seu cadastro foi registrado com sucesso!
 
 ### 🌟 Seu Consultório Inteligente Desbloqueado:
 - **Copiloto NUTRIA ILIMITADO**: Sem restrições de mensagens, cálculos ou consultas.

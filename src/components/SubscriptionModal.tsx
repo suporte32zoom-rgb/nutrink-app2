@@ -144,11 +144,11 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
                 <div className="p-3.5 rounded-xl bg-[#15032a] border border-amber-400/30 space-y-0.5">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-2xl sm:text-3xl font-black text-white">R$ 399,00</span>
+                    <span className="text-2xl sm:text-3xl font-black text-white">R$ 899,00</span>
                     <span className="text-xs text-purple-300 font-semibold">/ ano</span>
                   </div>
                   <div className="text-[11px] text-emerald-400 font-bold">
-                    Equivalente a R$ 33,25/mês à vista
+                    7 dias de teste grátis sem cartão • Equivalente a R$ 74,91/mês
                   </div>
                 </div>
 
@@ -191,7 +191,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             <div className="bg-[#17042f] border border-purple-700/60 rounded-3xl p-5 sm:p-6 flex flex-col justify-between relative shadow-xl shadow-purple-950/70 hover:border-fuchsia-500/50 transition-all">
               
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full bg-purple-900 border border-purple-500/60 text-purple-200 text-[11px] font-black uppercase tracking-wider shadow-md flex items-center gap-1">
-                <Repeat className="w-3 h-3 text-fuchsia-400" />
+                <Repeat className="w-3.5 h-3.5 text-fuchsia-400" />
                 <span>SEM FIDELIDADE</span>
               </div>
 
@@ -208,11 +208,11 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
                 <div className="p-3.5 rounded-xl bg-[#110223] border border-purple-800/60 space-y-0.5">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-2xl sm:text-3xl font-black text-white">R$ 39,00</span>
+                    <span className="text-2xl sm:text-3xl font-black text-white">R$ 89,90</span>
                     <span className="text-xs text-purple-300 font-semibold">/ mês</span>
                   </div>
                   <div className="text-[11px] text-purple-300 font-medium">
-                    Cobrança recorrente sem carência
+                    Cobrança recorrente sem fidelidade
                   </div>
                 </div>
 

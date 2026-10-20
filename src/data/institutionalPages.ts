@@ -15,35 +15,74 @@ export const INSTITUTIONAL_PAGES: Record<string, InstitutionalPage> = {
     category: 'produto_recursos',
     categoryLabel: 'PRODUTO & RECURSOS',
     iconName: 'Home',
-    shortDescription: 'Visão geral do ecossistema integrado para nutricionistas e nutrólogos.',
-    markdownContent: `# Ecossistema NutrinK • A Plataforma Definitiva de Inteligência Clínica
+    shortDescription: 'Ecossistema definitivo para médicos e nutricionistas: Gestão física de consultório e o Copiloto Clínico NÚTRIA AI.',
+    markdownContent: `# NutrinK • A Fusão Definitiva entre a Gestão do seu Consultório e a Inteligência Clínica Molecular
 
-O **NutrinK** é o software completo em nuvem projetado especificamente para **nutricionistas e nutrólogos** que buscam aliar excelência no atendimento ao paciente, precisão científica rigorosa e máxima produtividade em seus consultórios e clínicas.
-
----
-
-## Pilares do Ecossistema Integrado
-
-| Módulo Estrutural | Finalidade Primária | Impacto Clínico & Operacional |
-| :--- | :--- | :--- |
-| **Copiloto NÚTRIA AI** | Inteligência Artificial Clínica Especializada | Reduz em até **75%** o tempo gasto com digitação e cálculos em consulta |
-| **Prontuário Eletrônico** | Registro Antropométrico e Histórico do Paciente | Centralização 100% segura e criptografada (AES-256) de anamneses e exames |
-| **Agenda Inteligente** | Gestão de Horários & Consultas Presenciais/Online | Redução de até **62%** nas faltas (*no-show*) com controle de status |
-| **Fluxo Financeiro** | Controle de Caixa, Honorários e Lucratividade | Visão clara de faturamento, despesas operacionais e emissão de recibos |
-| **NutriCalc Pro** | Calculadoras de TMB, GET e Fracionamento de Macros | Equações padrão ouro validadas (Harris-Benedict, Mifflin, Cunningham, FAO) |
+> **A plataforma de elite desenvolvida exclusivamente para Médicos Nutrólogos e Nutricionistas Clínicos.**  
+> Centralize 100% da sua rotina clínica, financeira e diagnóstica em um único painel de alta performance. Sem distrações, sem intermediários.
 
 ---
 
-## Como o NutrinK Potencializa seu Consultório
-
-1. **Atendimento Ágil e Sem Fricção**: Opere o prontuário via comandos por voz ou texto com o copiloto NÚTRIA, sem desviar o olhar do paciente.
-2. **Cálculos Metabólicos Instantâneos**: Adequação automática de macros e micronutrientes em segundos, com base no gasto energético individual.
-3. **Segurança & Conformidade Total**: Arquitetura blindada sob a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018) e resoluções do CFN e CFM.
-4. **Relatórios Clínicos de Alto Impacto**: Emissão de planos alimentares e pareceres detalhados que encantam o paciente e aumentam a fidelização.
+### 1. HERO SECTION (Destaque Principal)
+* **Headline:**  
+  **A Gestão Completa do Seu Consultório Físico Potencializada por um Copiloto Clínico Molecular de Elite.**
+* **Subheadline:**  
+  Substitua planilhas dispersas, sistemas genéricos e horas exaustivas de cálculos manuais por um ecossistema integrado que roda 100% no seu painel profissional: prontuário eletrônico inteligente, agenda com controle financeiro em tempo real e a precisão bioquímica instantânea da **NÚTRIA AI**.
+* **Call to Action (CTA):**  
+  **[Iniciar Teste Gratuito de 7 Dias — Sem Necessidade de Cartão de Crédito]**  
+  *Liberação imediata de todas as funcionalidades clínicas e do copiloto molecular.*
 
 ---
 
-> **NÚTRIA AI** • *O Cérebro Inteligente do NutrinK*`
+### 2. SEÇÃO DE DOR DO MERCADO: O Custo Invisível da Sobrecarga Clínica
+* **O gargalo do tempo gasto com tarefas repetitivas:**  
+  Você passou anos se especializando para transformar a saúde metabólica dos seus pacientes. No entanto, consome até 60% do seu tempo de consulta preenchendo fichas burocráticas, recalculando frações de macronutrientes e conferindo tabelas nutricionais obsoletas.
+* **A fragmentação perigosa das informações:**  
+  Prontuários em um software, agenda em outro, controle financeiro em cadernos ou planilhas suscetíveis a falhas e receituários sem padronização técnica. Essa desarticulação drena sua energia cognitiva e reduz a margem de lucro do consultório.
+* **O risco crescente em interações bioquímicas complexas:**  
+  Polifarmácia, fitoterapia avançada, suplementação de alta dose e exames com múltiplos biomarcadores exigem conferências minuciosas. O receio de uma contraindicação cruzada ou de uma carência subclínica oculta consome sua tranquilidade no pós-consulta.
+
+---
+
+### 3. SEÇÃO DA SOLUÇÃO: O Ecossistema Integrado NutrinK
+Um único login, uma única assinatura, duas forças sinérgicas operando em uníssono no seu painel:
+
+| A Estrutura Operacional ("O Corpo") | A Inteligência Clínica ("A Mente") |
+| :--- | :--- |
+| **Prontuário Eletrônico Blindado**: Histórico evolutivo completo, bioimpedância, dobras cutâneas e gráficos comparativos sob criptografia de padrão bancário (LGPD). | **NÚTRIA AI Molecular**: Motor de inteligência bioenergética capaz de calcular TMB e GET em segundos via equações padrão ouro (Mifflin, Cunningham, Harris-Benedict e FAO/OMS). |
+| **Agenda Médica & Gestão de Retornos**: Controle ágil de horários, confirmação automática de presença e redução drástica do índice de *no-show*. | **Varredura Farmacodinâmica Instantânea**: Cruzamento de interações entre fármacos, fitoterápicos e nutrientes com alertas de toxicidade e sinergismo. |
+| **Fluxo Financeiro & DRE do Consultório**: Gestão de honorários, controle de entradas/saídas por paciente, emissão simplificada de recibos e visão clara da sua lucratividade. | **Raciocínio Clínico Aprofundado**: Sugestões terapêuticas personalizadas para condutas nutricionais complexas e personalizadas. |
+
+---
+
+### 4. SEÇÃO DE PROVA CONCEITUAL: O Rigor Científico da NÚTRIA AI
+A **NÚTRIA AI** não é um gerador de textos genéricos. É uma inteligência clínica calibrada sobre bioquímica metabólica, fisiologia aplicada e diretrizes científicas internacionais validadas (ESPEN, ASPEN, ISSN, SBEM, ABESO, CFN e CFM):
+
+* **Suporte Nutricional em Oncologia**: Previsão de risco de caquexia, adequação calórico-proteica adaptada à toxicidade de quimioterápicos e modulação imunonutricional.
+* **Esporte de Alto Rendimento e Condições Extremas**: Periodização de carboidratos, reposição hidroeletrolítica milimétrica para competições e respostas metabólicas sob hipóxia em alta montanha.
+* **Pediatria Metabólica & Erros Inatos**: Rastreio e compensação dietoterápica precisa em fenilcetonúria, glicogenoses e disfunções mitocondriais energéticas.
+
+---
+
+### 5. SEÇÃO DE PREÇOS E TRANSPARÊNCIA: Decisão Racional de Alto Retorno
+Elimine a desconfiança com ferramentas baratas e limitadas. Invista em uma infraestrutura profissional sólida, construída para valorizar a sua autoridade técnica:
+
+* **Plano Mensal Profissional**:  
+  **R$ 89,90 / mês**  
+  *Flexibilidade total, sem contrato de fidelidade e com cancelamento simplificado a qualquer momento.*
+* **Plano Anual Profissional (Melhor Decisão)**:  
+  **R$ 899,00 / ano** *(equivalente a apenas R$ 74,91/mês)*  
+  *Economize com o investimento anual e tenha acesso irrestrito por 12 meses.*  
+  ⭐ **Selo Oficial: 7 Dias de Teste Grátis — Sem Cartão de Crédito.**  
+  *Experimente a NÚTRIA AI e todas as ferramentas de gestão no seu dia a dia clínico antes de qualquer cobrança.*
+
+---
+
+### 6. FOOTER (Informações Institucionais e Segurança)
+* **NutrinK Soluções Tecnológicas em Saúde Digital Ltda.** • CNPJ: 59.712.646/0001-04
+* **Conformidade Legal & Ética**: Resoluções vigentes do Conselho Regional de Nutricionistas (CRN) e Conselho Federal de Medicina (CFM).
+* **Segurança da Informação**: Criptografia de ponta a ponta (AES-256 / TLS 1.3), hospedagem segura e conformidade estrita com a LGPD (Lei Federal nº 13.709/2018).
+* © 2026 NutrinK. Todos os direitos reservados. Exclusivo para o uso do profissional de saúde.`
   },
 
   recursos: {
@@ -110,40 +149,40 @@ O **NutrinK** consolida em uma única interface moderna todos os pilares essenci
 
   planos: {
     id: 'planos',
-    title: 'Planos e Preços • Melhor Custo-Benefício',
+    title: 'Planos e Preços • Ecossistema NutrinK',
     category: 'produto_recursos',
     categoryLabel: 'PRODUTO & RECURSOS',
     iconName: 'CreditCard',
-    shortDescription: 'O software de nutrição mais barato e completo do Brasil: IA gratuita (30 msgs/dia), plano mensal por menos de 50 reais e plano anual com 2 meses grátis.',
-    markdownContent: `# Planos, Valores & Melhor Custo-Benefício do NutrinK
+    shortDescription: 'Planos Profissionais para Nutricionistas e Nutrólogos: Plano Mensal R$ 89,90/mês e Plano Anual R$ 899,00/ano com 7 dias de teste grátis sem cartão.',
+    markdownContent: `# Planos, Valores & Transparência do Ecossistema NutrinK
 
-O **NutrinK** democratiza a tecnologia clínica com o **software de nutrição mais barato do mercado**, unindo inteligência artificial, prontuário eletrônico completo e telemedicina por um valor acessível (menos de 50 reais por mês).
+O **NutrinK** entrega uma infraestrutura clínica de padrão ouro para médicos e nutricionistas que não abrem mão de autoridade, precisão bioquímica e eficiência operacional no consultório físico.
 
 ---
 
-## Tabela Comparativa de Planos
+## Tabela Comparativa de Planos Profissionais
 
-| Recursos & Funcionalidades | Plano Gratuito (IA Free) | Premium Mensal *(Até 50 reais)* | Premium Anual *(Melhor Custo-Benefício)* |
+| Recursos & Funcionalidades | Plano Gratuito (Degustação) | Plano Mensal Profissional | Plano Anual Profissional *(Mais Recomendado)* |
 | :--- | :--- | :--- | :--- |
-| **Investimento** | **R$ 0,00** | **R$ 39,00 / mês** | **R$ 399,00 / ano (~R$ 33/mês)** |
-| **Forma de Pagamento** | Sem cartão / Sem compromisso | **PIX Instantâneo & Cartão** | **PIX com Liberação Instantânea** |
-| **Economia Real** | 100% Gratuito para Iniciar | Acesso completo sem fidelidade | **2 Meses Grátis** (R$ 69,00 de economia) |
-| **Copiloto Clínico NÚTRIA AI** | **30 mensagens / dia grátis** | **ILIMITADAS** | **ILIMITADAS** |
-| **Cadastro de Prontuários** | Até 10 pacientes | **ILIMITADOS** | **ILIMITADOS** |
-| **Telemedicina com Vídeo Nativo** | Sala de teste | **Sala HD Ilimitada** | **Sala HD Ilimitada + Gravação** |
-| **Agenda Clínica Inteligente** | Recursos básicos | Grade completa + Retornos | Grade completa + Sincronização |
-| **Gestão Financeira & DRE** | Registro básico | Completo com fluxo de caixa | Completo + Exportação Contábil |
-| **NutriCalc Pro (Equações Científicas)** | Fórmulas básicas | Mifflin, Harris, Cunningham | Todas as fórmulas + Protocolos |
-| **Impressão & Prescrição Personalizada** | Marca d'água básica | Sem marca d'água | Com logotipo e cabeçalho CRN/CRM |
-| **Nível de Suporte Técnico** | E-mail comunitário | Prioritário (horário comercial) | **VIP WhatsApp & E-mail 24/7** |
+| **Investimento** | **R$ 0,00** | **R$ 89,90 / mês** | **R$ 899,00 / ano (~R$ 74,91/mês)** |
+| **Condição de Entrada** | Sem cartão / Sem compromisso | Sem fidelidade • Cancele quando quiser | **7 Dias de Teste Grátis Sem Cartão** |
+| **Forma de Pagamento** | Cadastro imediato | **PIX Instantâneo & Cartão** | **PIX Oficial com QR Code / Cartão 12x** |
+| **Copiloto Clínico NÚTRIA AI** | 30 mensagens / dia | **ILIMITADA (Análise Molecular & Exames)** | **ILIMITADA (Prioridade de Processamento)** |
+| **Prontuário Eletrônico & Anamneses** | Até 10 pacientes | **ILIMITADOS** | **ILIMITADOS** |
+| **Telemedicina com Vídeo Nativo HD** | Sala de teste | **Sala HD Ilimitada** | **Sala HD Ilimitada + Gravação Local** |
+| **Agenda Clínica & Gestão de Consultas** | Recursos básicos | Grade completa + Retornos | Grade completa + Gestão de No-Show |
+| **Fluxo de Caixa & Controle Financeiro** | Registro básico | DRE e fluxo de caixa completo | Relatórios avançados de lucratividade |
+| **NutriCalc Pro (Equações Científicas)** | Fórmulas básicas | Mifflin, Harris, Cunningham, FAO | Todas as equações + Protocolos avançados |
+| **Receituários & Planos Personalizados** | Marca d'água básica | Sem marca d'água | Timbrado com logotipo oficial e CRN/CRM |
+| **Nível de Suporte Técnico** | E-mail | Prioritário (horário comercial) | **VIP WhatsApp & E-mail Prioritário** |
 
 ---
 
-## Por Que o NutrinK é o Melhor Custo-Benefício?
+## Por Que Investir no NutrinK?
 
-1. **Mensalidade Acessível**: Um sistema completo para nutricionistas por menos de R$ 50 reais ao mês, sem custos ocultos de implantação.
-2. **Plano Anual Barato**: No plano anual, você garante 12 meses pagando apenas 10, com suporte VIP prioritário.
-3. **IA Gratuita para Testar**: Experimente a NÚTRIA AI com 30 mensagens gratuitas por dia e comprove o ganho de tempo na consulta.
+1. **Retorno Imediato sobre o Tempo Clínico**: Recupere até 15 horas semanais eliminando cálculos manuais e digitação redundante de anamneses.
+2. **Eliminação de Riscos nas Prescrições**: A NÚTRIA AI cruza interações farmacológicas, toxicidade hepatorrenal e carências subclínicas em segundos.
+3. **Segurança e Rigor Institucional**: Prontuário criptografado em conformidade total com a LGPD e normas do CFN e CFM.
 
 ---
 
@@ -431,7 +470,7 @@ Para exercer seus direitos de titular, dirimir dúvidas sobre esta política ou 
     category: 'central_legal_contato',
     categoryLabel: 'CENTRAL LEGAL & CONTATO',
     iconName: 'FileText',
-    shortDescription: 'Licença SaaS para profissionais de saúde, responsabilidade técnica exclusiva do CRN/CRM e condições dos Planos Mensal R$ 39,90 e Anual R$ 399,90.',
+    shortDescription: 'Licença SaaS para profissionais de saúde, responsabilidade técnica exclusiva do CRN/CRM e condições dos Planos Mensal R$ 89,90 e Anual R$ 899,00.',
     markdownContent: `# Termos e Condições Gerais de Uso da Plataforma NutrinK
 
 *Última atualização: Agosto de 2026 • Versão 3.1*
@@ -456,9 +495,9 @@ Bem-vindo ao **NutrinK**. Ao criar uma conta, assinar um plano ou utilizar qualq
 
 | Modalidade de Plano | Valor da Assinatura | Ciclo de Cobrança | Política de Renovação e Cancelamento |
 | :--- | :--- | :--- | :--- |
-| **Plano Gratuito (Free)** | **R$ 0,00** | Indeterminado | Acesso com limites diários de mensagens e até 10 pacientes |
-| **Premium Mensal** | **R$ 39,90 / mês** | Mensal Recorrente | Cobrança mensal automática; cancelamento a qualquer momento sem multa |
-| **Premium Anual** | **R$ 399,90 / ano** | Anual *(~R$ 33,32/mês)* | **2 Meses Grátis**; renovação anual automática; cancelamento simplificado |
+| **Plano Gratuito (Degustação)** | **R$ 0,00** | Indeterminado | Acesso com limites diários de mensagens e até 10 pacientes |
+| **Plano Mensal Profissional** | **R$ 89,90 / mês** | Mensal Recorrente | Cobrança mensal automática; cancelamento a qualquer momento sem fidelidade |
+| **Plano Anual Profissional** | **R$ 899,00 / ano** | Anual *(~R$ 74,91/mês)* | **7 Dias de Teste Grátis Sem Cartão**; renovação anual; cancelamento simplificado |
 
 3.1. **Direito de Arrependimento**: Nos termos do Artigo 49 do Código de Defesa do Consumidor (Lei nº 8.078/1990), o contratante tem o prazo de **7 (sete) dias corridos** a contar da primeira assinatura para solicitar o cancelamento com estorno de **100% do valor pago**.  
 3.2. **Cancelamento do Serviço**: O cancelamento pode ser efetuado diretamente pelo painel do usuário no aplicativo ou mediante solicitação por e-mail a \`suporte@nutrink.com.br\`. O acesso aos recursos Premium permanecerá ativo até o final do ciclo já faturado.

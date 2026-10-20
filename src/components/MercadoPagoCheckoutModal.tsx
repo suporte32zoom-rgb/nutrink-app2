@@ -114,7 +114,7 @@ export const MercadoPagoCheckoutModal: React.FC<MercadoPagoCheckoutModalProps> =
 
   const planAmount = customAmount && customAmount > 0 
     ? customAmount 
-    : (planId === 'premium_anual' ? 399.00 : 39.00);
+    : (planId === 'premium_anual' ? 899.00 : 89.90);
 
   const planName = customTitle 
     ? customTitle 

@@ -1,12 +1,19 @@
 /**
  * Utilitário de Geração de Código PIX Padrão Banco Central do Brasil (EMV / BR Code)
- * Chave PIX: CPF 321.785.4448/94 (ou 321785444894)
+ * Chave PIX Oficial NutrinK e Configuração de Pagamento
  */
 
 export const PIX_CPF_KEY = '321.785.4448/94';
 export const PIX_CPF_CLEAN = '321785444894';
-export const PIX_RECEIVER_NAME = 'NutrinK Consultorio';
-export const PIX_RECEIVER_CITY = 'BRASILIA';
+export const PIX_RECEIVER_NAME = 'NutrinK';
+export const PIX_RECEIVER_CITY = 'Sao Paulo';
+
+/**
+ * BR Code Oficial (Copia e Cola) registrado no Banco Central para o Plano Anual NutrinK (R$ 899,00)
+ */
+export const OFFICIAL_PIX_ANNUAL_BR_CODE = '00020126860014br.gov.bcb.pix0136484e40dd-f971-41e9-b414-b56421b5d2410224Assinatura AnualPlano 125204000053039865406899.005802BR5907NutrinK6009Sao Paulo62230519daqr28493713595126463044291';
+export const OFFICIAL_PIX_ANNUAL_AMOUNT = 899.00;
+export const OFFICIAL_PIX_MONTHLY_AMOUNT = 89.90;
 
 function padTag(id: string, value: string): string {
   const len = value.length.toString().padStart(2, '0');
@@ -33,6 +40,11 @@ function crc16Ccitt(str: string): string {
 }
 
 export function generatePixPayload(amount: number, description: string = 'NutrinK Premium', txId: string = 'NUTRINK'): string {
+  // Se for o valor oficial do Plano Anual (R$ 899,00), retorna o BR Code oficial validado
+  if (Math.abs(amount - OFFICIAL_PIX_ANNUAL_AMOUNT) < 0.01 || description.toLowerCase().includes('anual')) {
+    return OFFICIAL_PIX_ANNUAL_BR_CODE;
+  }
+
   // Format amount to 2 decimal places
   const formattedAmount = amount.toFixed(2);
 
@@ -69,3 +81,4 @@ export function getPixQrCodeUrl(payload: string): string {
   const encoded = encodeURIComponent(payload);
   return `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encoded}&color=150328&bgcolor=ffffff&margin=10`;
 }
+
