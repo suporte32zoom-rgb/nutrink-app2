@@ -91,8 +91,8 @@ export function getClientGeminiModel(): string {
     } catch {}
   }
 
-  // Modelo oficial padrão configurado: gemini-3.8-flash
-  return 'gemini-3.8-flash';
+  // Modelo oficial padrão configurado: gemini-3.7-flash
+  return 'gemini-3.7-flash';
 }
 
 /**
@@ -1453,10 +1453,10 @@ export async function callNutriaDirect(
       }
     : paramsOrMessage;
 
-  // 1. Tenta a rota de alta performance do backend (/api/nutria) primeiro com timeout de 5.5s
+  // 1. Tenta a rota de alta performance do backend (/api/nutria) primeiro com timeout
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5500);
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     const resp = await fetch('/api/nutria', {
       method: 'POST',
@@ -1485,7 +1485,7 @@ export async function callNutriaDirect(
           reply: cleanedReply,
           text: cleanedReply,
           actionExecuted: data.actionExecuted,
-          model: data.model || 'gemini-3.8-flash'
+          model: data.model || 'gemini-3.7-flash'
         };
       }
     }
@@ -1493,7 +1493,7 @@ export async function callNutriaDirect(
     console.warn('[NUTRIA AI] Rota /api/nutria falhou ou atingiu timeout:', backendErr);
   }
 
-  // 2. Se a rota do servidor falhar e houver chave no cliente, tenta via SDK no cliente com timeout rápido
+  // 2. Se a rota do servidor falhar e houver chave no cliente, tenta via SDK no cliente
   const apiKey = getClientGeminiApiKey();
   if (apiKey) {
     const systemInstruction = buildNutriaSystemInstruction(params);
@@ -1501,7 +1501,7 @@ export async function callNutriaDirect(
     const contents = formatGeminiContents(params.conversationHistory, params.message);
 
     const candidateModels = [
-      'gemini-3.8-flash',
+      'gemini-3.7-flash',
       targetModel,
       'gemini-3.1-flash-lite',
       'gemini-flash-latest'
@@ -1510,20 +1510,16 @@ export async function callNutriaDirect(
     for (const modelToTry of candidateModels) {
       try {
         const ai = getGenAIClient(apiKey);
-        const generatePromise = ai.models.generateContent({
+        const response = await ai.models.generateContent({
           model: modelToTry,
           contents: contents,
           config: {
             systemInstruction: systemInstruction,
-            temperature: 0.35,
-            maxOutputTokens: 2048,
+            temperature: 0.4,
+            maxOutputTokens: 4096,
           }
         });
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error(`Timeout no modelo ${modelToTry} (>3.2s)`)), 3200)
-        );
 
-        const response: any = await Promise.race([generatePromise, timeoutPromise]);
         const textReply = response.text || (response as any)?.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (textReply && typeof textReply === 'string' && textReply.trim().length > 0) {
@@ -1537,7 +1533,7 @@ export async function callNutriaDirect(
           };
         }
       } catch (sdkError: any) {
-        console.warn(`[NUTRIA AI Gemini SDK] Modelo ${modelToTry} ocupado/lento:`, sdkError?.message || sdkError);
+        console.error(`[NUTRIA AI Gemini SDK Error] Falha na chamada ao modelo ${modelToTry}:`, sdkError);
         continue;
       }
     }
@@ -1545,7 +1541,7 @@ export async function callNutriaDirect(
     console.warn('[NUTRIA AI] Nenhuma chave VITE_GEMINI_API_KEY ou GEMINI_API_KEY detectada no cliente para chamada direta.');
   }
 
-  // 3. Fallback final instantâneo (<15ms): Motor clínico local de alta precisão
+  // 3. Fallback final instantâneo: Motor clínico local sem risco de tela branca
   const fallbackLocal = generateFallbackClinicalResponse(params.message, params);
   const cleanedFallback = cleanMathAndLatex(fallbackLocal.reply);
   return {
