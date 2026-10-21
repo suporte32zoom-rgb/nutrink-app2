@@ -43,9 +43,9 @@ import {
   INITIAL_PATIENTS, 
   INITIAL_APPOINTMENTS, 
   INITIAL_TRANSACTIONS, 
-  INITIAL_FOOD_DATABASE,
-  INITIAL_INVENTORY 
+  INITIAL_FOOD_DATABASE 
 } from './data/initialData';
+import { INITIAL_INVENTORY_ITEMS } from './data/inventorySeedData';
 import { 
   Patient, 
   Appointment, 
@@ -196,7 +196,7 @@ export function App() {
     }
   });
 
-  // Application Data States - Strictly isolated per user email with pre-registered example patient for free exploration
+  // Application Data States - Strictly isolated per user email
   const [patients, setPatients] = useState<Patient[]>(() => {
     try {
       const savedUser = localStorage.getItem('nutrink_user_session');
@@ -205,17 +205,12 @@ export function App() {
         const email = parsed?.email?.trim().toLowerCase();
         if (email) {
           const saved = localStorage.getItem(`nutrink_patients_${email}`);
-          if (saved) {
-            const parsedList = JSON.parse(saved);
-            if (Array.isArray(parsedList) && parsedList.length > 0) {
-              return parsedList;
-            }
-          }
+          return saved ? JSON.parse(saved) : [];
         }
       }
-      return INITIAL_PATIENTS;
+      return [];
     } catch {
-      return INITIAL_PATIENTS;
+      return [];
     }
   });
 
@@ -255,6 +250,10 @@ export function App() {
 
   const [inventory, setInventory] = useState<InventoryItem[]>(() => {
     try {
+      const isMockId = (id: string) => 
+        id?.startsWith('inv-mock-') || 
+        ['inv-b12', 'inv-creapure', 'inv-omega3', 'inv-berberina', 'inv-bio-eletrodo', 'inv-fita', 'inv-whey', 'inv-coq10', 'inv-d3', 'inv-bcomplex', 'inv-gel', 'inv-adipo'].includes(id);
+
       const savedUser = localStorage.getItem('nutrink_user_session');
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
@@ -263,15 +262,15 @@ export function App() {
           const saved = localStorage.getItem(`nutrink_inventory_${email}`);
           if (saved) {
             const parsedInv = JSON.parse(saved);
-            if (Array.isArray(parsedInv) && parsedInv.length > 0) {
-              return parsedInv;
+            if (Array.isArray(parsedInv)) {
+              return parsedInv.filter(i => i && i.id && !isMockId(i.id));
             }
           }
         }
       }
-      return INITIAL_INVENTORY;
+      return [];
     } catch {
-      return INITIAL_INVENTORY;
+      return [];
     }
   });
 
@@ -670,8 +669,8 @@ export function App() {
       try {
         const cloudPatients = await getPatients(email);
         if (!isSubscribed) return;
-        setPatients(cloudPatients && cloudPatients.length > 0 ? cloudPatients : INITIAL_PATIENTS);
-        try { localStorage.setItem(`nutrink_patients_${email}`, JSON.stringify(cloudPatients && cloudPatients.length > 0 ? cloudPatients : INITIAL_PATIENTS)); } catch {}
+        setPatients(cloudPatients || []);
+        try { localStorage.setItem(`nutrink_patients_${email}`, JSON.stringify(cloudPatients || [])); } catch {}
 
         const cloudApts = await getAppointments(email);
         if (!isSubscribed) return;
@@ -685,8 +684,8 @@ export function App() {
 
         const cloudInv = await getInventoryItems(email);
         if (!isSubscribed) return;
-        setInventory(cloudInv && cloudInv.length > 0 ? cloudInv : INITIAL_INVENTORY);
-        try { localStorage.setItem(`nutrink_inventory_${email}`, JSON.stringify(cloudInv && cloudInv.length > 0 ? cloudInv : INITIAL_INVENTORY)); } catch {}
+        setInventory(cloudInv || []);
+        try { localStorage.setItem(`nutrink_inventory_${email}`, JSON.stringify(cloudInv || [])); } catch {}
 
         const profile = await getProfileByEmail(email);
         if (!isSubscribed) return;
@@ -1343,7 +1342,28 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 899,00 à 
     }
   };
 
-  // Acesso direto ao Dashboard e funcionalidades (sem tela de bloqueio de Onboarding)
+  // Render Onboarding and Presentation screen when not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 font-sans selection:bg-fuchsia-600 selection:text-white">
+        <OnboardingView
+          onCompleteAuth={(user, destinationTab) => {
+            handleLoginAs(user);
+          }}
+          onOpenTermsDoc={(pageId) => {
+            setActiveInstitutionalPageId(pageId);
+            setIsInstitutionalModalOpen(true);
+          }}
+        />
+        <InstitutionalDocModal
+          isOpen={isInstitutionalModalOpen}
+          onClose={() => setIsInstitutionalModalOpen(false)}
+          initialPageId={activeInstitutionalPageId}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0D0B18] text-white flex flex-col font-sans selection:bg-fuchsia-600 selection:text-white">
       
@@ -1404,19 +1424,6 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 899,00 à 
               />
             } />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
-            <Route path="/onboarding" element={<Navigate to="/" replace />} />
-            <Route path="/apresentacao" element={
-              <OnboardingView
-                onCompleteAuth={(user) => {
-                  handleLoginAs(user);
-                  navigate('/');
-                }}
-                onOpenTermsDoc={(pageId) => {
-                  setActiveInstitutionalPageId(pageId);
-                  setIsInstitutionalModalOpen(true);
-                }}
-              />
-            } />
 
           {/* Pacientes & Prontuários (Lista e Detalhes) */}
           <Route path="/pacientes" element={
