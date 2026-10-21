@@ -1420,6 +1420,7 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 899,00 à 
                 onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
                 onOpenProfileModal={() => setIsProfileModalOpen(true)}
                 onOpenAppointmentDetails={handleOpenAppointmentDetails}
+                onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
               />
             } />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { NutriaAvatar } from './NutriaAvatar';
 import { 
   Users, 
@@ -24,7 +25,8 @@ import {
   Award,
   Sun,
   Moon,
-  Sunset
+  Sunset,
+  BookOpen
 } from 'lucide-react';
 import { Patient, Appointment, FinancialTransaction, UserAccount } from '../types';
 import { 
@@ -33,6 +35,8 @@ import {
   getGreetingByTime, 
   getBrasiliaTimeString 
 } from '../utils/dateUtils';
+import { INITIAL_BLOG_POSTS, BlogPost } from '../data/blogData';
+import { BlogArticleDetailModal } from './BlogArticleDetailModal';
 
 interface DashboardViewProps {
   patients: Patient[];
@@ -47,6 +51,7 @@ interface DashboardViewProps {
   onUpdateAppointmentStatus: (aptId: string, newStatus: Appointment['status']) => void;
   onOpenProfileModal?: () => void;
   onOpenAppointmentDetails?: (appointment: Appointment) => void;
+  onOpenSubscriptionModal?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -61,9 +66,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenNutriaWithPrompt,
   onUpdateAppointmentStatus,
   onOpenProfileModal,
-  onOpenAppointmentDetails
+  onOpenAppointmentDetails,
+  onOpenSubscriptionModal
 }) => {
-  const [isBannerDismissed, setIsBannerDismissed] = React.useState(false);
+  const navigate = useNavigate();
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+  const [selectedBlogPost, setSelectedBlogPost] = useState<BlogPost | null>(null);
+  const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
   const currentDateStr = getBrasiliaTodayISODate();
   const formattedToday = formatBrasiliaFullDate();
   const greeting = getGreetingByTime();
@@ -639,6 +648,143 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* ======================================================== */}
+      {/* 📰 Destaques & Artigos Clínicos (Blog NutrinK)             */}
+      {/* ======================================================== */}
+      <section className="bg-[#18042f] border border-purple-800/40 rounded-3xl p-5 sm:p-7 shadow-xl space-y-6 animate-fadeIn">
+        {/* Cabeçalho da Seção com Título e Botão de Ação */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-purple-900/40">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl sm:text-2xl" role="img" aria-label="Jornal">📰</span>
+              <h2 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+                <span>Destaques & Artigos Clínicos (Blog NutrinK)</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-fuchsia-950 text-fuchsia-300 border border-fuchsia-600/50">
+                  Novo
+                </span>
+              </h2>
+            </div>
+            <p className="text-xs sm:text-sm text-purple-200/80">
+              Protocolos clínicos atualizados, receitas funcionais com tabela nutricional e novidades da NÚTRIA IA.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate('/blog')}
+            className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-fuchsia-950/60 border border-fuchsia-400/40 transition-all hover:scale-[1.02] cursor-pointer"
+            id="btn-ver-todos-artigos-blog"
+          >
+            <span>Ver Todos os Artigos no Blog →</span>
+          </button>
+        </div>
+
+        {/* Grid de Artigos Clínicos e Receitas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {INITIAL_BLOG_POSTS.slice(0, 3).map((post) => (
+            <article
+              key={post.id}
+              onClick={() => {
+                setSelectedBlogPost(post);
+                setIsBlogModalOpen(true);
+              }}
+              className="group bg-[#150228] border border-purple-800/40 hover:border-fuchsia-500/60 rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:shadow-fuchsia-950/30 transition-all duration-300 cursor-pointer flex flex-col justify-between hover:-translate-y-1"
+            >
+              <div>
+                {/* Imagem Realista com Overlay e Badges */}
+                <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#240645]">
+                  <img
+                    src={post.featuredImage}
+                    alt={post.imageAlt}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#150228] via-transparent to-transparent opacity-80"></div>
+                  
+                  {/* Tag Categoria */}
+                  <div className="absolute top-3 left-3">
+                    <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-fuchsia-950/90 text-fuchsia-200 border border-fuchsia-500/60 backdrop-blur-sm shadow-md">
+                      {post.categoryLabel}
+                    </span>
+                  </div>
+
+                  {/* Tempo de Leitura */}
+                  <div className="absolute bottom-2.5 right-3">
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-purple-200 bg-[#120224]/80 px-2 py-0.5 rounded-md backdrop-blur-sm border border-purple-800/50">
+                      <Clock className="w-3 h-3 text-amber-400" />
+                      <span>{post.readTimeMinutes} min de leitura</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Título e Resumo Rápido */}
+                <div className="p-4 sm:p-5 space-y-2.5">
+                  <h3 className="text-sm sm:text-base font-black text-white group-hover:text-fuchsia-300 transition-colors leading-snug line-clamp-2">
+                    {post.title}
+                  </h3>
+
+                  <p className="text-xs text-purple-200/80 line-clamp-3 leading-relaxed font-normal">
+                    {post.excerpt}
+                  </p>
+                </div>
+              </div>
+
+              {/* Rodapé do Card com Autor e Ação "Ler Artigo" */}
+              <div className="p-4 sm:p-5 pt-0 mt-1 border-t border-purple-900/40 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={post.author.avatar}
+                    alt={post.author.name}
+                    className="w-6 h-6 rounded-full object-cover border border-purple-600/50"
+                  />
+                  <span className="text-[11px] font-semibold text-purple-200 truncate max-w-[130px]">
+                    {post.author.name}
+                  </span>
+                </div>
+
+                <span className="text-xs font-bold text-fuchsia-400 group-hover:text-white flex items-center gap-1 transition-colors">
+                  <span>Ler Artigo</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        {/* Rodapé da Seção com Banner de Acesso Rápido */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-purple-300/80 bg-[#130222] p-4 rounded-2xl border border-purple-900/30">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              Explore protocolos de DRC, SIBO, Diabetes Tipo 2, receitas Low-Carb e inteligência clínica aplicada.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/blog')}
+            className="text-fuchsia-300 hover:text-white font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+          >
+            <span>Ver Todos os Artigos no Blog →</span>
+          </button>
+        </div>
+      </section>
+
+      {/* Modal Leitor de Artigo Clínico Completo */}
+      {selectedBlogPost && (
+        <BlogArticleDetailModal
+          post={selectedBlogPost}
+          isOpen={isBlogModalOpen}
+          onClose={() => {
+            setIsBlogModalOpen(false);
+            setSelectedBlogPost(null);
+          }}
+          onSelectPost={(post) => setSelectedBlogPost(post)}
+          allPosts={INITIAL_BLOG_POSTS}
+          onOpenSubscriptionModal={onOpenSubscriptionModal}
+          onOpenNutriaPrompt={onOpenNutriaWithPrompt}
+        />
+      )}
 
     </div>
   );
