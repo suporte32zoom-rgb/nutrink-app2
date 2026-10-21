@@ -73,6 +73,46 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
   const [selectedBlogPost, setSelectedBlogPost] = useState<BlogPost | null>(null);
   const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
+
+  // Progressive Onboarding Tour (Sistema de Degustação / Tour Guiado)
+  const [hasTestedNutria, setHasTestedNutria] = useState(() => {
+    return localStorage.getItem('nutrink_onboarding_step_nutria') === 'true';
+  });
+  const [hasViewedPatient, setHasViewedPatient] = useState(() => {
+    return localStorage.getItem('nutrink_onboarding_step_patient') === 'true';
+  });
+  const isPlanSubscribed = Boolean(
+    userAccount?.isSubscribed || userAccount?.plan === 'pro' || userAccount?.plan === 'anual' || userAccount?.plan === 'premium_mensal' || userAccount?.plan === 'premium_anual'
+  );
+
+  const completedStepsCount = (hasTestedNutria ? 1 : 0) + (hasViewedPatient ? 1 : 0) + (isPlanSubscribed ? 1 : 0);
+  const progressPercentage = Math.round((completedStepsCount / 3) * 100);
+
+  const handleStepTestNutria = () => {
+    localStorage.setItem('nutrink_onboarding_step_nutria', 'true');
+    setHasTestedNutria(true);
+    onOpenNutriaWithPrompt('Olá NÚTRIA! Sou profissional de saúde e estou conhecendo a plataforma NutrinK. Apresente-se e explique como você analisa prontuários clínicos e calcula a TACO em segundos.');
+  };
+
+  const handleStepViewPatient = () => {
+    localStorage.setItem('nutrink_onboarding_step_patient', 'true');
+    setHasViewedPatient(true);
+    const targetPatient = patients.find(p => p.id === 'paciente-exemplo-demo') || patients[0];
+    if (targetPatient) {
+      onSelectPatient(targetPatient.id);
+    } else {
+      navigate('/pacientes');
+    }
+  };
+
+  const handleStepSubscribePlan = () => {
+    if (onOpenSubscriptionModal) {
+      onOpenSubscriptionModal();
+    } else {
+      navigate('/planos');
+    }
+  };
+
   const currentDateStr = getBrasiliaTodayISODate();
   const formattedToday = formatBrasiliaFullDate();
   const greeting = getGreetingByTime();
@@ -198,56 +238,133 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Profile & Clinic Customization Invitation Card (Optional & Non-blocking) */}
-      {!isBannerDismissed && onOpenProfileModal && (
-        <div className="bg-gradient-to-r from-[#1e073c] via-[#2d0a56] to-[#1a0535] border border-fuchsia-500/40 rounded-3xl p-4 sm:p-5 shadow-lg shadow-purple-950/40 relative overflow-hidden transition-all animate-fadeIn">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-fuchsia-600 to-purple-600 flex items-center justify-center text-white shrink-0 shadow-md shadow-fuchsia-950/60 border border-fuchsia-400/40 mt-0.5">
-                <FileSpreadsheet className="w-5 h-5 text-amber-300" />
+      {/* ========================================================================= */}
+      {/* BANNER DISCRETO: ONBOARDING PROGRESSIVO (SISTEMA DE DEGUSTAÇÃO / TOUR)   */}
+      {/* ========================================================================= */}
+      {!isBannerDismissed && (
+        <div className="bg-gradient-to-r from-[#1c0638] via-[#2a0852] to-[#16032d] border border-fuchsia-500/40 rounded-3xl p-4 sm:p-5 shadow-xl relative overflow-hidden transition-all animate-fadeIn">
+          {/* Linha Superior com Título, Status e Barra de Progresso */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-purple-900/50">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-fuchsia-600 to-indigo-600 flex items-center justify-center text-white shrink-0 shadow-md shadow-fuchsia-950/60 border border-fuchsia-400/40">
+                <Sparkles className="w-4 h-4 text-amber-300" />
               </div>
-              <div className="space-y-1">
+              <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-black text-white uppercase tracking-wider">
-                    Personalize suas Receitas & Documentos Impressos
+                  <h3 className="text-xs sm:text-sm font-black text-white tracking-wide">
+                    Degustação & Tour Guiado: Complete seu perfil no NutrinK
+                  </h3>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Acesso 100% Liberado</span>
                   </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/50">
-                    Sistema 100% Liberado
-                  </span>
-                  {userAccount?.plan !== 'free' && (
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-fuchsia-950 text-fuchsia-300 border border-fuchsia-400/50">
-                      ⭐ Premium Ativo
-                    </span>
-                  )}
                 </div>
-                <p className="text-xs text-purple-200 leading-relaxed max-w-2xl">
-                  Seu consultório já está totalmente operacional. Complete os dados do seu consultório (CRN/CRM, telefone, especialidade e endereço) a qualquer hora. <strong>Quanto mais informações você preencher, mais completos serão os cabeçalhos de receitas, planos alimentares e atestados que você emitir!</strong>
+                <p className="text-[11px] sm:text-xs text-purple-200/90 mt-0.5">
+                  Complete seu perfil no NutrinK: <strong>1. Teste a NÚTRIA IA</strong> | <strong>2. Veja o Paciente Exemplo</strong> | <strong>3. Assine um Plano</strong>
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+            {/* Barra de Progresso Interativa */}
+            <div className="flex items-center gap-3 self-stretch md:self-auto shrink-0">
+              <div className="w-full md:w-36 bg-[#110121] rounded-full h-3 overflow-hidden border border-purple-800/60 p-0.5">
+                <div 
+                  className="h-full bg-gradient-to-r from-fuchsia-500 to-emerald-400 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.max(progressPercentage, 12)}%` }}
+                ></div>
+              </div>
+              <span className="text-xs font-bold text-fuchsia-200 whitespace-nowrap">
+                {completedStepsCount} de 3 ({progressPercentage}%)
+              </span>
               <button
-                onClick={onOpenProfileModal}
-                aria-label="Completar dados do consultório e personalizar receitas"
-                className="px-4 py-2.5 min-h-[44px] rounded-xl bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-fuchsia-950/50 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                id="btn-dashboard-complete-profile"
-              >
-                <Award className="w-3.5 h-3.5 text-amber-300" />
-                <span>Completar Dados do Consultório</span>
-              </button>
-              
-              <button
+                type="button"
                 onClick={() => setIsBannerDismissed(true)}
-                aria-label="Dispensar aviso de personalização do consultório"
-                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-purple-300 hover:text-white hover:bg-purple-900/40 transition-all cursor-pointer text-xs"
-                title="Dispensar aviso"
+                className="text-purple-400 hover:text-white p-1 rounded-lg hover:bg-purple-900/40 transition-colors ml-1 cursor-pointer text-xs"
+                title="Minimizar banner de degustação"
+                aria-label="Minimizar banner de degustação"
+                id="btn-dismiss-onboarding-banner"
               >
                 ✕
               </button>
             </div>
+          </div>
 
+          {/* 3 Passos Clicáveis e Guiados */}
+          <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {/* Passo 1: Teste a NÚTRIA IA */}
+            <button
+              type="button"
+              onClick={handleStepTestNutria}
+              className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2.5 shadow-sm hover:scale-[1.01] active:scale-[0.99] ${
+                hasTestedNutria
+                  ? 'bg-[#1e0a3b] border-emerald-500/50 text-white'
+                  : 'bg-[#17032c] hover:bg-[#230745] border-purple-700/60 hover:border-fuchsia-500/60 text-purple-100'
+              }`}
+              id="btn-onboarding-step-1"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                  hasTestedNutria ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gradient-to-tr from-fuchsia-600 to-purple-600 text-white'
+                }`}>
+                  {hasTestedNutria ? <CheckCircle2 className="w-3.5 h-3.5" /> : '1'}
+                </div>
+                <div className="truncate">
+                  <div className="text-xs font-bold truncate">1. Teste a NÚTRIA IA</div>
+                  <div className="text-[10px] text-purple-300">Copiloto de cálculos clínicos</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-purple-400 shrink-0" />
+            </button>
+
+            {/* Passo 2: Veja o Paciente Exemplo */}
+            <button
+              type="button"
+              onClick={handleStepViewPatient}
+              className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2.5 shadow-sm hover:scale-[1.01] active:scale-[0.99] ${
+                hasViewedPatient
+                  ? 'bg-[#1e0a3b] border-emerald-500/50 text-white'
+                  : 'bg-[#17032c] hover:bg-[#230745] border-purple-700/60 hover:border-fuchsia-500/60 text-purple-100'
+              }`}
+              id="btn-onboarding-step-2"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                  hasViewedPatient ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gradient-to-tr from-fuchsia-600 to-purple-600 text-white'
+                }`}>
+                  {hasViewedPatient ? <CheckCircle2 className="w-3.5 h-3.5" /> : '2'}
+                </div>
+                <div className="truncate">
+                  <div className="text-xs font-bold truncate">2. Veja o Paciente Exemplo</div>
+                  <div className="text-[10px] text-purple-300">Mariana Duarte (Prontuário TACO)</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-purple-400 shrink-0" />
+            </button>
+
+            {/* Passo 3: Assine um Plano */}
+            <button
+              type="button"
+              onClick={handleStepSubscribePlan}
+              className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2.5 shadow-sm hover:scale-[1.01] active:scale-[0.99] ${
+                isPlanSubscribed
+                  ? 'bg-[#1e0a3b] border-emerald-500/50 text-white'
+                  : 'bg-gradient-to-r from-amber-500/20 via-[#220542] to-purple-950/80 hover:from-amber-500/30 border-amber-400/60 text-amber-200'
+              }`}
+              id="btn-onboarding-step-3"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                  isPlanSubscribed ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-black'
+                }`}>
+                  {isPlanSubscribed ? <CheckCircle2 className="w-3.5 h-3.5" /> : '3'}
+                </div>
+                <div className="truncate">
+                  <div className="text-xs font-bold truncate text-white">3. Assine um Plano</div>
+                  <div className="text-[10px] text-amber-300/90">Pix Pro R$ 89,90 ou Anual</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-400 shrink-0" />
+            </button>
           </div>
         </div>
       )}

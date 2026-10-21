@@ -23,12 +23,224 @@ export const INITIAL_FOOD_DATABASE: FoodItem[] = [
   { id: 'f20', name: 'Abacate Hass', category: 'Gorduras Boas', portion: '50g', portionGrams: 50, calories: 80, protein: 1.0, carbs: 4.3, fat: 7.3, fiber: 3.4 }
 ];
 
-// Production Mode: Initial state is clean (0 patients, 0 appointments, 0 transactions)
-export const INITIAL_PATIENTS: Patient[] = [];
+import { Patient, Appointment, FinancialTransaction, FoodItem, ClinicalProtocol, InventoryItem } from '../types';
+
+export const EXAMPLE_PATIENT: Patient = {
+  id: 'paciente-exemplo-demo',
+  name: 'Mariana Duarte Alencar',
+  cpf: '123.456.789-00',
+  email: 'mariana.alencar@exemplo.com.br',
+  phone: '(11) 98765-4321',
+  birthDate: '1992-05-14',
+  age: 33,
+  gender: 'feminino',
+  objective: 'emagrecimento',
+  initialWeightKg: 68.0,
+  currentWeightKg: 64.5,
+  targetWeightKg: 60.0,
+  heightCm: 168,
+  bmi: 22.9,
+  bodyFatPercentage: 21.5,
+  muscleMassPercentage: 34.2,
+  activityFactor: 1.55,
+  tmb: 1395,
+  get: 2162,
+  anamnese: {
+    clinicalHistory: 'Paciente relata fadiga após almoço e distensão abdominal. Sem histórico de cirurgias.',
+    foodAllergiesAndIntolerances: 'Intolerância moderada à lactose e sensibilidade a excesso de glúten.',
+    dietaryPreferences: 'Prefere preparações caseiras, frutas vermelhas, salmão, ovos mexidos e café com canela.',
+    dietaryAversions: 'Refrigerantes e frituras.',
+    routineAndOccupation: 'Arquiteta, trabalha híbrido 3x na semana no escritório e 2x em home office.',
+    bowelHabit: 'diario_normal',
+    sleepHoursPerNight: 7,
+    waterIntakeLiters: 2.2,
+    physicalActivity: 'Musculação 4x/semana e corrida leve aos sábados.',
+    alcoholConsumption: 'social',
+    smoking: false,
+    currentMedicationsAndSupplements: 'Creatina 5g/dia, Vitamina D 2.000 UI e Probiótico intestinal.',
+    emotionalRelationshipWithFood: 'Boa relação, mas busca praticidade no preparo das marmitas da semana.'
+  },
+  mealPlan: {
+    id: 'plano-mariana-01',
+    title: 'Plano Nutricional de Densidade Alta & Modulação Intestinal',
+    dateCreated: '2026-10-18',
+    targetCalories: 1850,
+    targetProteinGrams: 125,
+    targetCarbsGrams: 180,
+    targetFatGrams: 55,
+    targetFiberGrams: 32,
+    hydrationGoalLiters: 2.5,
+    supplements: ['Creatina Monoidratada 5g', 'Ômega-3 1000mg EPA/DHA', 'Glutamina 5g'],
+    meals: [
+      {
+        id: 'm1',
+        name: 'Café da Manhã Energético',
+        time: '07:30',
+        items: [
+          { id: 'mi1', foodName: 'Ovos mexidos com azeite de oliva', portion: '2 unidades', calories: 180, protein: 13, carbs: 1, fat: 14, fiber: 0 },
+          { id: 'mi2', foodName: 'Pão 100% integral ou de aveia', portion: '1 fatia (40g)', calories: 95, protein: 4, carbs: 18, fat: 1, fiber: 3 },
+          { id: 'mi3', foodName: 'Mamão papaia com chia', portion: '1/2 unidade + 1 col sopa', calories: 110, protein: 3, carbs: 18, fat: 4, fiber: 5 }
+        ]
+      },
+      {
+        id: 'm2',
+        name: 'Almoço Funcional',
+        time: '12:30',
+        items: [
+          { id: 'mi4', foodName: 'Filé de Frango Grelhado', portion: '130g', calories: 210, protein: 41, carbs: 0, fat: 3, fiber: 0 },
+          { id: 'mi5', foodName: 'Arroz Integral com Cúrcuma', portion: '4 colheres de sopa (120g)', calories: 150, protein: 3, carbs: 31, fat: 1, fiber: 3 },
+          { id: 'mi6', foodName: 'Feijão Carioca', portion: '1 concha média (100g)', calories: 76, protein: 5, carbs: 14, fat: 0.5, fiber: 8.5 },
+          { id: 'mi7', foodName: 'Salada de Folhas Verdes, Cenoura e Tomate', portion: 'À vontade com 1 col sopa de azeite', calories: 95, protein: 1, carbs: 4, fat: 9, fiber: 3 }
+        ]
+      },
+      {
+        id: 'm3',
+        name: 'Lanche da Tarde Pré-Treino',
+        time: '16:30',
+        items: [
+          { id: 'mi8', foodName: 'Iogurte Natural Lac-Free ou Vegetal', portion: '1 pote (160g)', calories: 90, protein: 8, carbs: 10, fat: 2, fiber: 0 },
+          { id: 'mi9', foodName: 'Whey Protein Isolado', portion: '1 scoop (25g)', calories: 100, protein: 22, carbs: 1, fat: 0.5, fiber: 0 },
+          { id: 'mi10', foodName: 'Morangos frescos', portion: '1 xícara (100g)', calories: 32, protein: 0.7, carbs: 7.7, fat: 0.3, fiber: 2 }
+        ]
+      },
+      {
+        id: 'm4',
+        name: 'Jantar Leve & Reconfortante',
+        time: '20:00',
+        items: [
+          { id: 'mi11', foodName: 'Salmão Assado com Ervas', portion: '120g', calories: 247, protein: 26, carbs: 0, fat: 15, fiber: 0 },
+          { id: 'mi12', foodName: 'Batata Doce Assada', portion: '100g', calories: 86, protein: 1.6, carbs: 20.1, fat: 0.1, fiber: 3 },
+          { id: 'mi13', foodName: 'Brócolis e Abobrinha no Vapor', portion: '1 prato raso', calories: 45, protein: 3, carbs: 8, fat: 0.5, fiber: 4 }
+        ]
+      }
+    ]
+  },
+  prescriptions: [],
+  evolutionHistory: [
+    {
+      id: 'evo-1',
+      date: '2026-08-10',
+      weightKg: 68.0,
+      heightCm: 168,
+      bmi: 24.1,
+      bodyFatPercentage: 24.5,
+      muscleMassPercentage: 32.0,
+      notes: 'Consulta inicial. Traçado objetivo de redução de gordura visceral e melhora da energia.'
+    },
+    {
+      id: 'evo-2',
+      date: '2026-09-15',
+      weightKg: 66.2,
+      heightCm: 168,
+      bmi: 23.5,
+      bodyFatPercentage: 23.0,
+      muscleMassPercentage: 33.1,
+      notes: 'Retorno 35 dias. Excelente adesão alimentar, redução de circunferência de cintura (-3cm).'
+    },
+    {
+      id: 'evo-3',
+      date: '2026-10-18',
+      weightKg: 64.5,
+      heightCm: 168,
+      bmi: 22.9,
+      bodyFatPercentage: 21.5,
+      muscleMassPercentage: 34.2,
+      notes: 'Manutenção da massa magra e diminuição progressiva do percentual de gordura. Paciente muito satisfeita.'
+    }
+  ],
+  labExams: [],
+  notes: 'Paciente exemplo pré-cadastrada para degustação interativa do consultório NutrinK.',
+  status: 'ativo',
+  createdAt: '2026-10-15',
+  tags: ['Exemplo Clínico', 'Modulação Intestinal', 'Composição Corporal']
+};
+
+export const INITIAL_PATIENTS: Patient[] = [EXAMPLE_PATIENT];
 
 export const INITIAL_APPOINTMENTS: Appointment[] = [];
 
 export const INITIAL_TRANSACTIONS: FinancialTransaction[] = [];
+
+export const INITIAL_INVENTORY: InventoryItem[] = [
+  {
+    id: 'inv-fita-metrica',
+    name: 'Fita Métrica Antropométrica Retrátil (Cescorf)',
+    category: 'equipamento',
+    categoryLabel: 'Equipamentos & Avaliação',
+    subcategory: 'Antropometria',
+    currentStock: 4,
+    minStock: 2,
+    unit: 'unidade',
+    unitLabel: 'Unidades',
+    location: 'Gabinete 1 - Gaveta Superior',
+    costPrice: 42.0,
+    salePrice: 75.0,
+    supplier: 'Cescorf Equipamentos Médicos',
+    notes: 'Com trava automática e ponteira para aferição precisa de perímetros.',
+    createdAt: '2026-10-10',
+    updatedAt: '2026-10-10'
+  },
+  {
+    id: 'inv-bio-eletrodos',
+    name: 'Eletrodos para Bioimpedância Tetrapolar (Pacote c/ 100)',
+    category: 'insumo',
+    categoryLabel: 'Insumos Clínicos',
+    subcategory: 'Bioimpedância',
+    currentStock: 12,
+    minStock: 5,
+    unit: 'caixa',
+    unitLabel: 'Caixas',
+    lotNumber: 'BIO-2026-A12',
+    expirationDate: '2027-12-31',
+    location: 'Armário Clínico - Prateleira 2',
+    costPrice: 85.0,
+    salePrice: 130.0,
+    supplier: 'BioHealth Distribuidora',
+    notes: 'Eletrodos descartáveis de prata/cloreto de prata com gel condutor.',
+    createdAt: '2026-10-10',
+    updatedAt: '2026-10-10'
+  },
+  {
+    id: 'inv-whey-isolado',
+    name: 'Whey Protein Isolado 90% Baunilha (Pote 900g)',
+    category: 'suplemento',
+    categoryLabel: 'Suplementos & Amostras',
+    subcategory: 'Proteínas',
+    currentStock: 8,
+    minStock: 3,
+    unit: 'frasco',
+    unitLabel: 'Potes',
+    lotNumber: 'WPI-9844-B',
+    expirationDate: '2027-08-30',
+    location: 'Estoque Suplementação - Armário B',
+    costPrice: 140.0,
+    salePrice: 220.0,
+    supplier: 'NutriSupplements Lab',
+    notes: 'Para revenda e demonstração aos pacientes do consultório.',
+    createdAt: '2026-10-12',
+    updatedAt: '2026-10-12'
+  },
+  {
+    id: 'inv-omega3-tg',
+    name: 'Ômega-3 TG Ultra Concentrado 1000mg EPA/DHA (60 caps)',
+    category: 'suplemento',
+    categoryLabel: 'Suplementos & Amostras',
+    subcategory: 'Lipídios Funcionais',
+    currentStock: 15,
+    minStock: 5,
+    unit: 'frasco',
+    unitLabel: 'Frascos',
+    lotNumber: 'OMG-2026-99',
+    expirationDate: '2028-01-15',
+    location: 'Estoque Suplementação - Armário B',
+    costPrice: 65.0,
+    salePrice: 110.0,
+    supplier: 'NutriSupplements Lab',
+    notes: 'Certificação IFOS 5 estrelas livre de metais pesados.',
+    createdAt: '2026-10-12',
+    updatedAt: '2026-10-12'
+  }
+];
 
 export const CLINICAL_PROTOCOLS: ClinicalProtocol[] = [
   {
