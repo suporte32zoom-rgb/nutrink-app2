@@ -745,8 +745,8 @@ app.get("/api/health", (req: Request, res: Response) => {
 app.all(["/api/gemini/diagnostic", "/api/nutria/diagnostic"], async (req: Request, res: Response) => {
   const startTime = performance.now();
   const timestamp = new Date().toISOString();
-  const targetModel = (req.body?.model || req.query?.model || "gemini-3.8-flash").toString().trim();
-  const testPrompt = (req.body?.prompt || req.query?.prompt || "Diagnostic Ping: Verificação de conectividade com a API Gemini 3.8 Flash para o NutrinK.").toString().trim();
+  const targetModel = (req.body?.model || req.query?.model || "gemini-3.7-flash").toString().trim();
+  const testPrompt = (req.body?.prompt || req.query?.prompt || "Diagnostic Ping: Verificação de conectividade com a API Gemini 3.7 Flash para o NutrinK.").toString().trim();
 
   const activeKey = (
     process.env.GEMINI_API_KEY ||
@@ -845,76 +845,71 @@ app.all(["/api/gemini/diagnostic", "/api/nutria/diagnostic"], async (req: Reques
   }
 });
 
-// Multi-model candidate list prioritizing fast official models
+// Multi-model candidate list prioritizing gemini-3.7-flash official model
 const rawCustomModel = (process.env.VITE_GEMINI_MODEL || process.env.GEMINI_MODEL || "").trim();
 const validCustomModel = isValidGeminiModelName(rawCustomModel) ? rawCustomModel : null;
 
-// Official models supported by @google/genai SDK (prioritizing ultra-fast, responsive models)
+// Official models supported by @google/genai SDK (gemini-3.7-flash prioritized)
 const BASE_GEMINI_MODELS = [
+  "gemini-3.7-flash",
   "gemini-3.8-flash",
-  "gemini-3.1-flash-lite",
   ...(validCustomModel ? [validCustomModel] : []),
+  "gemini-3.1-flash-lite",
   "gemini-flash-latest"
 ].filter((m, idx, arr) => isValidGeminiModelName(m) && arr.indexOf(m) === idx);
 
 // In-memory cooldown tracker for models that return 429 (quota/rate limit) or 503
 const modelCooldowns = new Map<string, number>();
 
-// If free tier daily quota was already exhausted, initialize with cooldown
-const now = Date.now();
-modelCooldowns.set("gemini-3.8-flash", now + 12 * 60 * 60 * 1000);
-modelCooldowns.set("gemini-flash-latest", now + 12 * 60 * 60 * 1000);
-
-function getAvailableGeminiModels(): string[] {
-  const current = Date.now();
-  return BASE_GEMINI_MODELS.filter(m => {
-    const expires = modelCooldowns.get(m) || 0;
-    return expires <= current;
+function getPrioritizedGeminiModels(): string[] {
+  const now = Date.now();
+  const sorted = [...BASE_GEMINI_MODELS].sort((a, b) => {
+    const coolA = (modelCooldowns.get(a) || 0) > now ? 1 : 0;
+    const coolB = (modelCooldowns.get(b) || 0) > now ? 1 : 0;
+    return coolA - coolB;
   });
+  // If all models are currently in cooldown, reset the earliest one to allow retry
+  const allCooling = sorted.every(m => (modelCooldowns.get(m) || 0) > now);
+  if (allCooling && sorted.length > 0) {
+    modelCooldowns.delete(sorted[0]);
+  }
+  return sorted;
 }
 
 function markModelCooldown(model: string, errMessage: string) {
-  const isDailyQuota = errMessage.includes("FreeTier") || 
-                       errMessage.includes("GenerateRequestsPerDay") || 
-                       errMessage.includes("retry in") || 
-                       errMessage.includes("limit: 20") || 
-                       errMessage.includes("RESOURCE_EXHAUSTED");
-  const is429 = errMessage.includes("429") || errMessage.toLowerCase().includes("quota");
-  const is503 = errMessage.includes("503") || errMessage.toLowerCase().includes("unavailable") || errMessage.toLowerCase().includes("high demand");
-  
-  // Daily free-tier quota exhaustion requires a long cooldown (12 hours) so we do not bombard or throw
-  const cooldownMs = isDailyQuota ? 12 * 60 * 60 * 1000 : (is429 ? 10 * 60 * 1000 : (is503 ? 90 * 1000 : 30 * 1000));
+  const is429 = errMessage.includes("429") || errMessage.toLowerCase().includes("quota") || errMessage.toLowerCase().includes("resource_exhausted");
+  const cooldownMs = is429 ? 120 * 1000 : 20 * 1000;
   modelCooldowns.set(model, Date.now() + cooldownMs);
 }
 
 async function generateContentWithFallback(ai: GoogleGenAI, params: any) {
-  const modelsToTry = getAvailableGeminiModels();
-  if (modelsToTry.length === 0) {
-    throw new Error("COOLDOWN_ACTIVE");
-  }
-
   let lastError: any = null;
-  const startTime = Date.now();
+  const modelsToTry = getPrioritizedGeminiModels();
 
   for (const model of modelsToTry) {
-    if (Date.now() - startTime > 3500) {
-      break;
+    const cooldownExpires = modelCooldowns.get(model);
+    if (cooldownExpires && cooldownExpires > Date.now()) {
+      // Model is temporarily in cooldown due to quota, proceed directly to next available model
+      continue;
     }
 
     try {
+      console.log(`[NutrinK AI Engine] Executando com modelo rápido: ${model}...`);
+
       const generatePromise = ai.models.generateContent({
         ...params,
         model
       });
 
+      // Max 10s per model attempt to guarantee ultra-fast response for the user
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error(`Timeout de resposta no modelo ${model}`)), 3000)
+        setTimeout(() => reject(new Error(`Timeout de resposta no modelo ${model} (>10s)`)), 10000)
       );
 
       const result: any = await Promise.race([generatePromise, timeoutPromise]);
       if (result) {
+        console.log(`[NutrinK AI Engine] Resposta gerada com sucesso via ${model}!`);
         const text = result.text || (result as any)?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        console.log(`[NutrinK AI Engine] Resposta gerada via ${model} em ${Date.now() - startTime}ms`);
         return { result, model, text };
       }
     } catch (err: any) {
@@ -922,13 +917,17 @@ async function generateContentWithFallback(ai: GoogleGenAI, params: any) {
       const errMsg = String(err?.message || "");
       markModelCooldown(model, errMsg);
 
-      if (errMsg.includes("UNAUTHENTICATED") || errMsg.includes("401") || errMsg.includes("API_KEY_INVALID")) {
+      // If credentials error, breaking early avoids unnecessary retries
+      if (errMsg.includes("UNAUTHENTICATED") || errMsg.includes("401") || errMsg.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED") || errMsg.includes("API_KEY_INVALID")) {
+        console.warn(`[NutrinK AI Engine] Autenticação da API: ${errMsg}`);
         break;
       }
+
+      console.log(`[NutrinK AI Engine] Modelo ${model} ocupado/lento. Alternando imediatamente para o próximo modelo:`, errMsg);
       continue;
     }
   }
-  throw lastError || new Error("MODELS_UNAVAILABLE");
+  throw lastError || new Error("Modelos Gemini indisponíveis temporariamente.");
 }
 
 app.post(["/api/nutria/chat", "/api/nutria"], async (req: Request, res: Response) => {
@@ -1137,29 +1136,6 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
     let usedModel = "gemini-3.8-flash";
     let geminiResult: any = null;
 
-    // Detect if the message is requesting an operational action (scheduling, patient registration, navigation)
-    // For purely clinical/conversational questions, omitting heavy function declarations saves >70% latency
-    const isActionIntent = /(agend|marcar consulta|remarc|cancelar consulta|cadastr|salvar paciente|novo paciente|lan[çc]ar|despesa|receita|faturam|abrir p[aá]gina|ir para|naveg|tela de|ver prontu[aá]rio)/i.test(normalizedMessage);
-
-    const toolsConfig = isActionIntent ? {
-      tools: [{
-        functionDeclarations: [
-          abrirPaginaInstitucionalTool,
-          navegarParaTelaTool,
-          cadastrarPacienteTool,
-          atualizarPacienteTool,
-          buscarProntuarioTool,
-          agendarConsultaTool,
-          remarcarConsultaTool,
-          cancelarConsultaTool,
-          listarHorariosDisponiveisTool,
-          lancarFinanceiroTool,
-          consultarMetricasFinanceirasTool,
-          gerarPlanoAlimentarTool
-        ]
-      }]
-    } : {};
-
     try {
       const { result, model: detectedModel, text } = await generateContentWithFallback(ai, {
         contents: alternatingContents,
@@ -1173,9 +1149,24 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
 5. Formate as respostas em Markdown limpo, sofisticado e legível, com tabelas organizadas.
 6. REGRA MANDATÓRIA DE SAUDAÇÃO: Horário atual do atendimento é ${brasiliaTime}. Caso o usuário envie saudações (como "Olá", "Bom dia", "Boa tarde", "Boa noite"), utilize OBRIGATORIAMENTE a saudação temporal correspondente: "${formattedGreeting}". NUNCA use "Bom dia" em horários noturnos ou da tarde.
 `,
-          temperature: 0.3,
-          maxOutputTokens: 2048,
-          ...toolsConfig
+          temperature: 0.4,
+          maxOutputTokens: 4096,
+          tools: [{
+            functionDeclarations: [
+              abrirPaginaInstitucionalTool,
+              navegarParaTelaTool,
+              cadastrarPacienteTool,
+              atualizarPacienteTool,
+              buscarProntuarioTool,
+              agendarConsultaTool,
+              remarcarConsultaTool,
+              cancelarConsultaTool,
+              listarHorariosDisponiveisTool,
+              lancarFinanceiroTool,
+              consultarMetricasFinanceirasTool,
+              gerarPlanoAlimentarTool
+            ]
+          }]
         }
       });
 
@@ -1185,7 +1176,7 @@ ATENÇÃO MANDATÓRIA: Realize todos os cálculos energéticos de TMB, GET e tod
       geminiResult = result;
       replyText = text || result?.text || "";
     } catch (modelLoopError: any) {
-      console.log("[NutrinK AI Engine] Motor clínico nativo ativado (alta precisão e resposta imediata).");
+      console.warn("[NutrinK AI Engine] Modelos Gemini com pico de demanda ou cota (503/429). Ativando motor clínico de contingência:", modelLoopError?.message);
       const fallbackResult = generateFallbackClinicalResponse(normalizedMessage, {
         message: normalizedMessage,
         activePatient: targetPatient,
