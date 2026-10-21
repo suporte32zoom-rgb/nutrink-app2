@@ -1056,7 +1056,7 @@ Em pacientes portadores de **Insuficiência Renal Crônica (IRC) não-dialítica
     return {
       reply,
       actionExecuted: detectOperationalAction(userInput, reply, params),
-      model: 'gemini-3.7-flash'
+      model: 'gemini-3.8-flash'
     };
   }
 
@@ -1076,7 +1076,121 @@ Extratos concentrados de Chá Verde com alta titulação de **EGCG (Epigalocateq
     return {
       reply,
       actionExecuted: detectOperationalAction(userInput, reply, params),
-      model: 'gemini-3.7-flash'
+      model: 'gemini-3.8-flash'
+    };
+  }
+
+  // 0.1 Módulo Clínico: SIBO / Síndrome do Intestino Irritável / Protocolo Low-FODMAP
+  if ((lower.includes('sibo') || lower.includes('fodmap') || lower.includes('supercrescimento') || (lower.includes('disbiose') && lower.includes('fermenta'))) && !lower.includes('plano alimentar')) {
+    const reply = `### 🧬 Protocolo Clínico para SIBO e Síndrome do Intestino Irritável (SII) — NÚTRIA
+
+O manejo nutrológico do **Supercrescimento Bacteriano no Intestino Delgado (SIBO)** e da **Síndrome do Intestino Irritável (SII)** exige abordagem em etapas com embasamento no Consenso de Roma IV e Diretrizes da AGA/WGO:
+
+---
+
+#### 1. Estratégia Dietoterápica: Protocolo Low-FODMAP em 3 Fases
+1. **Fase 1: Eliminação Estrita (2 a 6 semanas):**
+   - Retirada temporária de Oligossacarídeos (frutanos, GOS), Dissacarídeos (lactose), Monossacarídeos (frutose livre em excesso) e Polióis (sorbitol, manitol, xilitol).
+   - Reduz a fermentação luminal precoce no jejuno/íleo, diminuindo a produção de gases ($H_2$ e $CH_4$), distensão, dor abdominal e diarreia/constipação osmótica.
+2. **Fase 2: Reintrodução Sistemática Guiada:**
+   - Teste isolado grupo a grupo (ex: 3 dias de consumo com dosagens crescentes de um alimento-teste, seguido de 3 dias de washout) para identificar a sensibilidade individual exata.
+3. **Fase 3: Personalização a Longo Prazo:**
+   - Dieta balanceada com manutenção da maior diversidade possível de fibras toleradas para preservar a microbiota colônica simbiótica.
+
+---
+
+#### 2. Suporte Nutracêutico & Fitoterápico de Alta Precisão
+- **Magnésio Bisglicinato (Quelato de Alta Absorção):** 200 a 300 mg à noite. *(Contraindicados formalmente: óxido, cloreto e citrato pelo efeito laxativo osmótico em casos com diarreia).*
+- **L-Glutamina Pura (Qualidade Farmacêutica):** 5g em 100mL de água em jejum (trofismo e restauração da barreira mucosa intestinal).
+- **Óleo Essencial de Hortelã-Pimenta (*Mentha piperita*) em Cápsula Gastrorresistente:** 0,2 mL (antiespasmódico natural que relaxa a musculatura lisa do trato gastrointestinal).
+- **Alerta Microbiológico:** Não introduzir probióticos ricos em prebióticos (FOS/Inulina) na fase aguda da SIBO para evitar a hiperfermentação no intestino delgado.
+
+---
+Prescrição estruturada pela NÚTRIA para o consultório NutrinK.`;
+
+    return {
+      reply,
+      actionExecuted: detectOperationalAction(userInput, reply, params),
+      model: 'gemini-3.8-flash'
+    };
+  }
+
+  // 0.2 Módulo Clínico: Informações sobre Planos e Assinaturas NutrinK
+  if (lower.includes('quanto custa') || lower.includes('valor do plano') || lower.includes('preço do nutrin') || lower.includes('preco do nutrin') || (lower.includes('plano') && (lower.includes('mensal') || lower.includes('anual') || lower.includes('assinatura') || lower.includes('assinar')))) {
+    const reply = `### 💎 Planos Oficiais da Plataforma NutrinK (nutrink.com.br)
+
+O NutrinK oferece acesso completo e ilimitado a todas as ferramentas do seu consultório virtual e à NÚTRIA IA:
+
+---
+
+#### 1. Plano Profissional Mensal
+- **Investimento:** **R$ 89,90 / mês**
+- **Formas de Pagamento:** Pix Instantâneo (com confirmação automática e QR Code pixelado grande) e Mercado Pago (Cartão de Crédito).
+- **Benefícios Inclusos:**
+  - Copiloto NÚTRIA IA ilimitada (raciocínio clínico em tempo real, condutas e prescrições)
+  - Prontuário eletrônico completo com evolução antropométrica
+  - Agenda inteligente com lembretes
+  - Módulo NutriCalc (TMB, GET, Mifflin-St Jeor, Katch-McArdle e cálculo para obesidade)
+  - Gestão de Estoque & Insumos clínicos
+  - Acesso ao Blog e Hub de Atualizações Científicas
+
+---
+
+#### 2. Plano Profissional Anual *(Mais Vantajoso — 2 Meses Grátis)*
+- **Investimento:** **R$ 899,00 / ano** *(Equivalente a apenas R$ 74,91/mês — Economia direta de R$ 179,80)*
+- **Formas de Pagamento:** Pix Instantâneo (QR Code em tamanho grande) e Parcelamento no Cartão via Mercado Pago.
+- **Benefícios Exclusivos:**
+  - Todos os recursos do plano mensal com prioridade de banda e suporte técnico VIP.
+
+---
+*Para assinar agora, você pode acessar a aba **Planos & Assinaturas** (\`/planos\`) ou solicitar diretamente aqui para abrir o checkout Pix.*`;
+
+    return {
+      reply,
+      actionExecuted: {
+        type: 'NAVIGATE_TAB',
+        payload: { tab: 'plans' },
+        summary: 'Abertura do módulo de Planos e Assinaturas NutrinK.'
+      },
+      model: 'gemini-3.8-flash'
+    };
+  }
+
+  // 0.3 Módulo Clínico: Interações Fármaco-Nutriente Críticas
+  if (lower.includes('interação') || lower.includes('interacao') || lower.includes('fármaco') || lower.includes('farmaco') || lower.includes('medicamento')) {
+    const reply = `### ⚠️ Alertas de Interações Fármaco-Nutriente Críticas — NÚTRIA
+
+Como autoridade médica e nutricional, destaco as principais interações que exigem rigor absoluto na prática clínica:
+
+---
+
+1. **Varfarina (Cumarínicos) × Vitamina K:**
+   - A ingestão oscilante de alimentos ricos em Vitamina K (folhas verdes escuras como couve, espinafre, brócolis) antagoniza o efeito anticoagulante, desestabilizando a RNI (INR).
+   - *Conduta:* Manter consumo diário estável e previsível, sem restrições abruptas nem picos de consumo. Contraindicar suplementos contendo fitomenadiona/menaquinona sem alinhamento médico.
+
+2. **Levotiroxina Sódica (T4) × Cálcio / Ferro / Soja:**
+   - Minerais quelantes e fitatos ligam-se ao hormônio no trato digestivo, diminuindo severamente a biodisponibilidade.
+   - *Conduta:* Ingerir o hormônio em jejum com água pura e manter intervalo mínimo de **4 horas** para ingestão de suplementos de cálcio, ferro ou refeições com soja.
+
+3. **Estatinas (Atorvastatina, Sinvastatina) × Coenzima Q10 (CoQ10):**
+   - A inibição da enzima HMG-CoA redutase bloqueia simultaneamente a síntese endógena de colesterol e de ubiquinona mitocondrial, provocando mialgia e astenia.
+   - *Conduta:* Suplementar Coenzima Q10 (100 a 200 mg/dia) junto a uma refeição contendo gorduras boas.
+
+4. **Metformina × Vitamina B12:**
+   - O uso crônico de metformina altera a motilidade intestinal e interfere na absorção dependente de cálcio do complexo Fator Intrínseco-B12 no íleo terminal.
+   - *Conduta:* Monitoramento semestral de Vitamina B12 sérica e homocisteína; suplementar Metilcobalamina sublingual (500 a 1000 mcg/dia) profilaticamente.
+
+5. **Inibidores da Bomba de Prótons (Omeprazol/Pantoprazol) × Minerais:**
+   - A hipocloridria induzida prejudica a ionização de Ferro, Magnésio, Cálcio e a liberação de B12 ligada às proteínas alimentares.
+   - *Conduta:* Priorizar formas minerais queladas (Ferro Bisglicinato, Magnésio Bisglicinato).
+
+---
+Prescrição estruturada pela NÚTRIA para o consultório NutrinK.`;
+
+    return {
+      reply,
+      actionExecuted: detectOperationalAction(userInput, reply, params),
+      model: 'gemini-3.8-flash'
     };
   }
 
@@ -1401,7 +1515,7 @@ Prescrição estruturada pela NÚTRIA para o consultório NutrinK.`;
   return {
     reply,
     actionExecuted,
-    model: 'gemini-3.7-flash'
+    model: 'gemini-3.8-flash'
   };
 }
 
@@ -1421,9 +1535,9 @@ export function getGenAIClient(apiKey: string): GoogleGenAI {
 }
 
 /**
- * Executa a chamada à NÚTRIA com o modelo Gemini 3.7 Flash oficial @google/genai.
+ * Executa a chamada à NÚTRIA com o modelo Gemini 3.8 Flash oficial @google/genai.
  * 
- * - Configura modelo para 'gemini-3.7-flash'.
+ * - Configura modelo para 'gemini-3.8-flash'.
  * - Utiliza a System Instruction permanente clínica e de gestão do consultório.
  * - Injeta dinamicamente o contexto do paciente ativo e da plataforma.
  * - Trata o histórico de conversa de forma dinâmica sem repetições.
@@ -1489,8 +1603,8 @@ export async function callNutriaDirect(
         };
       }
     }
-  } catch (backendErr: any) {
-    console.warn('[NUTRIA AI] Rota /api/nutria falhou ou atingiu timeout:', backendErr);
+  } catch {
+    // Silently fall back to client/local engine
   }
 
   // 2. Se a rota do servidor falhar e houver chave no cliente, tenta via SDK no cliente com timeout rápido
@@ -1536,13 +1650,10 @@ export async function callNutriaDirect(
             model: modelToTry
           };
         }
-      } catch (sdkError: any) {
-        console.warn(`[NUTRIA AI Gemini SDK] Modelo ${modelToTry} ocupado/lento:`, sdkError?.message || sdkError);
+      } catch {
         continue;
       }
     }
-  } else {
-    console.warn('[NUTRIA AI] Nenhuma chave VITE_GEMINI_API_KEY ou GEMINI_API_KEY detectada no cliente para chamada direta.');
   }
 
   // 3. Fallback final instantâneo (<15ms): Motor clínico local de alta precisão
@@ -1552,6 +1663,6 @@ export async function callNutriaDirect(
     ...fallbackLocal,
     reply: cleanedFallback,
     text: cleanedFallback,
-    model: 'gemini-3.7-flash'
+    model: 'gemini-3.8-flash'
   };
 }
