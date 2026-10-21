@@ -30,7 +30,6 @@ const MercadoPagoSubscriptionsView = lazy(() => import('./components/MercadoPago
 const OnboardingView = lazy(() => import('./components/OnboardingView').then(m => ({ default: m.OnboardingView })));
 const SubscriptionModal = lazy(() => import('./components/SubscriptionModal').then(m => ({ default: m.SubscriptionModal })));
 const InstitutionalDocModal = lazy(() => import('./components/InstitutionalDocModal').then(m => ({ default: m.InstitutionalDocModal })));
-const BlogView = lazy(() => import('./components/BlogView').then(m => ({ default: m.BlogView })));
 
 // Componente elegante de fallback de carregamento de rotas (Dark Mode)
 const RouteLoadingFallback = () => (
@@ -142,12 +141,6 @@ function TelemedicineRouteWrapper(props: any) {
 function InstitutionalDocRouteWrapper(props: any) {
   const { pageId } = useParams<{ pageId?: string }>();
   return <InstitutionalPageView {...props} pageId={pageId || 'sobre'} />;
-}
-
-// Subwrapper component for /blog/:slug route
-function BlogRouteWrapper(props: any) {
-  const { slug } = useParams<{ slug?: string }>();
-  return <BlogView {...props} initialSlug={slug} />;
 }
 
 export function App() {
@@ -1420,7 +1413,6 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 899,00 à 
                 onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
                 onOpenProfileModal={() => setIsProfileModalOpen(true)}
                 onOpenAppointmentDetails={handleOpenAppointmentDetails}
-                onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
               />
             } />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
@@ -1793,24 +1785,6 @@ Seu acesso ao **Plano ${plan === 'premium_anual' ? 'Premium Anual (R$ 899,00 à 
               onOpenLoginModal={() => handleOpenLoginModal('login')}
             />
           } />
-
-          {/* Blog & Hub de Conteúdo Clínico */}
-          <Route path="/blog" element={
-            <BlogView
-              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-              onOpenNutriaPrompt={handleOpenNutriaWithPrompt}
-              onOpenLoginModal={handleOpenLoginModal}
-            />
-          } />
-          <Route path="/blog/:slug" element={
-            <BlogRouteWrapper
-              onOpenSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-              onOpenNutriaPrompt={handleOpenNutriaWithPrompt}
-              onOpenLoginModal={handleOpenLoginModal}
-            />
-          } />
-          <Route path="/artigos" element={<Navigate to="/blog" replace />} />
-          <Route path="/conteudo" element={<Navigate to="/blog" replace />} />
 
           {/* Catch-all fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

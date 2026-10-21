@@ -54,8 +54,6 @@ export const Footer: React.FC<FooterProps> = ({
       sobre: '/sobre',
       metodologia: '/metodologia',
       clientes: '/clientes',
-      blog: '/blog',
-      artigos: '/blog',
       faq: '/faq',
       privacidade_lgpd: '/privacidade',
       termos_servico: '/termos',
@@ -172,16 +170,6 @@ export const Footer: React.FC<FooterProps> = ({
               <span>CONTEÚDOS & SOBRE</span>
             </h3>
             <ul className="space-y-2.5 text-xs">
-              <li>
-                <button
-                  onClick={(e) => handleLinkClick('blog', e)}
-                  className="flex items-center gap-2 text-fuchsia-300 hover:text-white font-bold transition-colors group text-left cursor-pointer"
-                  id="footer-link-blog"
-                >
-                  <BookOpen className="w-3.5 h-3.5 text-fuchsia-400 group-hover:text-amber-300 transition-colors" />
-                  <span>Blog & Hub de Conteúdo Clínico</span>
-                </button>
-              </li>
               <li>
                 <button
                   onClick={(e) => handleLinkClick('sobre', e)}
